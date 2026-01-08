@@ -22,6 +22,7 @@ The API is designed around **RESTful** principles and uses standard **HTTP statu
 | **🕒 Schedule Management** | Create and manage time blocks for tasks. | [View Schedule API](./api/schedule_api.md) |
 | **🏁 Schedule Completion** | Track schedule execution (done/missed). | [View Schedule Completion API](./api/schedule_completion_api.md) |
 | **📊 Dashboard & Analytics** | Aggregated insights, streaks, and performance metrics. | [View Dashboard API](./api/dashboard_api.md) |
+| **🧠 Behavior & Mood** | Log mood, sleep, exercise, and get productivity insights. | [View Behavior API](./api/behavior_api.md) |
 ---
 
 ## ⚠️ Common Standards
