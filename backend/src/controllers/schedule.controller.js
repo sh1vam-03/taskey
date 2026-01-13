@@ -9,7 +9,7 @@ import { nextDay } from "date-fns";
  * @access Private
  */
 export const createSchedule = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { taskId, scheduleDate, startTime, endTime, recurrence = "NONE", repeatUntil, repeatOnDays } = req.body;
 
     if (!taskId || !scheduleDate || !startTime || !endTime) {
@@ -96,7 +96,7 @@ export const createSchedule = asyncHandler(async (req, res) => {
  */
 
 export const getSchedules = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { from, to, taskId } = req.query;
 
     if (from || to) {
@@ -121,7 +121,7 @@ export const getSchedules = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const updateSchedule = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const scheduleId = req.params.id;
     const { scheduleDate, startTime, endTime, recurrence = "NONE", repeatUntil, repeatOnDays, notes } = req.body;
 
@@ -214,7 +214,7 @@ export const updateSchedule = asyncHandler(async (req, res) => {
  */
 
 export const deleteSchedule = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const scheduleId = req.params.id;
 
     const schedule = await scheduleService.deleteSchedule(userId, scheduleId);

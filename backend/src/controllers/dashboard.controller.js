@@ -8,7 +8,7 @@ import ApiError from "../utils/ApiError.js";
  * @access Private
  */
 export const getDashboardOverview = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const data = await dashboardService.getDashboardOverview(userId);
 
@@ -25,7 +25,7 @@ export const getDashboardOverview = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getTodayDashboard = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const data = await dashboardService.getTodayDashboard(userId);
 
@@ -42,7 +42,7 @@ export const getTodayDashboard = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getWeeklyDashboard = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { date } = req.query;
 
     const data = await dashboardService.getWeeklyDashboard(
@@ -63,7 +63,7 @@ export const getWeeklyDashboard = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getMonthlyDashboard = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { year, month } = req.query;
 
     const data = await dashboardService.getMonthlyDashboard(
@@ -85,7 +85,7 @@ export const getMonthlyDashboard = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getStreakOverview = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const data = await dashboardService.getStreakOverview(userId);
 
@@ -102,7 +102,7 @@ export const getStreakOverview = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getStreakCalendar = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const days = Number(req.query.days) || 90;
 
     const data = await dashboardService.getStreakCalendar(userId, days);
@@ -120,7 +120,7 @@ export const getStreakCalendar = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getDailyPerformance = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { date } = req.query;
 
     const data = await dashboardService.getDailyPerformance(
@@ -141,7 +141,7 @@ export const getDailyPerformance = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getWeeklyPerformance = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { date } = req.query;
 
     const data = await dashboardService.getWeeklyPerformance(
@@ -162,7 +162,7 @@ export const getWeeklyPerformance = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getMonthlyPerformance = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { year, month } = req.query;
 
     const data = await dashboardService.getMonthlyPerformance(

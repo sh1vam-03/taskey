@@ -131,7 +131,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
    DELETE ACCOUNT
 ========================= */
 export const deleteMyAccount = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const result = await authService.deleteMyAccount(userId);
 
@@ -145,7 +145,7 @@ export const deleteMyAccount = asyncHandler(async (req, res) => {
    GET PROFILE
 ========================= */
 export const getMyProfile = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const profile = await authService.getMyProfile(userId);
 

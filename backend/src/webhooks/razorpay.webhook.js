@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import asyncHandler from "../utils/asyncHandler.js";
-import * as webhookService from "../services/razorpayWebhook.service.js";
+import * as webhookService from "../services/webhook.service.js";
 
 export const razorpayWebhook = asyncHandler(async (req, res) => {
     const signature = req.headers["x-razorpay-signature"];
@@ -17,7 +17,7 @@ export const razorpayWebhook = asyncHandler(async (req, res) => {
 
     const event = JSON.parse(body);
 
-    await webhookService.handleEvent(event);
+    await webhookService.handleRazorpayEvent(event);
 
     res.status(200).json({ received: true });
 });

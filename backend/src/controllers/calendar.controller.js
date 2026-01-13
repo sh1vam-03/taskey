@@ -4,7 +4,7 @@ import ApiError from "../utils/ApiError.js";
 
 
 export const getDayCalendar = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { date } = req.query;
 
     const data = await calendarService.getDayCalendar(date, userId);
@@ -18,7 +18,7 @@ export const getDayCalendar = asyncHandler(async (req, res) => {
 
 
 export const getWeekCalendar = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { date } = req.query;
 
     const data = await calendarService.getWeekCalendar(date, userId);
@@ -31,7 +31,7 @@ export const getWeekCalendar = asyncHandler(async (req, res) => {
 });
 
 export const getMonthCalendar = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { year, month } = req.query;
 
 

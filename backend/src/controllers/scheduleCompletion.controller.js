@@ -3,7 +3,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 
 export const completeSchedule = asyncHandler(async (req, res) => {
-    const { userId } = req.user;
+    const { id: userId } = req.user;
     const { id } = req.params;
 
     const data = await service.completeSchedule(id, userId);
@@ -16,7 +16,7 @@ export const completeSchedule = asyncHandler(async (req, res) => {
 });
 
 export const undoCompleteSchedule = asyncHandler(async (req, res) => {
-    const { userId } = req.user;
+    const { id: userId } = req.user;
     const { id } = req.params;
 
     await service.undoCompleteSchedule(id, userId);
@@ -28,7 +28,7 @@ export const undoCompleteSchedule = asyncHandler(async (req, res) => {
 });
 
 export const completeBulk = asyncHandler(async (req, res) => {
-    const { userId } = req.user;
+    const { id: userId } = req.user;
     const { scheduleIds } = req.body;
 
     if (!Array.isArray(scheduleIds) || !scheduleIds.length) {
@@ -45,7 +45,7 @@ export const completeBulk = asyncHandler(async (req, res) => {
 });
 
 export const getCompletionHistory = asyncHandler(async (req, res) => {
-    const { userId } = req.user;
+    const { id: userId } = req.user;
 
     const history = await service.getCompletionHistory(userId);
 

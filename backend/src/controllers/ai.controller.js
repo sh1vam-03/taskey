@@ -18,7 +18,7 @@ export const chatWithAssistant = asyncHandler(async (req, res) => {
     const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
 
     // ⚠️ Call AI ONLY after precheck
-    const assistantReply = "AI response here";
+    const assistantReply = await aiService.generateResponse(prompt);
 
     // 🔢 Final token count (real)
     const finalTokensUsed = estimatedTokens;

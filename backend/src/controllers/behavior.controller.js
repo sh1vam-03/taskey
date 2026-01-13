@@ -4,7 +4,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 /* ---------------- UPSERT ---------------- */
 
 export const upsertBehavior = asyncHandler(async (req, res) => {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -21,7 +21,7 @@ export const upsertBehavior = asyncHandler(async (req, res) => {
 /* ---------------- GET BY DATE ---------------- */
 
 export const getBehaviorByDate = asyncHandler(async (req, res) => {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -42,7 +42,7 @@ export const getBehaviorByDate = asyncHandler(async (req, res) => {
 /* ---------------- SUMMARY ---------------- */
 
 export const getBehaviorSummary = asyncHandler(async (req, res) => {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -60,7 +60,7 @@ export const getBehaviorSummary = asyncHandler(async (req, res) => {
 
 
 export const explainScore = asyncHandler(async (req, res) => {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
