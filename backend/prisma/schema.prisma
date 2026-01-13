@@ -7,9 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-//////////////////////
+//======================
 // ENUMS
-//////////////////////
+//======================
 
 enum TaskPriority {
   LOW
@@ -35,9 +35,65 @@ enum RecurrenceType {
   MONTHLY
 }
 
-//////////////////////
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum PlanType {
+  FREE
+  PRO
+  PRO_PLUS
+  ULTRA
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum AiUsageType {
+  CHAT
+  VOICE
+}
+
+enum TokenSource {
+  PLAN_MONTHLY
+  TOP_UP
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  AI_TOP_UP
+}
+
+enum AssistantMessageRole {
+  USER
+  ASSISTANT
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum RazorpayEntity {
+  PAYMENT
+  SUBSCRIPTION
+  INVOICE
+}
+
+//======================
 // USER
-//////////////////////
+//======================
 
 model User {
   id              String  @id @default(uuid())
@@ -45,11 +101,19 @@ model User {
   email           String  @unique
   password        String
   isEmailVerified Boolean @default(false)
-  timezone        String? // e.g. "Asia/Kolkata"
+  timezone        String?
+
+  role   UserRole      @default(USER)
+  status AccountStatus @default(ACTIVE)
+  plan   PlanType      @default(FREE)
+
+  // 🔥 AI TOKENS (VISIBLE TO USER)
+  aiTokenBalance Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
   tasks                Task[]
   schedules            Schedule[]
   scheduleCompletions  ScheduleCompletion[]
@@ -58,11 +122,23 @@ model User {
   categories           Category[]
   behaviors            BehaviorLog[]
   otps                 Otp[]
+  sessions             Session[]
+  subscription         Subscription?
+  usageStats           UsageStat[]
+  aiUsages             AiUsage[]
+  aiTopUps             AiTopUp[]
+  aiChatMessages       AiChatMessage[]
+  aiVoiceSessions      AiVoiceSession[]
+  payments             Payment[]
+
+  @@index([email])
+  @@index([plan])
+  @@index([status])
 }
 
-//////////////////////
+//======================
 // OTP
-//////////////////////
+//======================
 
 model Otp {
   id        String     @id @default(uuid())
@@ -79,9 +155,84 @@ model Otp {
   @@index([userId, purpose])
 }
 
-//////////////////////
+//======================
+// SESSION (JWT SECURITY)
+//======================
+
+model Session {
+  id String @id @default(uuid())
+
+  // JWT access token identifier (jti)
+  accessTokenJti String @unique
+
+  // Refresh token (HASHED)
+  refreshTokenHash String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+//======================
+// SUBSCRIPTION (PLAN ONLY, NO ADS)
+//======================
+
+model Subscription {
+  id String @id @default(uuid())
+
+  plan         PlanType
+  billingCycle BillingCycle
+
+  monthlyTokens Int
+
+  startsAt DateTime  @default(now())
+  endsAt   DateTime?
+  isActive Boolean   @default(true)
+
+  razorpaySubscriptionId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([plan])
+  @@index([isActive])
+}
+
+//======================
+// USAGE TRACKING (FREE VS PRO LIMITS)
+//======================
+
+model UsageStat {
+  id    String @id @default(uuid())
+  month Int
+  year  Int
+
+  taskCount     Int @default(0)
+  scheduleCount Int @default(0)
+  behaviorCount Int @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@index([userId])
+}
+
+//======================
 // TASK
-//////////////////////
+//======================
 
 model Task {
   id          String       @id @default(uuid())
@@ -110,9 +261,9 @@ model Task {
   @@index([categoryId])
 }
 
-//////////////////////
+//======================
 // CATEGORY
-//////////////////////
+//======================
 
 model Category {
   id    String  @id @default(uuid())
@@ -132,9 +283,9 @@ model Category {
   @@index([userId])
 }
 
-//////////////////////
+//======================
 // SCHEDULE
-//////////////////////
+//======================
 
 model Schedule {
   id    String  @id @default(uuid())
@@ -154,7 +305,6 @@ model Schedule {
   taskId String
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  // 🔥 FIX HERE
   completions     ScheduleCompletion[]
   missedSchedules MissedSchedule[]
 
@@ -168,9 +318,9 @@ model Schedule {
   @@index([repeatUntil])
 }
 
-//////////////////////
-// SCHEDULE COMPLETION (MOST IMPORTANT)
-//////////////////////
+//======================
+// SCHEDULE COMPLETION
+//======================
 
 model ScheduleCompletion {
   id          String   @id @default(uuid())
@@ -189,9 +339,9 @@ model ScheduleCompletion {
   @@index([scheduleId])
 }
 
-//////////////////////
-// TASK DAILY COMPLETION (NO SCHEDULE)
-//////////////////////
+//======================
+// TASK DAILY COMPLETION
+//======================
 
 model TaskDailyCompletion {
   id            String   @id @default(uuid())
@@ -209,9 +359,9 @@ model TaskDailyCompletion {
   @@index([userId, completedDate])
 }
 
-//////////////////////
-// MISSED SCHEDULE (CRON GENERATED)
-//////////////////////
+//======================
+// MISSED SCHEDULE
+//======================
 
 model MissedSchedule {
   id       String   @id @default(uuid())
@@ -230,9 +380,9 @@ model MissedSchedule {
   @@index([scheduleId])
 }
 
-//////////////////////
+//======================
 // BEHAVIOR LOG
-//////////////////////
+//======================
 
 model BehaviorLog {
   id         String   @id @default(uuid())
@@ -250,9 +400,9 @@ model BehaviorLog {
   @@unique([userId, date])
 }
 
-//////////////////////
+//======================
 // CONTACT US
-//////////////////////
+//======================
 
 model ContactUs {
   id      String @id @default(uuid())
@@ -264,4 +414,105 @@ model ContactUs {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+//======================
+// AI USAGE & Management
+//======================
+
+model AiUsage {
+  id String @id @default(uuid())
+
+  type       AiUsageType
+  tokensUsed Int
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AiTopUp {
+  id String @id @default(uuid())
+
+  tokensAdded Int
+  source      TokenSource
+
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AiChatMessage {
+  id String @id @default(uuid())
+
+  role       AssistantMessageRole
+  content    String
+  tokensUsed Int
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AiVoiceSession {
+  id String @id @default(uuid())
+
+  transcribedText String
+  assistantReply  String
+
+  durationSeconds Int
+  tokensUsed      Int
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+//======================
+// PAYMENT
+//======================
+
+model Payment {
+  id String @id @default(uuid())
+
+  // Razorpay identifiers
+  razorpayPaymentId      String? @unique
+  razorpayOrderId        String?
+  razorpaySubscriptionId String?
+
+  entity  RazorpayEntity
+  purpose PaymentPurpose
+
+  amount   Int // in paise
+  currency String // INR, USD
+
+  status PaymentStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  aiTopUp AiTopUp?
+
+  @@index([userId])
+  @@index([status])
 }

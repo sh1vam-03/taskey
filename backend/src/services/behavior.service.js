@@ -1,6 +1,7 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { buildDailyStatsMap } from "./dashboard.service.js";
+import { getCurrentMonthYear } from "../utils/date.utils.js";
 
 /* -------------------------------------------------------------------------- */
 /*                               DATE UTILS                                   */
@@ -64,7 +65,15 @@ export const upsertBehaviorLog = async (userId, payload) => {
         throw new ApiError(400, "Future dates are not allowed");
     }
 
-    return prisma.behaviorLog.upsert({
+    // 1️⃣ Check if log already exists
+    const existing = await prisma.behaviorLog.findUnique({
+        where: {
+            userId_date: { userId, date: day }
+        }
+    });
+
+    // 2️⃣ Upsert behavior
+    const behavior = await prisma.behaviorLog.upsert({
         where: {
             userId_date: { userId, date: day }
         },
@@ -81,10 +90,33 @@ export const upsertBehaviorLog = async (userId, payload) => {
             notes,
             sleepHours,
             exercise,
-            productivityScore: 0 // placeholder, not trusted
         }
     });
+
+    /**
+     * 3️⃣ Increment usage ONLY if it's a NEW record
+     * (editing same day should NOT count again)
+     */
+    if (!existing) {
+        const { month, year } = getCurrentMonthYear();
+
+        await prisma.usageStat.update({
+            where: {
+                userId_month_year: {
+                    userId,
+                    month,
+                    year
+                }
+            },
+            data: {
+                behaviorCount: { increment: 1 }
+            }
+        });
+    }
+
+    return behavior;
 };
+
 
 /* -------------------------------------------------------------------------- */
 /*                         GET BEHAVIOR BY DATE                                */

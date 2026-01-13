@@ -12,6 +12,8 @@ import scheduleRoutes from "./schedule.routes.js";
 import scheduleCompletionRoutes from "./scheduleCompletion.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import behaviorRoutes from "./behavior.routes.js";
+import usageRoutes from "./usage.routes.js";
+import billingRoutes from "./billing.routes.js";
 
 router.use("/api", healthRoutes);
 router.use("/api/public-pages", publicPagesRoutes);
@@ -24,5 +26,7 @@ router.use("/api/schedules", scheduleRoutes);
 router.use("/api/schedules", scheduleCompletionRoutes);
 router.use("/api/dashboard", dashboardRoutes);
 router.use("/api/behavior", behaviorRoutes);
+router.use("/api/usage", usageRoutes);
+router.use("/api/subscribe", billingRoutes);
 
 export default router;

@@ -1,4 +1,4 @@
-# 📂 Category API Documentation
+# 📂 Task Category API Documentation
 
 This module handles the CRUD operations for task categories. Users can create, update, and manage their own categories to organize tasks.
 

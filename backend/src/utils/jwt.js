@@ -1,9 +1,49 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
-export const signToken = (payload) =>
-    jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+// =======================
+// JTI GENERATOR
+// =======================
+export const generateJti = () => crypto.randomUUID();
 
-export const verifyToken = (token) =>
-    jwt.verify(token, process.env.JWT_SECRET);
+// =======================
+// ACCESS TOKEN
+// =======================
+export const signAccessToken = ({ userId, jti }) => {
+    if (!userId || !jti) {
+        throw new Error("userId and jti are required to sign access token");
+    }
+
+    return jwt.sign(
+        { userId, jti },
+        process.env.JWT_ACCESS_SECRET,
+        {
+            expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
+        }
+    );
+};
+
+export const verifyAccessToken = (token) => {
+    return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+};
+
+// =======================
+// REFRESH TOKEN
+// =======================
+export const signRefreshToken = ({ userId, jti }) => {
+    if (!userId || !jti) {
+        throw new Error("userId and jti are required to sign refresh token");
+    }
+
+    return jwt.sign(
+        { userId, jti },
+        process.env.JWT_REFRESH_SECRET,
+        {
+            expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+        }
+    );
+};
+
+export const verifyRefreshToken = (token) => {
+    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+};

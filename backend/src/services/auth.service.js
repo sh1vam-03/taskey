@@ -1,202 +1,201 @@
 import prisma from "../config/db.js";
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
-import { signToken } from "../utils/jwt.js";
+import {
+    signAccessToken,
+    signRefreshToken,
+    generateJti,
+} from "../utils/jwt.js";
 import { generateOtp } from "../utils/otp.js";
-import { addMinutes } from "date-fns";
-import { OtpPurpose } from "@prisma/client"
+import { addMinutes, addDays } from "date-fns";
+import {
+    OtpPurpose,
+    AccountStatus,
+} from "@prisma/client";
 import ApiError from "../utils/ApiError.js";
+import crypto from "crypto";
 
+/* =========================
+   SIGNUP
+========================= */
 export const signup = async (name, email, password) => {
-
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-        where: {
-            email,
-        }
+        where: { email },
     });
 
     if (existingUser) {
         throw new ApiError(409, "User with this email already exists");
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user
     const user = await prisma.user.create({
         data: {
             name,
             email,
-            password: hashedPassword
-        }
+            password: hashedPassword,
+        },
     });
 
-
-    // Generate OTP
     const otp = generateOtp();
 
-    // Store OTP in database
     await prisma.otp.create({
         data: {
             code: otp,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             expiresAt: addMinutes(new Date(), 10),
-            userId: user.id
-        }
+            userId: user.id,
+        },
     });
 
-    // TODO: Send OTP via email (integrate email service here)
-    // await emailService.sendOtp(email, otp);
-
     return {
-        userId: user.id,
         email: user.email,
         message: "OTP sent successfully to your email",
     };
 };
 
+/* =========================
+   VERIFY OTP
+========================= */
 export const verifyOtp = async (email, otpCode) => {
-
-    // Find user by email
     const user = await prisma.user.findUnique({
-        where: {
-            email
-        }
+        where: { email },
     });
 
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    if (!user) throw new ApiError(404, "User not found");
 
-    // Find valid OTP
     const otpRecord = await prisma.otp.findFirst({
         where: {
             userId: user.id,
             code: otpCode,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             isUsed: false,
-            expiresAt: {
-                gte: new Date(),
-            }
-        }
+            expiresAt: { gte: new Date() },
+        },
     });
 
     if (!otpRecord) {
-        throw new ApiError(400, "Invalid OTP");
+        throw new ApiError(400, "Invalid or expired OTP");
     }
 
-    if (otpRecord.expiresAt < new Date()) {
-        throw new ApiError(400, "OTP expired");
-    }
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { id: user.id },
+            data: { isEmailVerified: true },
+        }),
+        prisma.otp.update({
+            where: { id: otpRecord.id },
+            data: { isUsed: true },
+        }),
+    ]);
 
-    // Mark user as verified
-    await prisma.user.update({
-        where: {
-            id: user.id
-        },
-        data: {
-            isEmailVerified: true
-        }
-    });
-
-    // Mark OTP as used
-    await prisma.otp.update({
-        where: {
-            id: otpRecord.id
-        },
-        data: {
-            isUsed: true
-        }
-    });
-
-    // Generate JWT token
-    const token = signToken({
-        userId: user.id,
-        email: user.email,
-    });
-
-    return {
-        token,
-        user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            isEmailVerified: user.isEmailVerified,
-        }
-    };
+    return { message: "Email verified successfully" };
 };
 
-export const login = async (email, password) => {
-
-    // Find user by email
+/* =========================
+   LOGIN
+========================= */
+export const login = async (email, password, userAgent, ipAddress) => {
     const user = await prisma.user.findUnique({
-        where: {
-            email
-        }
+        where: { email },
     });
 
     if (!user) {
         throw new ApiError(401, "Invalid email or password");
     }
 
-    // Verify email verification
     if (!user.isEmailVerified) {
         throw new ApiError(401, "Email not verified");
     }
 
-    // Verify password
-    const isPasswordValid = await comparePassword(password, user.password);
+    if (user.status !== AccountStatus.ACTIVE) {
+        throw new ApiError(403, "Account is not active");
+    }
+
+    const isPasswordValid = await comparePassword(
+        password,
+        user.password
+    );
 
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid email or password");
     }
 
-    // Generate token
-    const token = signToken({
+    // Generate session
+    const jti = generateJti();
+
+    const accessToken = signAccessToken({
         userId: user.id,
-        email: user.email,
+        jti,
+    });
+
+    const refreshToken = signRefreshToken({
+        userId: user.id,
+        jti,
+    });
+
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
+
+    await prisma.session.create({
+        data: {
+            accessTokenJti: jti,
+            refreshTokenHash,
+            userAgent,
+            ipAddress,
+            expiresAt: addDays(new Date(), 30),
+            userId: user.id,
+        },
     });
 
     return {
-        token,
+        accessToken,
+        refreshToken,
         user: {
             id: user.id,
             name: user.name,
             email: user.email,
-            isEmailVerified: user.isEmailVerified,
-        }
+            plan: user.plan,
+        },
     };
 };
 
-export const otpRequest = async (email) => {
-
-    const user = await prisma.user.findUnique({
-        where: {
-            email
-        }
+/* =========================
+   LOGOUT (SINGLE DEVICE)
+========================= */
+export const logout = async (sessionId) => {
+    await prisma.session.update({
+        where: { id: sessionId },
+        data: { revokedAt: new Date() },
     });
 
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    return { message: "Logout successful" };
+};
+
+/* =========================
+   OTP REQUEST (EMAIL VERIFY)
+========================= */
+export const otpRequest = async (email) => {
+    const user = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (!user) throw new ApiError(404, "User not found");
 
     if (user.isEmailVerified) {
         throw new ApiError(400, "Email already verified");
     }
 
-    // Invalidate previous OTPs
     await prisma.otp.updateMany({
         where: {
             userId: user.id,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             isUsed: false,
         },
-        data: {
-            isUsed: true,
-        }
+        data: { isUsed: true },
     });
 
-    // Generate new OTP
     const otpCode = generateOtp();
 
     await prisma.otp.create({
@@ -204,47 +203,23 @@ export const otpRequest = async (email) => {
             code: otpCode,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             expiresAt: addMinutes(new Date(), 10),
-            userId: user.id
-        }
+            userId: user.id,
+        },
     });
 
-    // TODO: Send OTP via email (integrate email service here)
-    // await emailService.sendOtp(email, otpCode);
+    return { message: "OTP sent successfully" };
+};
 
-    return { message: "OTP send successfully" };
-}
-
-
-
+/* =========================
+   FORGOT PASSWORD OTP
+========================= */
 export const forgotPasswordOtp = async (email) => {
-
     const user = await prisma.user.findUnique({
-        where: {
-            email
-        }
+        where: { email },
     });
 
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    if (!user) throw new ApiError(404, "User not found");
 
-    if (!user.isEmailVerified) {
-        throw new ApiError(400, "Email not verified");
-    }
-
-    // Invalidate previous OTPs
-    await prisma.otp.updateMany({
-        where: {
-            userId: user.id,
-            purpose: OtpPurpose.PASSWORD_RESET,
-            isUsed: false,
-        },
-        data: {
-            isUsed: true,
-        }
-    });
-
-    // Generate new OTP
     const otpCode = generateOtp();
 
     await prisma.otp.create({
@@ -252,122 +227,181 @@ export const forgotPasswordOtp = async (email) => {
             code: otpCode,
             purpose: OtpPurpose.PASSWORD_RESET,
             expiresAt: addMinutes(new Date(), 10),
-            userId: user.id
-        }
+            userId: user.id,
+        },
     });
 
-    // TODO: Send OTP via email (integrate email service here)
-    // await emailService.sendOtp(email, otpCode);
+    return { message: "OTP sent successfully" };
+};
 
-    return { message: "OTP send successfully" };
-}
-
-
+/* =========================
+   RESET PASSWORD
+========================= */
 export const resetPassword = async (email, otp, password) => {
     const user = await prisma.user.findUnique({
-        where: {
-            email
-        }
+        where: { email },
     });
 
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    if (!user) throw new ApiError(404, "User not found");
 
-    // Verify OTP
     const otpRecord = await prisma.otp.findFirst({
         where: {
             userId: user.id,
             code: otp,
             purpose: OtpPurpose.PASSWORD_RESET,
             isUsed: false,
-            expiresAt: {
-                gte: new Date(),
-            }
-        }
+            expiresAt: { gte: new Date() },
+        },
     });
 
     if (!otpRecord) {
-        throw new ApiError(404, "OTP not found");
+        throw new ApiError(400, "Invalid or expired OTP");
     }
 
-    if (otpRecord.expiresAt < new Date()) {
-        throw new ApiError(400, "OTP expired");
-    }
-
-    if (otpRecord.code !== otp) {
-        throw new ApiError(400, "Invalid OTP");
-    }
-
-    // Mark OTP as used
-    await prisma.otp.update({
-        where: {
-            id: otpRecord.id
-        },
-        data: {
-            isUsed: true
-        }
-    });
-
-    // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Update user password
-    await prisma.user.update({
-        where: {
-            id: user.id
-        },
-        data: {
-            password: hashedPassword
-        }
-    });
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword },
+        }),
+        prisma.otp.update({
+            where: { id: otpRecord.id },
+            data: { isUsed: true },
+        }),
+    ]);
 
     return { message: "Password reset successfully" };
-}
+};
 
-
+/* =========================
+   DELETE ACCOUNT
+========================= */
 export const deleteMyAccount = async (userId) => {
-    // Find user by id
-    const user = await prisma.user.findUnique({
-        where: {
-            id: userId
-        }
-    });
-
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-
-    // Delete user
     await prisma.user.delete({
-        where: {
-            id: user.id
-        }
+        where: { id: userId },
     });
 
     return { message: "Account deleted successfully" };
-}
+};
 
-
+/* =========================
+   GET PROFILE
+========================= */
 export const getMyProfile = async (userId) => {
-    // Find user by id
     const user = await prisma.user.findUnique({
-        where: {
-            id: userId
-        },
+        where: { id: userId },
         select: {
             id: true,
             name: true,
             email: true,
+            plan: true,
             isEmailVerified: true,
             createdAt: true,
-            updatedAt: true,
-        }
+        },
     });
 
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    if (!user) throw new ApiError(404, "User not found");
 
     return user;
-}
+};
+
+
+
+/* =========================
+   REFRESH TOKEN
+========================= */
+export const refreshToken = async (refreshToken) => {
+    if (!refreshToken) {
+        throw new ApiError(401, "Refresh token required");
+    }
+
+    let decoded;
+    try {
+        decoded = verifyRefreshToken(refreshToken);
+    } catch {
+        throw new ApiError(401, "Invalid refresh token");
+    }
+
+    // Hash incoming refresh token
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
+
+    // Find existing session
+    const session = await prisma.session.findFirst({
+        where: {
+            refreshTokenHash,
+            revokedAt: null,
+            expiresAt: {
+                gt: new Date(),
+            },
+        },
+        include: {
+            user: true,
+        },
+    });
+
+    if (!session) {
+        throw new ApiError(401, "Session expired");
+    }
+
+    // Rotate session (VERY IMPORTANT)
+    const newJti = generateJti();
+
+    const newAccessToken = signAccessToken({
+        userId: session.userId,
+        jti: newJti,
+    });
+
+    const newRefreshToken = signRefreshToken({
+        userId: session.userId,
+        jti: newJti,
+    });
+
+    const newRefreshTokenHash = crypto
+        .createHash("sha256")
+        .update(newRefreshToken)
+        .digest("hex");
+
+    // Revoke old session & create new one
+    await prisma.$transaction([
+        prisma.session.update({
+            where: { id: session.id },
+            data: { revokedAt: new Date() },
+        }),
+        prisma.session.create({
+            data: {
+                accessTokenJti: newJti,
+                refreshTokenHash: newRefreshTokenHash,
+                userAgent: session.userAgent,
+                ipAddress: session.ipAddress,
+                expiresAt: addDays(new Date(), 30),
+                userId: session.userId,
+            },
+        }),
+    ]);
+
+    return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+    };
+};
+
+/* =========================
+   LOGOUT ALL SESSIONS
+========================= */
+export const logoutAll = async (userId) => {
+    await prisma.session.updateMany({
+        where: {
+            userId,
+            revokedAt: null,
+        },
+        data: {
+            revokedAt: new Date(),
+        },
+    });
+
+    return { message: "Logged out from all devices" };
+};

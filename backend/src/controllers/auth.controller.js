@@ -2,238 +2,186 @@ import * as authService from "../services/auth.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 
-
-/**
- * @route POST /api/auth/signup
- * @desc Register a new user and send OTP
- * @access Public
- */
-
+/* =========================
+   SIGNUP
+========================= */
 export const signup = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
 
-    // Input Validation
     if (!name || !email || !password) {
         throw new ApiError(400, "All fields are required");
     }
 
-    // Call Service
     const result = await authService.signup(name, email, password);
 
-    // Send Response
-    return res.status(201).json({
+    res.status(201).json({
         success: true,
         message: result.message,
-        data: {
-            email: result.email,
-        },
     });
-
 });
 
-
-/**
- * @route POST /api/auth/verify-otp
- * @desc Verify OTP and return JWT token
- * @access Public
- */
-
+/* =========================
+   VERIFY OTP
+========================= */
 export const verifyOtp = asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
-    // Input Validation
     if (!email || !otp) {
-        throw new ApiError(400, "Please provide email and OTP");
+        throw new ApiError(400, "Email and OTP are required");
     }
 
-    // Call Service
     const result = await authService.verifyOtp(email, otp);
 
-    // Send Response
-    return res.status(200).json({
+    res.status(200).json({
         success: true,
-        message: "Email verified successfully",
-        data: {
-            token: result.token,
-            user: result.user,
-        },
+        message: result.message,
     });
 });
 
-
-/**
- * @route POST /api/auth/login
- * @desc Login a user and return JWT token
- * @access Public
- */
-
+/* =========================
+   LOGIN
+========================= */
 export const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    // Input Validation
     if (!email || !password) {
-        throw new ApiError(400, "Please provide email and password");
+        throw new ApiError(400, "Email and password are required");
     }
 
-    // Call Service
-    const result = await authService.login(email, password);
+    const result = await authService.login(
+        email,
+        password,
+        req.headers["user-agent"],
+        req.ip
+    );
 
-    // Send Response
-    return res.status(200).json({
+    res.status(200).json({
         success: true,
-        message: "Login successful",
-        data: {
-            token: result.token,
-            user: result.user,
-        },
+        data: result,
     });
 });
 
-
-/**
- * @route Post /api/auth/otp-request
- * @desc Resend otp to user email
- * @access Public
- */
-
-export const otpRequest = asyncHandler(async (req, res) => {
-    const { email } = req.body;
-
-    // Input Validation
-    if (!email) {
-        throw new ApiError(400, "Please provide email");
-    }
-
-    // Call Service
-    const result = await authService.otpRequest(email);
-
-    // Send Response
-    return res.status(200).json({
-        success: true,
-        data: {
-            message: result.message,
-        },
-    });
-});
-
-
-/**
- * @route POST /api/auth/forgot-password
- * @desc Forgot password and send OTP
- * @access Public
- */
-
-export const forgotPasswordOtp = asyncHandler(async (req, res) => {
-    const { email } = req.body;
-
-    // Input Validation
-    if (!email) {
-        throw new ApiError(400, "Please provide email");
-    }
-
-    // Call Service
-    const result = await authService.forgotPasswordOtp(email);
-
-    // Send Response
-    return res.status(200).json({
-        success: true,
-        data: {
-            message: result.message,
-        },
-    });
-});
-
-/**
- * @route POST /api/auth/reset-password
- * @desc Reset password
- * @access Public
- */
-
-export const resetPassword = asyncHandler(async (req, res) => {
-    const { email, otp, password } = req.body;
-
-    // Input Validation
-    if (!email || !otp || !password) {
-        throw new ApiError(400, "Please provide email, OTP and password");
-    }
-
-    // Call Service
-    const result = await authService.resetPassword(email, otp, password);
-
-    // Send Response
-    return res.status(200).json({
-        success: true,
-        data: {
-            message: result.message,
-        },
-    });
-});
-
-
-/**
- * @route POST /api/auth/logout
- * @desc Logout user
- * @access Public
- */
-
-export const logout = (req, res) => {
-    // user is already authenticated by authMiddleware
-    // nothing to do server-side for stateless JWT
+/* =========================
+   LOGOUT
+========================= */
+export const logout = asyncHandler(async (req, res) => {
+    await authService.logout(req.sessionId);
 
     res.status(200).json({
         success: true,
         message: "Logout successful",
     });
-};
+});
 
+/* =========================
+   OTP REQUEST
+========================= */
+export const otpRequest = asyncHandler(async (req, res) => {
+    const { email } = req.body;
 
-/**
- * @route DELETE /api/auth/me
- * @desc Delete user account
- * @access Private
- */
+    if (!email) throw new ApiError(400, "Email is required");
 
-export const deleteMyAccount = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const result = await authService.otpRequest(email);
 
-    // Input Validation
-    if (!userId) {
-        throw new ApiError(400, "Please provide user ID");
+    res.status(200).json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/* =========================
+   FORGOT PASSWORD
+========================= */
+export const forgotPasswordOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) throw new ApiError(400, "Email is required");
+
+    const result = await authService.forgotPasswordOtp(email);
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/* =========================
+   RESET PASSWORD
+========================= */
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otp, password } = req.body;
+
+    if (!email || !otp || !password) {
+        throw new ApiError(400, "All fields are required");
     }
 
-    // Call Service
+    const result = await authService.resetPassword(
+        email,
+        otp,
+        password
+    );
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/* =========================
+   DELETE ACCOUNT
+========================= */
+export const deleteMyAccount = asyncHandler(async (req, res) => {
+    const userId = req.user.userId;
+
     const result = await authService.deleteMyAccount(userId);
 
-    // Send Response
-    return res.status(200).json({
+    res.status(200).json({
         success: true,
-        data: {
-            message: result.message,
-        },
+        message: result.message,
+    });
+});
+
+/* =========================
+   GET PROFILE
+========================= */
+export const getMyProfile = asyncHandler(async (req, res) => {
+    const userId = req.user.userId;
+
+    const profile = await authService.getMyProfile(userId);
+
+    res.status(200).json({
+        success: true,
+        data: profile,
     });
 });
 
 
-/**
- * @route GET /api/auth/me
- * @desc Get user profile
- * @access Private
- */
+/* =========================
+   REFRESH TOKEN
+========================= */
+export const refreshToken = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
 
-export const getMyProfile = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
-
-    // Input Validation
-    if (!userId) {
-        throw new ApiError(400, "Please provide user ID");
+    if (!refreshToken) {
+        throw new ApiError(400, "Refresh token is required");
     }
 
-    // Call Service
-    const profile = await authService.getMyProfile(userId);
+    const result = await authService.refreshToken(refreshToken);
 
-    // Send Response
-    return res.status(200).json({
+    res.status(200).json({
         success: true,
-        data: profile,
+        data: result,
+    });
+});
+
+/* =========================
+   LOGOUT ALL DEVICES
+========================= */
+export const logoutAll = asyncHandler(async (req, res) => {
+    await authService.logoutAll(req.user.id);
+
+    res.status(200).json({
+        success: true,
+        message: "Logged out from all devices",
     });
 });

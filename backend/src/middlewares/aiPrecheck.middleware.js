@@ -1,0 +1,28 @@
+import prisma from "../config/db.js";
+import ApiError from "../utils/ApiError.js";
+
+/**
+ * Estimate tokens BEFORE AI call
+ */
+export const precheckAiTokens = (estimateFn) => {
+    return async (req, res, next) => {
+        const userId = req.user.id;
+
+        const estimatedTokens = estimateFn(req);
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { aiTokenBalance: true },
+        });
+
+        if (!user || user.aiTokenBalance < estimatedTokens) {
+            throw new ApiError(
+                403,
+                "Not enough AI tokens for this request"
+            );
+        }
+
+        req.estimatedTokens = estimatedTokens;
+        next();
+    };
+};
