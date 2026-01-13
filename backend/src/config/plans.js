@@ -14,3 +14,5 @@ export const PLANS = {
         YEARLY: { price: 299900, tokens: 3600000 },
     },
 };
+
+export const PLAN_ORDER = [PlanType.FREE, PlanType.PRO, PlanType.PRO_PLUS, PlanType.ULTRA];

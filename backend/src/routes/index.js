@@ -13,7 +13,6 @@ import scheduleCompletionRoutes from "./scheduleCompletion.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import behaviorRoutes from "./behavior.routes.js";
 import usageRoutes from "./usage.routes.js";
-import aiRoutes from "./ai.routes.js";
 import billingRoutes from "./billing.routes.js";
 
 router.use("/api", healthRoutes);
@@ -29,6 +28,5 @@ router.use("/api/dashboard", dashboardRoutes);
 router.use("/api/behavior", behaviorRoutes);
 router.use("/api/usage", usageRoutes);
 router.use("/api/billing", billingRoutes);
-router.use("/api/ai", aiRoutes);
 
 export default router;

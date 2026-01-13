@@ -1,0 +1,1 @@
+//🔥 Core brain (your “best friend” rules)
