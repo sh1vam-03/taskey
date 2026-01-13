@@ -28,8 +28,9 @@ export const createSchedule = async (data) => {
     }
 
     // Normalize time
-    const normalizeStartTime = new Date(`1970-01-01T${startTime}:00`);
-    const normalizeEndTime = new Date(`1970-01-01T${endTime}:00`);
+    // Normalize time (Force UTC to ensure consistent comparison)
+    const normalizeStartTime = new Date(`1970-01-01T${startTime}:00Z`);
+    const normalizeEndTime = new Date(`1970-01-01T${endTime}:00Z`);
 
     if (isNaN(normalizeStartTime.getTime()) || isNaN(normalizeEndTime.getTime())) {
         throw new ApiError(400, "Invalid startTime or endTime format (HH:mm required)");
@@ -194,8 +195,9 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     }
 
     // Normalize time
-    const normalizeStartTime = new Date(`1970-01-01T${startTime}:00`);
-    const normalizeEndTime = new Date(`1970-01-01T${endTime}:00`);
+    // Normalize time (Force UTC to ensure consistent comparison)
+    const normalizeStartTime = new Date(`1970-01-01T${startTime}:00Z`);
+    const normalizeEndTime = new Date(`1970-01-01T${endTime}:00Z`);
 
     if (isNaN(normalizeStartTime.getTime()) || isNaN(normalizeEndTime.getTime())) {
         throw new ApiError(400, "Invalid startTime or endTime format (HH:mm required)");

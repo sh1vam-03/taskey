@@ -17,11 +17,48 @@ export const chatWithAssistant = asyncHandler(async (req, res) => {
     // 🔢 Token estimation (cheap + safe)
     const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
 
+    // Check Balance
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { aiTokenBalance: true }
+    });
+
+    if (!user || user.aiTokenBalance < estimatedTokens) {
+        return res.status(403).json({ message: "Insufficient AI tokens" });
+    }
+
+    // 🧠 Fetch Context (RAG)
+    const [tasks, schedules] = await Promise.all([
+        prisma.task.findMany({
+            where: { userId, isArchived: false },
+            select: { title: true, priority: true, dueDate: true, description: true },
+            take: 20
+        }),
+        prisma.schedule.findMany({
+            where: {
+                userId,
+                scheduleDate: new Date()
+            },
+            select: { startTime: true, endTime: true, notes: true },
+            include: { task: { select: { title: true } } }
+        })
+    ]);
+
+    const context = `
+    User Context:
+    - Today's Date: ${new Date().toDateString()}
+    - Active Tasks: ${JSON.stringify(tasks)}
+    - Today's Schedule: ${JSON.stringify(schedules)}
+    
+    Answer the user's question based on this context if relevant.
+    `;
+
     // ⚠️ Call AI ONLY after precheck
-    const assistantReply = await aiService.generateResponse(prompt);
+    const fullPrompt = `${context}\n\nUser Question: ${prompt}`;
+    const assistantReply = await aiService.generateResponse(fullPrompt);
 
     // 🔢 Final token count (real)
-    const finalTokensUsed = estimatedTokens;
+    const finalTokensUsed = estimatedTokens; // Simplified for now
 
     // ✅ Deduct (safe)
     await deductAiTokens({

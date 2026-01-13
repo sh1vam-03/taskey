@@ -23,6 +23,9 @@ The API is designed around **RESTful** principles and uses standard **HTTP statu
 | **🏁 Schedule Completion** | Track schedule execution (done/missed). | [View Schedule Completion API](./api/schedule_completion_api.md) |
 | **📊 Dashboard & Analytics** | Aggregated insights, streaks, and performance metrics. | [View Dashboard API](./api/dashboard_api.md) |
 | **🧠 Behavior & Mood** | Log mood, sleep, exercise, and get productivity insights. | [View Behavior API](./api/behavior_api.md) |
+| **🤖 AI Assistant** | Chat with Gemini, RAG Context, Voice logs. | [View AI API](./api/ai_api.md) |
+| **💳 Billing & Plans** | Subscriptions, Webhooks, Invoices. | [View Billing API](./api/billing_api.md) |
+| **📈 Usage Limits** | Track free tier usage. | [View Usage API](./api/usage_api.md) |
 ---
 
 ## ⚠️ Common Standards

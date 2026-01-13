@@ -1,5 +1,5 @@
 import { Router } from "express";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import authMiddleware from "../middlewares/auth.middleware.js";
 import { requireAiTokens } from "../middlewares/aiToken.middleware.js";
 import { chatWithAssistant, voiceAssistant } from "../controllers/ai.controller.js";
 
