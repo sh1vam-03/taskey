@@ -64,7 +64,7 @@ ${JSON.stringify(memory, null, 2)}
         const messages = buildMessages(message);
 
         const response = await openai.chat.completions.create({
-            model: "gpt-4.1", // or gpt-4o / gpt-4.1-mini
+            model: "gpt-4o-mini", // or gpt-4o / gpt-4.1-mini
             messages,
             temperature: 0.4, // calm, thoughtful, not chaotic
             response_format: { type: "json_object" }, // forces valid JSON when needed

@@ -1,6 +1,6 @@
 // Short & long term memory logic
 
-import prisma from "../config/db.js";
+import prisma from "../../config/db.js";
 
 /**
  * Memory Manager

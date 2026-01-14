@@ -45,7 +45,7 @@ export const plannerAgent = {
 
         // 3️⃣ Call AI
         const completion = await openai.chat.completions.create({
-            model: "gpt-4.1-mini", // fast + smart + cheap
+            model: "gpt-4o-mini", // fast + smart + cheap
             messages,
             temperature: 0.4, // stable planning
             response_format: { type: "json_object" },

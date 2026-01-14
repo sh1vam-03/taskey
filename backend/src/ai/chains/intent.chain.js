@@ -6,7 +6,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function intentChain({ systemPrompt, memory, userMessage }) {
+export async function runIntentChain({ systemPrompt, memory, userMessage }) {
     const messages = [
         {
             role: "system",
@@ -37,7 +37,7 @@ Output format:
     ];
 
     const res = await openai.chat.completions.create({
-        model: "gpt-4.1-mini",
+        model: "gpt-4o-mini",
         messages,
         temperature: 0.2,
         response_format: { type: "json_object" },

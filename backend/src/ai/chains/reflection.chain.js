@@ -2,7 +2,7 @@ import { validateSchedules } from "../validators/schedule.validator.js";
 
 const MAX_REPAIR_ATTEMPTS = 2;
 
-export const reflectAndRepairPlan = async ({
+export const runReflectionChain = async ({
     agent,
     originalInput,
     aiResult,

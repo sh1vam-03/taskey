@@ -1,12 +1,12 @@
 import { openai } from "../index.js";
 import systemPrompt from "../agent/system.prompt.js";
-import { reflectionChain } from "./reflection.chain.js";
+import { runReflectionChain } from "./reflection.chain.js";
 
 /**
  * Planner Chain
  * Responsible for generating a complete daily plan
  */
-export async function plannerChain({
+export async function runPlannerChain({
     userMessage,
     intent,
     memoryContext,
@@ -58,7 +58,7 @@ export async function plannerChain({
 
     // 1️⃣ Generate initial plan
     const initialResponse = await openai.chat.completions.create({
-        model: "gpt-4.1",
+        model: "gpt-4o-mini",
         messages,
         temperature: 0.3, // stable, not creative nonsense
     });
@@ -66,7 +66,7 @@ export async function plannerChain({
     const rawPlan = initialResponse.choices[0].message.content;
 
     // 2️⃣ Self-reflection & correction
-    const finalPlan = await reflectionChain({
+    const finalPlan = await runReflectionChain({
         originalPlan: rawPlan,
         memoryContext,
         profileContext,
