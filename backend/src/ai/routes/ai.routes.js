@@ -1,19 +1,26 @@
 import { Router } from "express";
 import authMiddleware from "../../middlewares/auth.middleware.js";
 import { executeAi, getHistory } from "../controllers/ai.controller.js";
+import { requireAiTokens, precheckAiTokens } from "../../middlewares/ai.middleware.js";
+import { AiUsageType } from "@prisma/client";
 
 const router = Router();
 
-/**
- * POST /api/ai/text/execute
- * Main AI execution endpoint
- */
-router.post("/execute", authMiddleware, executeAi);
+router.post(
+    "/execute",
+    authMiddleware,
+    requireAiTokens(AiUsageType.TEXT),   // ⬅ REQUIRED
+    precheckAiTokens(AiUsageType.TEXT),  // ⬅ REQUIRED
+    executeAi
+);
 
-/**
- * GET /api/ai/text/history
- * Fetch past AI conversations
- */
-router.get("/history", authMiddleware, getHistory);
+router.get(
+    "/history",
+    authMiddleware,
+    getHistory
+);
+
+router.get("/usage", authMiddleware, getMyUsage);
+
 
 export default router;

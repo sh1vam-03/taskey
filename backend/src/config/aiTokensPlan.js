@@ -11,6 +11,13 @@ export const AI_TOKEN_COST = {
     VOICE: 5,       // per second OR fixed multiplier
 };
 
+// FREE plan limits (monthly)
+const FREE_LIMITS = {
+    tasks: 20,
+    schedules: 30,
+    behaviors: 15,
+};
+
 import requirePlan from "./requirePlan.js";
 import { PlanType, BillingCycle } from "@prisma/client";
 

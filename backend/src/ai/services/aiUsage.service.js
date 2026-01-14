@@ -1,13 +1,8 @@
+
 import prisma from "../config/db.js";
 import { PlanType, UserRole } from "@prisma/client";
 import { getCurrentMonthYear } from "../utils/date.utils.js";
-
-// FREE plan limits (monthly)
-const FREE_LIMITS = {
-    tasks: 20,
-    schedules: 30,
-    behaviors: 15,
-};
+import { FREE_LIMITS } from "../config/aiTokensPlan.js";
 
 export const getMyUsage = async (user) => {
     const { id: userId, plan, role } = user;

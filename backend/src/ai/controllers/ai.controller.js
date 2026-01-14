@@ -41,3 +41,18 @@ export const getHistory = asyncHandler(async (req, res) => {
         data: history,
     });
 });
+
+/**
+ * GET /api/ai/usage
+ * Fetch AI usage
+ */
+export const getMyUsage = asyncHandler(async (req, res) => {
+    const user = req.user; // { id, role, plan }
+
+    const data = await usageService.getMyUsage(user);
+
+    res.status(200).json({
+        success: true,
+        data,
+    });
+});
