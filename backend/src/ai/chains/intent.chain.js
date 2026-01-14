@@ -2,11 +2,13 @@
 
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+
 
 export async function runIntentChain({ systemPrompt, memory, userMessage }) {
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const messages = [
         {
             role: "system",
