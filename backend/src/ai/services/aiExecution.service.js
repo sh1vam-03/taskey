@@ -11,8 +11,8 @@ import { deductAiTokens } from "./aiToken.service.js";
 export const executeAiPlan = async ({
     user,
     aiResult,
-    mode = "TEXT",
     estimatedTokens = 0,
+    aiUsageType = "CHAT",
 }) => {
     if (!aiResult || typeof aiResult !== "object") {
         throw new ApiError(400, "Invalid AI response");
@@ -38,6 +38,7 @@ export const executeAiPlan = async ({
                 tx,
                 userId: user.id,
                 tokens: estimatedTokens,
+                type: aiUsageType,
             });
         }
 

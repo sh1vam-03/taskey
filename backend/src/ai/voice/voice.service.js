@@ -1,17 +1,16 @@
 import { transcribeAudio } from "./stt.service.js";
 import { speakText } from "./tts.service.js";
-import { createAgent } from "../agent/agent.factory.js";
 import { inferVoiceEmotion } from "./voiceEmotion.service.js";
+import { processAiRequest } from "../services/aiOrchestrator.service.js";
 
 export const processVoiceInput = async ({ audioPath, user }) => {
     // 1️⃣ Speech → Text
     const inputText = await transcribeAudio(audioPath);
 
-    // 2️⃣ Run SAME AI agent
-    const agent = createAgent({ user });
-
-    const aiResult = await agent.run({
-        input: inputText,
+    // 2️⃣ Run UNIFIED Orchestrator
+    const aiResult = await processAiRequest({
+        userId: user.id,
+        message: inputText,
         mode: "VOICE",
     });
 
