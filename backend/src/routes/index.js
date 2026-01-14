@@ -14,7 +14,7 @@ import dashboardRoutes from "./dashboard.routes.js";
 import behaviorRoutes from "./behavior.routes.js";
 import usageRoutes from "./usage.routes.js";
 import billingRoutes from "./billing.routes.js";
-import aiRoutes from "../ai/index.js";
+import aiRoutes from "../ai/routes/ai.routes.js";
 
 router.use("/api", healthRoutes);
 router.use("/api/public-pages", publicPagesRoutes);

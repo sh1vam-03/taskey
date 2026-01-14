@@ -3,7 +3,7 @@ import { runIntentChain } from "../chains/intent.chain.js";
 import { runPlannerChain } from "../chains/planner.chain.js";
 import { runReflectionChain } from "../chains/reflection.chain.js";
 import { validateSafety } from "../validators/safety.validator.js";
-import { validateSchedule } from "../validators/schedule.validator.js";
+import { validateSchedules } from "../validators/schedule.validator.js";
 import { executeAiPlan } from "./aiExecution.service.js";
 import { estimateTokens } from "../utils/token.utils.js"; // simple estimator
 import ApiError from "../../utils/ApiError.js";
@@ -27,19 +27,56 @@ export const processAiRequest = async ({ userId, message, mode = "TEXT" }) => {
     });
 
     /**
+     * 1.5️⃣ FETCH CONTEXT (Memory & Profile)
+     */
+    const [userProfile, behaviorLogs, chatHistory] = await Promise.all([
+        // Profile
+        import("../../config/db.js").then((m) =>
+            m.default.user.findUnique({
+                where: { id: userId },
+                select: { name: true, plan: true, timezone: true },
+            })
+        ),
+        // Behavior (last 7 days)
+        import("../../config/db.js").then((m) =>
+            m.default.behaviorLog.findMany({
+                where: { userId },
+                orderBy: { date: "desc" },
+                take: 7,
+            })
+        ),
+        // Chat History (last 6 messages)
+        import("../../config/db.js").then((m) =>
+            m.default.aiChatMessage.findMany({
+                where: { userId },
+                orderBy: { createdAt: "desc" },
+                take: 6,
+            })
+        ),
+    ]);
+
+    const memoryContext = {
+        recentBehaviors: behaviorLogs,
+        recentChat: chatHistory.reverse(), // generic order
+    };
+
+    /**
      * 2️⃣ INTENT CHAIN
      */
     const intentResult = await runIntentChain({
-        agent,
-        input: message,
+        agent, // fallback
+        userMessage: message, // explicit
+        memory: memoryContext,
     });
 
     /**
      * 3️⃣ PLANNER CHAIN
      */
     const plan = await runPlannerChain({
-        agent,
+        userMessage: message,
         intent: intentResult,
+        memoryContext,
+        profileContext: userProfile,
     });
 
     /**
@@ -47,7 +84,8 @@ export const processAiRequest = async ({ userId, message, mode = "TEXT" }) => {
      */
     const refinedPlan = await runReflectionChain({
         agent,
-        plan,
+        originalInput: message,
+        aiResult: plan,
     });
 
     /**
@@ -59,7 +97,7 @@ export const processAiRequest = async ({ userId, message, mode = "TEXT" }) => {
      * 6️⃣ SCHEDULE SANITY VALIDATION
      */
     if (refinedPlan.schedules && refinedPlan.schedules.length > 0) {
-        validateSchedule(refinedPlan.schedules);
+        validateSchedules(refinedPlan.schedules);
     }
 
     /**
@@ -78,6 +116,7 @@ export const processAiRequest = async ({ userId, message, mode = "TEXT" }) => {
         plan: refinedPlan,
         estimatedTokens: finalCost,
         aiUsageType: mode === "VOICE" ? "VOICE" : "CHAT",
+        userMessage: message,
     });
 
     return {

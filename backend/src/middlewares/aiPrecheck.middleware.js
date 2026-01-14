@@ -1,5 +1,6 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
+import { AiUsageType } from "@prisma/client";
 
 /**
  * Estimate tokens BEFORE AI call
@@ -27,9 +28,7 @@ export const precheckAiTokens = (estimateFn) => {
     };
 };
 
-import prisma from "../config/db.js";
-import ApiError from "../utils/ApiError.js";
-import { AiUsageType } from "@prisma/client";
+
 
 export const requireAiTokens = (type) => {
     return async (req, res, next) => {

@@ -1,6 +1,10 @@
-import { openai } from "../index.js";
+import OpenAI from "openai";
 import systemPrompt from "../agent/system.prompt.js";
 import { runReflectionChain } from "./reflection.chain.js";
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 /**
  * Planner Chain

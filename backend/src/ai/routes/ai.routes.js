@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../../middlewares/auth.middleware.js";
-import { executeAi } from "../controllers/ai.controller.js";
+import { executeAi, getHistory } from "../controllers/ai.controller.js";
 
 const router = Router();
 
@@ -9,5 +9,11 @@ const router = Router();
  * Main AI execution endpoint
  */
 router.post("/execute", authMiddleware, executeAi);
+
+/**
+ * GET /api/ai/text/history
+ * Fetch past AI conversations
+ */
+router.get("/history", authMiddleware, getHistory);
 
 export default router;

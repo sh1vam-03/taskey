@@ -20,3 +20,24 @@ export const executeAi = asyncHandler(async (req, res) => {
         data: result,
     });
 });
+
+/**
+ * GET /api/ai/text/history
+ * Fetch AI chat history
+ */
+export const getHistory = asyncHandler(async (req, res) => {
+    const user = req.user;
+
+    const history = await import("../../config/db.js").then((m) =>
+        m.default.aiChatMessage.findMany({
+            where: { userId: user.id },
+            orderBy: { createdAt: "desc" },
+            take: 50,
+        })
+    );
+
+    res.status(200).json({
+        success: true,
+        data: history,
+    });
+});

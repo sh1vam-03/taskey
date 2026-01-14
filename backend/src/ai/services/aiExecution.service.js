@@ -1,6 +1,6 @@
 import prisma from "../../config/db.js";
 import ApiError from "../../utils/ApiError.js";
-import { validateSchedule } from "../validators/schedule.validator.js";
+import { validateSchedules } from "../validators/schedule.validator.js";
 import { validateSafety } from "../validators/safety.validator.js";
 import { deductAiTokens } from "./aiToken.service.js";
 
@@ -11,8 +11,8 @@ import { deductAiTokens } from "./aiToken.service.js";
 export const executeAiPlan = async ({
     user,
     aiResult,
-    estimatedTokens = 0,
     aiUsageType = "CHAT",
+    userMessage = "", // [NEW] User input
 }) => {
     if (!aiResult || typeof aiResult !== "object") {
         throw new ApiError(400, "Invalid AI response");
@@ -24,15 +24,15 @@ export const executeAiPlan = async ({
         throw new ApiError(400, "AI output structure invalid");
     }
 
-    // 1️⃣ Safety validation (burnout, addiction, unhealthy behavior)
+    // 1️⃣ Safety validation
     validateSafety(aiResult);
 
-    // 2️⃣ Schedule sanity validation (time overlap, breaks, etc.)
-    validateSchedule(schedules);
+    // 2️⃣ Schedule sanity validation
+    validateSchedules(schedules);
 
     // 3️⃣ Atomic execution
     return prisma.$transaction(async (tx) => {
-        // 3.1 Deduct tokens FIRST (prevents free execution)
+        // 3.1 Deduct tokens
         if (estimatedTokens > 0) {
             await deductAiTokens({
                 tx,
@@ -42,7 +42,30 @@ export const executeAiPlan = async ({
             });
         }
 
-        // 3.2 Create tasks (map title → id)
+        // 3.2 Save Chat History (Atomic)
+        if (userMessage) {
+            // User message
+            await tx.aiChatMessage.create({
+                data: {
+                    userId: user.id,
+                    role: "USER",
+                    content: userMessage,
+                    tokensUsed: 0, // Input tokens usually negligible or included in total
+                },
+            });
+
+            // Assistant reply
+            await tx.aiChatMessage.create({
+                data: {
+                    userId: user.id,
+                    role: "ASSISTANT",
+                    content: aiResult.summary || "Action completed.",
+                    tokensUsed: estimatedTokens,
+                },
+            });
+        }
+
+        // 3.3 Create tasks
         const taskIdMap = new Map();
 
         for (const task of tasks) {
@@ -57,7 +80,7 @@ export const executeAiPlan = async ({
             taskIdMap.set(task.title, createdTask.id);
         }
 
-        // 3.3 Create schedules
+        // 3.4 Create schedules
         for (const slot of schedules) {
             const taskId = taskIdMap.get(slot.taskTitle);
 
@@ -72,7 +95,7 @@ export const executeAiPlan = async ({
                 data: {
                     userId: user.id,
                     taskId,
-                    scheduleDate: new Date(), // daily planner
+                    scheduleDate: new Date(),
                     startTime: parseTime(slot.startTime),
                     endTime: parseTime(slot.endTime),
                     notes: slot.label,
