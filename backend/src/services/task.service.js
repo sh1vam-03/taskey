@@ -1,17 +1,17 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
+import { getCurrentMonthYear } from "../utils/date.utils.js";
 
 export const createTask = async (userId, taskData) => {
     const { title, description, priority, dueDate, categoryId } = taskData;
 
-    // Validate category id if provide
+    // Validate category if provided
     if (categoryId) {
         const category = await prisma.category.findFirst({
-            where:
-            {
+            where: {
                 id: categoryId,
-                userId
-            }
+                userId,
+            },
         });
 
         if (!category) {
@@ -19,6 +19,7 @@ export const createTask = async (userId, taskData) => {
         }
     }
 
+    // 1️⃣ Create task
     const task = await prisma.task.create({
         data: {
             title,
@@ -26,13 +27,29 @@ export const createTask = async (userId, taskData) => {
             priority,
             dueDate: dueDate ? new Date(dueDate) : null,
             categoryId,
-            userId
-        }
+            userId,
+        },
+    });
+
+    // 2️⃣ Increment monthly task usage
+    const { month, year } = getCurrentMonthYear();
+
+    await prisma.usageStat.update({
+        where: {
+            userId_month_year: {
+                userId,
+                month,
+                year,
+            },
+        },
+        data: {
+            taskCount: { increment: 1 },
+        },
     });
 
     return task;
-
 };
+
 
 
 export const getTasks = async (userId, query) => {

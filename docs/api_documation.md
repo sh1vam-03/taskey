@@ -16,9 +16,16 @@ The API is designed around **RESTful** principles and uses standard **HTTP statu
 | **🌐 Public API** | System Health Checks and Contact Forms. Accessible without auth. | [View Public API](./api/public_api.md) |
 | **🔐 Authentication** | Signup, Login, Password Reset, and User Profile. | [View Auth API](./api/auth_api.md) |
 | **📝 Task Management** | CRUD operations for Tasks. | [View Task API](./api/task_api.md) |
-| **📂 Category Management** | CRUD operations for Task Categories. | [View Category API](./api/category_api.md) |
+| **📂 Task Category Management** | CRUD operations for Task Categories. | [View Category API](./api/category_api.md) |
 | **✅ Task Completion** | Mark tasks as Done/Undone, History, Bulk actions. | [View Completion API](./api/task_completion_api.md) |
 | **📅 Calendar** | Day, Week, and Month views of scheduled tasks. | [View Calendar API](./api/calendar_api.md) |
+| **🕒 Schedule Management** | Create and manage time blocks for tasks. | [View Schedule API](./api/schedule_api.md) |
+| **🏁 Schedule Completion** | Track schedule execution (done/missed). | [View Schedule Completion API](./api/schedule_completion_api.md) |
+| **📊 Dashboard & Analytics** | Aggregated insights, streaks, and performance metrics. | [View Dashboard API](./api/dashboard_api.md) |
+| **🧠 Behavior & Mood** | Log mood, sleep, exercise, and get productivity insights. | [View Behavior API](./api/behavior_api.md) |
+| **🤖 AI Assistant** | Chat with Gemini, RAG Context, Voice logs. | [View AI API](./api/ai_api.md) |
+| **💳 Billing & Plans** | Subscriptions, Webhooks, Invoices. | [View Billing API](./api/billing_api.md) |
+| **📈 Usage Limits** | Track free tier usage. | [View Usage API](./api/usage_api.md) |
 ---
 
 ## ⚠️ Common Standards

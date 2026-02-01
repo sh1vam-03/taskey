@@ -10,7 +10,7 @@ import ApiError from "../utils/ApiError.js";
  */
 
 export const createCategory = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { name, color, icon } = req.body;
 
     if (!name || !name.trim()) {
@@ -33,7 +33,7 @@ export const createCategory = asyncHandler(async (req, res) => {
  */
 
 export const getCategories = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const categories = await categoriesService.getCategories(userId);
 
@@ -51,7 +51,7 @@ export const getCategories = asyncHandler(async (req, res) => {
  * @access Private
  */
 export const getCategory = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
 
     const category = await categoriesService.getCategory(userId, id);
@@ -72,7 +72,7 @@ export const getCategory = asyncHandler(async (req, res) => {
  */
 
 export const updateCategory = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
     const { name, color, icon } = req.body;
 
@@ -97,7 +97,7 @@ export const updateCategory = asyncHandler(async (req, res) => {
  */
 
 export const deleteCategory = asyncHandler(async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { id } = req.params;
 
     await categoriesService.deleteCategory(userId, id);

@@ -10,7 +10,7 @@ import { TaskPriority } from "@prisma/client";
  */
 
 export const createTask = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { title, description, priority, dueDate, categoryId } = req.body;
 
     if (!title || !title.trim()) {
@@ -34,7 +34,7 @@ export const createTask = asyncHandler(async (req, res) => {
  */
 
 export const getTasks = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
 
     // Input Validation
     const result = await taskService.getTasks(userId, req.query);
@@ -50,7 +50,7 @@ export const getTasks = asyncHandler(async (req, res) => {
  */
 
 export const getTask = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { id } = req.params;
 
     // Input Validation
@@ -67,7 +67,7 @@ export const getTask = asyncHandler(async (req, res) => {
  */
 
 export const updateTask = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { id } = req.params;
 
     // Input Validation
@@ -85,7 +85,7 @@ export const updateTask = asyncHandler(async (req, res) => {
  */
 
 export const deleteTask = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { id } = req.params;
 
     // Input Validation

@@ -9,7 +9,7 @@ import * as     taskCompletionService from "../services/taskCompletion.service.j
  */
 
 export const completeTask = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { id } = req.params;
     const { date } = req.body;
 
@@ -30,9 +30,14 @@ export const completeTask = asyncHandler(async (req, res) => {
  */
 
 export const undoTaskCompletion = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
-    const { id } = req.params;
-    const { date } = req.body;
+    const userId = req.user.id; //From JWT
+    const id = req.params.id;
+    const date = req.body.date;
+
+    if (!date) {
+        throw new ApiError(400, "date is required to undo completion");
+    }
+
 
     // Input Validation
     await taskCompletionService.undoTaskCompletion(userId, id, date);
@@ -51,10 +56,10 @@ export const undoTaskCompletion = asyncHandler(async (req, res) => {
  */
 
 export const getTaskCompletion = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { id: taskId } = req.params;
 
-    const completion = await taskCompletionService.getTaskCompletion(userId, taskId);
+    const completion = await taskCompletionService.getTaskCompletionHistory(userId, taskId);
 
     res.status(200).json({
         success: true,
@@ -70,7 +75,7 @@ export const getTaskCompletion = asyncHandler(async (req, res) => {
  */
 
 export const completeBulkTasks = asyncHandler(async (req, res) => {
-    const userId = req.user.userId; //From JWT
+    const userId = req.user.id; //From JWT
     const { taskIds, date } = req.body;
 
     // Input Validation
