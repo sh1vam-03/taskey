@@ -1,0 +1,115 @@
+import asyncHandler from "../../utils/asyncHandler.js";
+import prisma from "../../config/db.js";
+import { runAgentGraph } from "../graph/main.graph.js";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { transcribeAudio } from "./stt.service.js";
+import { speakText } from "./tts.service.js";
+import { inferVoiceEmotion } from "./voice.emotion.js";
+
+/**
+ * POST /api/ai/conversations/:id/voice
+ * Send voice message and receive audio response + text persistence
+ */
+// Imports
+import { validateInputSafety } from "../validators/safety.validator.js";
+import { countTokens, trackTokenUsage } from "../services/aiToken.service.js";
+
+// ...
+
+export const sendVoiceMessage = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!req.file) throw new Error("Audio file is required");
+
+    // 1. Transcribe Audio
+    const inputText = await transcribeAudio(req.file.path);
+
+    // 1.1 Safety Check on Transcribed Text
+    if (!validateInputSafety(inputText)) {
+        res.status(400);
+        throw new Error("Unsafe voice content detected. Request blocked.");
+    }
+
+    // 2. Verify Conversation Ownership
+    const conversation = await prisma.aiConversation.findFirst({
+        where: { id, userId: user.id }
+    });
+    if (!conversation) throw new Error("Conversation not found");
+
+    // 3. Save User Message (Text from Audio)
+    await prisma.aiMessage.create({
+        data: {
+            conversationId: id,
+            userId: user.id,
+            role: "USER",
+            content: inputText,
+            metadata: { type: "AUDIO", audioPath: req.file.path }
+        }
+    });
+
+    // 4. Load History (for context)
+    const history = await prisma.aiMessage.findMany({
+        where: { conversationId: id, userId: user.id },
+        orderBy: { createdAt: 'asc' },
+        take: 20
+    });
+
+    const lcMessages = history.map(msg =>
+        msg.role === 'USER' ? new HumanMessage(msg.content) : new AIMessage(msg.content)
+    );
+
+    // 5. Run LangGraph Agent
+    const aiResponse = await runAgentGraph({
+        userId: user.id,
+        messages: lcMessages,
+        user,
+        conversationId: id
+    });
+
+    const aiContent = aiResponse.content;
+    const aiContentString = typeof aiContent === 'string' ? aiContent : JSON.stringify(aiContent);
+
+    // 6. Save AI Response
+    const savedAiMsg = await prisma.aiMessage.create({
+        data: {
+            conversationId: id,
+            userId: user.id,
+            role: "ASSISTANT",
+            content: aiContentString
+        }
+    });
+
+    // 7. Generate Audio Response (TTS)
+    const emotionContext = { summary: aiContentString };
+    const emotion = inferVoiceEmotion(emotionContext);
+    const audioPathResult = await speakText({ text: aiContentString, emotion });
+
+    // 8. Token Accounting (Voice is more expensive? For now treat as text tokens)
+    const inputTokens = countTokens(inputText);
+    const outputTokens = countTokens(aiContentString);
+    const totalTokens = inputTokens + outputTokens;
+
+    trackTokenUsage({
+        userId: user.id,
+        conversationId: id,
+        tokens: totalTokens,
+        type: "VOICE"
+    });
+
+    // 9. Update Timestamp
+    await prisma.aiConversation.update({
+        where: { id },
+        data: { lastMessageAt: new Date(), updatedAt: new Date() }
+    });
+
+    res.json({
+        success: true,
+        data: {
+            message: savedAiMsg,
+            audioPath: audioPathResult,
+            inputText,
+            emotion
+        }
+    });
+});
