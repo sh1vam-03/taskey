@@ -68,14 +68,22 @@ enum TokenSource {
   TOP_UP
 }
 
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AiConversationType {
+  GENERAL
+  DAILY_PLANNING
+  REFLECTION
+  VOICE
+}
+
 enum PaymentPurpose {
   SUBSCRIPTION
   AI_TOP_UP
-}
-
-enum AssistantMessageRole {
-  USER
-  ASSISTANT
 }
 
 enum PaymentStatus {
@@ -107,13 +115,12 @@ model User {
   status AccountStatus @default(ACTIVE)
   plan   PlanType      @default(FREE)
 
-  // 🔥 AI TOKENS (VISIBLE TO USER)
   aiTokenBalance Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
+  // Core relations
   tasks                Task[]
   schedules            Schedule[]
   scheduleCompletions  ScheduleCompletion[]
@@ -125,11 +132,13 @@ model User {
   sessions             Session[]
   subscription         Subscription?
   usageStats           UsageStat[]
-  aiUsages             AiUsage[]
-  aiTopUps             AiTopUp[]
-  aiChatMessages       AiChatMessage[]
-  aiVoiceSessions      AiVoiceSession[]
   payments             Payment[]
+
+  // AI
+  aiUsages        AiUsage[]
+  aiTopUps        AiTopUp[]
+  aiConversations AiConversation[]
+  aiMessages      AiMessage[]
 
   @@index([email])
   @@index([plan])
@@ -417,8 +426,60 @@ model ContactUs {
 }
 
 //======================
-// AI USAGE & Management
+// AI & USAGE & MANAGEMENT
 //======================
+
+model AiConversation {
+  id String @id @default(uuid())
+
+  title String?
+  type  AiConversationType @default(GENERAL)
+
+  totalTokensUsed Int @default(0)
+
+  isPinned   Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  lastMessageAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages AiMessage[]
+  aiUsages AiUsage[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([lastMessageAt])
+}
+
+model AiMessage {
+  id String @id @default(uuid())
+
+  role    AiMessageRole
+  content String
+
+  tokensUsed Int @default(0)
+
+  meta Json?
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([userId])
+  @@index([createdAt])
+}
 
 model AiUsage {
   id String @id @default(uuid())
@@ -426,12 +487,16 @@ model AiUsage {
   type       AiUsageType
   tokensUsed Int
 
+  conversationId String?
+  conversation   AiConversation? @relation(fields: [conversationId], references: [id])
+
   createdAt DateTime @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([conversationId])
   @@index([createdAt])
 }
 
@@ -443,39 +508,6 @@ model AiTopUp {
 
   paymentId String  @unique
   payment   Payment @relation(fields: [paymentId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model AiChatMessage {
-  id String @id @default(uuid())
-
-  role       AssistantMessageRole
-  content    String
-  tokensUsed Int
-
-  createdAt DateTime @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model AiVoiceSession {
-  id String @id @default(uuid())
-
-  transcribedText String
-  assistantReply  String
-
-  durationSeconds Int
-  tokensUsed      Int
 
   createdAt DateTime @default(now())
 
