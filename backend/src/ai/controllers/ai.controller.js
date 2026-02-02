@@ -71,7 +71,7 @@ export const getMessages = asyncHandler(async (req, res) => {
  */
 // Imports
 import { validateInputSafety } from "../validators/safety.validator.js";
-import { countTokens, trackTokenUsage } from "../services/aiToken.service.js";
+import { countTokens, trackTokenUsage, checkTokenBalance } from "../services/aiToken.service.js";
 
 // ...
 
@@ -80,7 +80,10 @@ export const sendMessage = asyncHandler(async (req, res) => {
     const { content } = req.body;
     const user = req.user;
 
-    // 0. Safety Check
+    // 0. Strict Billing Pre-Check
+    await checkTokenBalance(user.id);
+
+    // 0.1 Safety Check
     if (!validateInputSafety(content)) {
         res.status(400);
         throw new Error("Unsafe input detected. Request blocked.");

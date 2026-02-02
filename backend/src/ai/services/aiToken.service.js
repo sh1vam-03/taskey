@@ -8,6 +8,23 @@ export const countTokens = (text) => {
 };
 
 /**
+ * Check if user has sufficient tokens to proceed (Strict Billing)
+ * Throws if balance is too low.
+ */
+export const checkTokenBalance = async (userId) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("User not found");
+
+    // Minimum threshold to start a request
+    const MIN_TOKENS = 50;
+
+    if (user.aiTokenBalance < MIN_TOKENS) {
+        throw new Error("Insufficient AI tokens. Please upgrade your plan.");
+    }
+    return true;
+};
+
+/**
  * Track token usage in DB
  * Updates:
  * 1. AiUsage (Log)
@@ -40,6 +57,10 @@ export const trackTokenUsage = async ({ userId, conversationId, tokens, type = "
 
         // 3. Deduct from User Balance
         const user = await prisma.user.findUnique({ where: { id: userId } });
+
+        // TODO (V2): Move this check to "Pre-Generation" phase.
+        // Currently we allow the generation to complete and then error if balance is exceeded (Soft Limit).
+        // For strict billing, this should be checked before calling the LLM.
         if (user && user.aiTokenBalance < tokens) {
             // For V1, logging warning, but effectively we stop tracking or throw? 
             // User requested: throw Error("AI token limit exceeded")

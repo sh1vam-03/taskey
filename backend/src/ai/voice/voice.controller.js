@@ -5,6 +5,7 @@ import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { transcribeAudio } from "./stt.service.js";
 import { speakText } from "./tts.service.js";
 import { inferVoiceEmotion } from "./voice.emotion.js";
+import fs from 'fs';
 
 /**
  * POST /api/ai/conversations/:id/voice
@@ -12,13 +13,16 @@ import { inferVoiceEmotion } from "./voice.emotion.js";
  */
 // Imports
 import { validateInputSafety } from "../validators/safety.validator.js";
-import { countTokens, trackTokenUsage } from "../services/aiToken.service.js";
+import { countTokens, trackTokenUsage, checkTokenBalance } from "../services/aiToken.service.js";
 
 // ...
 
 export const sendVoiceMessage = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const user = req.user;
+
+    // 0. Strict Billing Pre-Check
+    await checkTokenBalance(user.id);
 
     if (!req.file) throw new Error("Audio file is required");
 
@@ -102,6 +106,16 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
         where: { id },
         data: { lastMessageAt: new Date(), updatedAt: new Date() }
     });
+
+    // 10. Clean up Temp Audio
+    // Optional V1 Polish: Remove the uploaded file to save disk space
+    try {
+        if (req.file && req.file.path) {
+            fs.unlinkSync(req.file.path);
+        }
+    } catch (e) {
+        console.warn("Failed to delete temp audio file:", e.message);
+    }
 
     res.json({
         success: true,

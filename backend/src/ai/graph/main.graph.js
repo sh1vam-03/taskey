@@ -14,6 +14,10 @@ import { shouldContinue } from "./edges.js";
 // Map<userId, CompiledGraph>
 const graphCache = new Map();
 
+// Global Graph Key:
+// Since our tools are stateless (config-based) and the model is standard,
+// we can use a single compiled graph instance for all users.
+// State is maintained per-invocation via the 'checkpoint' mechanism (memory), not the graph definition.
 const GRAPH_KEY = "standard-graph";
 
 /**
