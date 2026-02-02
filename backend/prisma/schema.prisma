@@ -63,9 +63,10 @@ enum AiUsageType {
   VOICE
 }
 
-enum TokenSource {
-  PLAN_MONTHLY
-  TOP_UP
+enum CreditSource {
+  PLAN_CYCLE // monthly or yearly subscription credit
+  TOP_UP // add-on purchase
+  REFUND // admin or system refund
 }
 
 enum AiMessageRole {
@@ -83,7 +84,8 @@ enum AiConversationType {
 
 enum PaymentPurpose {
   SUBSCRIPTION
-  AI_TOP_UP
+  TOP_UP
+  REFUND
 }
 
 enum PaymentStatus {
@@ -113,9 +115,8 @@ model User {
 
   role   UserRole      @default(USER)
   status AccountStatus @default(ACTIVE)
-  plan   PlanType      @default(FREE)
 
-  aiTokenBalance Int @default(0)
+  aiCreditBalance Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,9 +140,9 @@ model User {
   aiTopUps        AiTopUp[]
   aiConversations AiConversation[]
   aiMessages      AiMessage[]
+  creditLedger    AiCreditLedger[]
 
   @@index([email])
-  @@index([plan])
   @@index([status])
 }
 
@@ -171,10 +172,10 @@ model Otp {
 model Session {
   id String @id @default(uuid())
 
-  // JWT access token identifier (jti)
+  // JWT access credit identifier (jti)
   accessTokenJti String @unique
 
-  // Refresh token (HASHED)
+  // Refresh credit (HASHED)
   refreshTokenHash String @unique
 
   userAgent String?
@@ -201,21 +202,28 @@ model Subscription {
   plan         PlanType
   billingCycle BillingCycle
 
-  monthlyTokens Int
+  // 🔑 credits granted per cycle (monthly OR yearly)
+  cycleCredits Int
 
-  startsAt DateTime  @default(now())
-  endsAt   DateTime?
-  isActive Boolean   @default(true)
+  startsAt      DateTime  @default(now())
+  endsAt        DateTime?
+  nextBillingAt DateTime
+  lastBilledAt  DateTime?
+
+  isActive            Boolean   @default(true)
+  lastCreditGrantedAt DateTime?
 
   razorpaySubscriptionId String? @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([plan])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, isActive])
+  @@index([nextBillingAt])
+  @@index([billingCycle])
   @@index([isActive])
 }
 
@@ -435,7 +443,7 @@ model AiConversation {
   title String?
   type  AiConversationType @default(GENERAL)
 
-  totalTokensUsed Int @default(0)
+  totalCreditsUsed Int @default(0)
 
   isPinned   Boolean @default(false)
   isArchived Boolean @default(false)
@@ -462,7 +470,7 @@ model AiMessage {
   role    AiMessageRole
   content String
 
-  tokensUsed Int @default(0)
+  creditsUsed Int @default(0)
 
   meta Json?
 
@@ -484,8 +492,9 @@ model AiMessage {
 model AiUsage {
   id String @id @default(uuid())
 
-  type       AiUsageType
-  tokensUsed Int
+  type        AiUsageType
+  model       String // gpt-4o-mini, whisper-1, tts-1
+  creditsUsed Int
 
   conversationId String?
   conversation   AiConversation? @relation(fields: [conversationId], references: [id])
@@ -503,8 +512,7 @@ model AiUsage {
 model AiTopUp {
   id String @id @default(uuid())
 
-  tokensAdded Int
-  source      TokenSource
+  creditsAdded Int
 
   paymentId String  @unique
   payment   Payment @relation(fields: [paymentId], references: [id])
@@ -515,6 +523,27 @@ model AiTopUp {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model AiCreditLedger {
+  id String @id @default(uuid())
+
+  credits Int // + or -
+  source  CreditSource
+  reason  String?
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  conversationId String?
+  paymentId      String?
+
+  @@index([userId])
+  @@index([source])
+  @@index([createdAt])
 }
 
 //======================
