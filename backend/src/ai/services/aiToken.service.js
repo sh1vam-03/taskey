@@ -1,87 +1,75 @@
 import prisma from "../../config/db.js";
+import { AI_COSTS } from "../../config/plans.config.js";
+import ApiError from "../../utils/ApiError.js";
 
-// Simple heuristic: 1 token ~= 4 chars (English)
-// For production, use 'tiktoken' or similar.
+// Helper: Estimate token count (heuristic)
 export const countTokens = (text) => {
     if (!text) return 0;
     return Math.ceil(text.length / 4);
 };
 
-/**
- * Check if user has sufficient tokens to proceed (Strict Billing)
- * Throws if balance is too low.
- */
-export const checkTokenBalance = async (userId) => {
+// 1️⃣ Credit check
+export const checkCreditBalance = async (userId, min = 10) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new Error("User not found");
+    if (!user) throw new ApiError(404, "User not found");
 
-    // Minimum threshold to start a request
-    const MIN_TOKENS = 50;
-
-    if (user.aiTokenBalance < MIN_TOKENS) {
-        throw new Error("Insufficient AI tokens. Please upgrade your plan.");
+    if (user.aiCreditBalance < min) {
+        throw new ApiError(402, "AI credits exhausted. Please upgrade your plan or top-up.");
     }
-    return true;
 };
 
-/**
- * Track token usage in DB
- * Updates:
- * 1. AiUsage (Log)
- * 2. AiConversation.totalTokensUsed (Aggregate)
- * 3. User.aiTokenBalance (Deduction)
- */
-export const trackTokenUsage = async ({ userId, conversationId, tokens, type = "CHAT" }) => {
-    if (!tokens || tokens <= 0) return;
+// 2️⃣ Credit deduction (Atomic & Ledgered)
+export const deductCredits = async ({
+    userId,
+    conversationId,
+    credits,
+    source = "AI_USAGE",
+    model,
+    type
+}) => {
+    // Ensure positive integer
+    const amount = Math.max(1, Math.ceil(credits));
 
-    try {
-        // 1. Log Usage
-        await prisma.aiUsage.create({
+    return prisma.$transaction(async (tx) => {
+        // 1. Update user balance
+        const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: {
+                aiCreditBalance: { decrement: amount }
+            }
+        });
+
+        // 2. Usage log (Granular)
+        await tx.aiUsage.create({
             data: {
                 userId,
                 conversationId,
-                type, // 'CHAT' or 'VOICE'
-                tokensUsed: tokens
+                model: model || "unknown",
+                type: type || "CHAT", // CHAT or VOICE
+                creditsUsed: amount
             }
         });
 
-        // 2. Update Conversation Total
+        // 3. Ledger (Financial Record)
+        await tx.aiCreditLedger.create({
+            data: {
+                userId,
+                credits: -amount,
+                source: "AI_USAGE",
+                conversationId
+            }
+        });
+
+        // 4. Conversation aggregate
         if (conversationId) {
-            await prisma.aiConversation.update({
+            await tx.aiConversation.update({
                 where: { id: conversationId },
                 data: {
-                    totalTokensUsed: { increment: tokens }
+                    totalCreditsUsed: { increment: amount }
                 }
             });
         }
-
-        // 3. Deduct from User Balance
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-
-        // TODO (V2): Move this check to "Pre-Generation" phase.
-        // Currently we allow the generation to complete and then error if balance is exceeded (Soft Limit).
-        // For strict billing, this should be checked before calling the LLM.
-        if (user && user.aiTokenBalance < tokens) {
-            // For V1, logging warning, but effectively we stop tracking or throw? 
-            // User requested: throw Error("AI token limit exceeded")
-            // NOTE: Since this happens AFTER generation, throwing here is for visibility/logging.
-            console.error(`User ${userId} exceeded token balance.`);
-            // We still try to update to 0 or negative to show debt? 
-            // Request said "Token balance can go negative" -> "Fix".
-            // We'll throw to signal the issue.
-            throw new Error("AI token limit exceeded");
-        }
-
-        await prisma.user.update({
-            where: { id: userId },
-            data: {
-                aiTokenBalance: { decrement: tokens }
-            }
-        });
-
-
-    } catch (error) {
-        console.error("Token Tracking Failed:", error);
-        // We do NOT throw here to avoid failing the user request just because stats failed
-    }
+    });
 };
+
+

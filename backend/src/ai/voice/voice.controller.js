@@ -13,7 +13,7 @@ import fs from 'fs';
  */
 // Imports
 import { validateInputSafety } from "../validators/safety.validator.js";
-import { countTokens, trackTokenUsage, checkTokenBalance } from "../services/aiToken.service.js";
+import { countTokens, checkCreditBalance, deductCredits } from "../services/aiToken.service.js";
 
 // ...
 
@@ -22,7 +22,7 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
     const user = req.user;
 
     // 0. Strict Billing Pre-Check
-    await checkTokenBalance(user.id);
+    await checkCreditBalance(user.id);
 
     if (!req.file) throw new Error("Audio file is required");
 
@@ -89,15 +89,16 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
     const emotion = inferVoiceEmotion(emotionContext);
     const audioPathResult = await speakText({ text: aiContentString, emotion });
 
-    // 8. Token Accounting (Voice is more expensive? For now treat as text tokens)
+    // 8. Credit Deduction (Voice is expensive)
     const inputTokens = countTokens(inputText);
     const outputTokens = countTokens(aiContentString);
     const totalTokens = inputTokens + outputTokens;
 
-    trackTokenUsage({
+    await deductCredits({
         userId: user.id,
         conversationId: id,
-        tokens: totalTokens,
+        credits: totalTokens * 1.5, // Voice premium multiplier
+        model: "whisper-1 / tts-1",
         type: "VOICE"
     });
 

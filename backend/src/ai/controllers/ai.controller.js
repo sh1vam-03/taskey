@@ -71,7 +71,7 @@ export const getMessages = asyncHandler(async (req, res) => {
  */
 // Imports
 import { validateInputSafety } from "../validators/safety.validator.js";
-import { countTokens, trackTokenUsage, checkTokenBalance } from "../services/aiToken.service.js";
+import { countTokens, checkCreditBalance, deductCredits } from "../services/aiToken.service.js"; // updated service
 
 // ...
 
@@ -81,7 +81,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     const user = req.user;
 
     // 0. Strict Billing Pre-Check
-    await checkTokenBalance(user.id);
+    await checkCreditBalance(user.id);
 
     // 0.1 Safety Check
     if (!validateInputSafety(content)) {
@@ -137,16 +137,15 @@ export const sendMessage = asyncHandler(async (req, res) => {
         }
     });
 
-    // 6. Token Accounting
-    const inputTokens = countTokens(content);
-    const outputTokens = countTokens(aiContentString);
-    const totalTokens = inputTokens + outputTokens;
+    // 6. Credit Deduction (Atomic)
+    const creditsUsed = countTokens(content) + countTokens(aiContentString);
 
-    // Async tracking (fire and forget to not block response)
-    trackTokenUsage({
+    // We use "gpt-4o" as default here per prompt
+    await deductCredits({
         userId: user.id,
         conversationId: id,
-        tokens: totalTokens,
+        credits: creditsUsed,
+        model: "gpt-4o",
         type: "CHAT"
     });
 

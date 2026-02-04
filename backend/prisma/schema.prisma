@@ -50,7 +50,6 @@ enum PlanType {
   FREE
   PRO
   PRO_PLUS
-  ULTRA
 }
 
 enum BillingCycle {
@@ -67,6 +66,7 @@ enum CreditSource {
   PLAN_CYCLE // monthly or yearly subscription credit
   TOP_UP // add-on purchase
   REFUND // admin or system refund
+  AI_USAGE // consumption
 }
 
 enum AiMessageRole {
@@ -114,6 +114,7 @@ model User {
   timezone        String?
 
   role   UserRole      @default(USER)
+  plan   PlanType      @default(FREE)
   status AccountStatus @default(ACTIVE)
 
   aiCreditBalance Int @default(0)

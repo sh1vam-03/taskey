@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import requireRole from "../middlewares/requireRole.js";
 import * as billingController from "../controllers/billing.controller.js";
 
 const router = Router();
