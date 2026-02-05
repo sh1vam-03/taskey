@@ -1,14 +1,23 @@
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 export default function AiEnergySphere({
     size = 500,
     speed = 1,
-    particleCount = 120
+    particleCount = 180 // Increased from 120
 }) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Prevent hydration mismatch by only rendering random elements after mount
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // Generate particles in a spherical distribution
     const particles = useMemo(() => {
+        if (!isMounted) return [];
+
         return [...Array(particleCount)].map((_, i) => {
             // Spherical coordinates for even distribution
             const r = 140 + Math.random() * 100; // Radius spread
@@ -28,7 +37,20 @@ export default function AiEnergySphere({
                 duration: 10 + Math.random() * 20
             };
         });
-    }, [particleCount]);
+    }, [particleCount, isMounted]);
+
+    if (!isMounted) {
+        // Render a static placeholder or nothing during SSR/initial render to avoid mismatch
+        return (
+            <div
+                className="relative flex items-center justify-center select-none pointer-events-none"
+                style={{ width: size, height: size }}
+            >
+                {/* Static Core Placeholder */}
+                <div className="absolute w-20 h-20 bg-cyan-500/20 blur-2xl rounded-full" />
+            </div>
+        );
+    }
 
     return (
         <div
@@ -79,7 +101,7 @@ export default function AiEnergySphere({
                 <div className="absolute w-10 h-10 bg-white/50 blur-xl rounded-full" />
                 <div className="absolute w-4 h-4 bg-cyan-400 rounded-full shadow-[0_0_50px_rgba(6,182,212,1)]" />
 
-                {/* 3. GYROSCOPIC RINGS */}
+                {/* 3. GYROSCOPIC RINGS (Expanded Collection) */}
                 {/* Ring 1 - Dashed Data Ring */}
                 <motion.div
                     className="absolute w-[60%] h-[60%] border border-dashed border-cyan-500/30 rounded-full box-border"
@@ -90,7 +112,7 @@ export default function AiEnergySphere({
 
                 {/* Ring 2 - Solid Orbital */}
                 <motion.div
-                    className="absolute w-[80%] h-[80%] border-[2px] border-transparent border-t-cyan-500/50 border-b-cyan-500/50 rounded-full"
+                    className="absolute w-[80%] h-[80%] border-2 border-transparent border-t-cyan-500/50 border-b-cyan-500/50 rounded-full"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateZ: 360, rotateX: 45 }}
                     transition={{ duration: 15 / speed, repeat: Infinity, ease: "linear" }}
@@ -98,12 +120,11 @@ export default function AiEnergySphere({
 
                 {/* Ring 3 - Large Outer */}
                 <motion.div
-                    className="absolute w-[100%] h-[100%] border border-white/5 rounded-full"
+                    className="absolute w-full h-full border border-white/5 rounded-full"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateY: -360, rotateZ: 15 }}
                     transition={{ duration: 30 / speed, repeat: Infinity, ease: "linear" }}
                 >
-                    {/* Ring Decorator */}
                     <div className="absolute top-1/2 -right-1 w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_10px_cyan]" />
                 </motion.div>
 
@@ -113,6 +134,22 @@ export default function AiEnergySphere({
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateY: 360 }}
                     transition={{ duration: 10 / speed, repeat: Infinity, ease: "linear" }}
+                />
+
+                {/* Ring 5 - Inner Fast Gyro (NEW) */}
+                <motion.div
+                    className="absolute w-[40%] h-[40%] border-[0.5px] border-cyan-400/30 rounded-full"
+                    style={{ transformStyle: "preserve-3d" }}
+                    animate={{ rotateX: 360, rotateZ: 360 }}
+                    transition={{ duration: 5 / speed, repeat: Infinity, ease: "linear" }}
+                />
+
+                {/* Ring 6 - Diagonal Offset (NEW) */}
+                <motion.div
+                    className="absolute w-[90%] h-[90%] border border-white/5 border-l-cyan-500/20 rounded-full"
+                    style={{ transformStyle: "preserve-3d" }}
+                    animate={{ rotateX: -360, rotateY: 45 }}
+                    transition={{ duration: 25 / speed, repeat: Infinity, ease: "linear" }}
                 />
 
             </div>
