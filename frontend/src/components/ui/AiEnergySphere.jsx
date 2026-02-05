@@ -70,7 +70,7 @@ export default function AiEnergySphere({
                 {/* 3. ADDITIONAL GYROSCOPIC RINGS (Increased Count) */}
                 {/* Ring 1 - Fast Inner */}
                 <motion.div
-                    className="absolute inset-[25%] rounded-full border-[1px] border-cyan-500/30 border-t-white/80"
+                    className="absolute inset-[25%] rounded-full border border-cyan-500/30 border-t-white/80"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateX: 360, rotateY: 15 }}
                     transition={{ duration: 8 / speed, repeat: Infinity, ease: "linear" }}
@@ -78,7 +78,7 @@ export default function AiEnergySphere({
 
                 {/* Ring 2 - Vertical */}
                 <motion.div
-                    className="absolute inset-[20%] rounded-full border-[1px] border-cyan-400/20 border-r-white/60"
+                    className="absolute inset-[20%] rounded-full border border-cyan-400/20 border-r-white/60"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateY: 360, rotateX: 340 }}
                     transition={{ duration: 12 / speed, repeat: Infinity, ease: "linear" }}
@@ -86,7 +86,7 @@ export default function AiEnergySphere({
 
                 {/* Ring 3 - Diagonal */}
                 <motion.div
-                    className="absolute inset-[15%] rounded-full border-[1px] border-blue-500/20 border-b-cyan-300/50"
+                    className="absolute inset-[15%] rounded-full border border-blue-500/20 border-b-cyan-300/50"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateZ: 360, rotateX: 60 }}
                     transition={{ duration: 15 / speed, repeat: Infinity, ease: "linear" }}
@@ -102,7 +102,7 @@ export default function AiEnergySphere({
 
                 {/* Ring 5 - The "Data Field" (Dotted) */}
                 <motion.div
-                    className="absolute inset-0 rounded-full border-[1px] border-dashed border-cyan-900/40"
+                    className="absolute inset-0 rounded-full border border-dashed border-cyan-900/40"
                     style={{ transformStyle: "preserve-3d" }}
                     animate={{ rotateY: -360 }}
                     transition={{ duration: 40 / speed, repeat: Infinity, ease: "linear" }}

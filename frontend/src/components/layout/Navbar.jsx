@@ -2,104 +2,140 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import useTheme from "@/hooks/useDarkmode"
 import { motion, AnimatePresence } from "framer-motion"
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false)
-    const [theme, setTheme] = useTheme()
     const pathname = usePathname()
     const [scrolled, setScrolled] = useState(false)
 
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 50)
+            setScrolled(window.scrollY > 20)
         }
         window.addEventListener("scroll", handleScroll)
         return () => window.removeEventListener("scroll", handleScroll)
     }, [])
 
     const navLinks = [
-        { name: "Home", path: "/" },
-        { name: "About", path: "/about" },
-        { name: "Contact", path: "/contact" }
+        { name: "Features", path: "#features" },
+        { name: "Methodology", path: "#how-it-works" },
+        { name: "Pricing", path: "#pricing" }
     ]
 
     return (
         <motion.nav
             initial={{ y: -100 }}
             animate={{ y: 0 }}
-            className={`fixed top-0 inset-x-0 z-50 flex justify-center py-4 px-6 pointer-events-none transition-all duration-300 ${scrolled ? "pt-2" : "pt-6"}`}
+            className={`fixed top-0 inset-x-0 z-50 flex justify-center transition-all duration-500 border-b ${scrolled ? "bg-black/90 backdrop-blur-xl border-white/10" : "bg-transparent border-transparent"}`}
         >
-            <div className={`relative flex items-center justify-between w-full max-w-5xl px-6 py-3 rounded-full pointer-events-auto border transition-all duration-500
-                ${scrolled
-                    ? "bg-black/60 backdrop-blur-md border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
-                    : "bg-transparent border-transparent"}`}
-            >
-                {/* Logo */}
-                <Link href="/" className="text-xl font-bold tracking-tighter hover:text-cyan-400 transition-colors">
-                    Taskey<span className="text-cyan-500">.ai</span>
-                </Link>
+            {/* Bottom Gradient Line (Active on Scroll) */}
+            <div className={`absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/50 to-transparent transition-opacity duration-500 ${scrolled ? "opacity-100" : "opacity-0"}`} />
 
-                {/* Desktop Menu */}
-                <div className="hidden md:flex items-center gap-1 bg-white/5 rounded-full px-2 py-1 border border-white/5 backdrop-blur-sm">
+            <div className="w-full max-w-7xl px-6 h-20 flex items-center justify-between">
+
+                {/* Left: Logo & Status */}
+                <div className="flex items-center gap-8">
+                    <Link href="/" className="group flex items-center gap-3">
+                        <div className="relative w-8 h-8 flex items-center justify-center bg-black border border-white/20 rounded-sm group-hover:border-cyan-500/50 transition-colors overflow-hidden">
+                            <div className="absolute inset-0 bg-cyan-500/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                            <span className="font-bold text-white relative z-10 text-lg">T</span>
+                        </div>
+                        <span className="text-lg font-bold tracking-tighter text-white group-hover:text-cyan-400 transition-colors">
+                            TASKEY
+                        </span>
+                    </Link>
+
+                    {/* Desktop Status Indicator */}
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-black border border-white/10 rounded-sm">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-400 tracking-wider">SYS.ONLINE</span>
+                    </div>
+                </div>
+
+                {/* Center: Tech Menu */}
+                <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-sm border border-white/5 backdrop-blur-sm">
                     {navLinks.map((link) => (
                         <Link
                             key={link.path}
                             href={link.path}
-                            className={`relative px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-300 ${pathname === link.path ? "text-black bg-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+                            className="relative px-5 py-2 text-xs font-mono text-gray-400 hover:text-cyan-400 transition-all rounded-sm uppercase tracking-wide group overflow-hidden"
                         >
-                            {link.name}
+                            <span className="relative z-10 group-hover:font-bold transition-all duration-300">
+                                {link.name}
+                            </span>
+                            {/* Hover BG */}
+                            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            {/* Bottom Line */}
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-0 bg-cyan-500 group-hover:w-full transition-all duration-300" />
                         </Link>
                     ))}
                 </div>
 
-                {/* Actions */}
-                <div className="hidden md:flex items-center gap-3">
-                    <Link href="/login" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
-                        Login
+                {/* Right: Actions */}
+                <div className="hidden md:flex items-center gap-6">
+                    <Link href="/login" className="text-xs font-mono font-bold text-gray-400 hover:text-white transition-colors uppercase relative group">
+                        <span className="group-hover:opacity-0 transition-opacity">// ACCESS_TERMINAL</span>
+                        <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400 tracking-widest text-center">LOGIN</span>
                     </Link>
-                    <Link href="/signup" className="px-5 py-2 text-sm font-bold text-black bg-white rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                        Get Started
+
+                    <Link href="/signup" className="group relative px-8 py-3 bg-white text-black text-xs font-mono font-bold uppercase tracking-wider overflow-hidden">
+                        <span className="relative z-10 group-hover:text-white transition-colors duration-300">INITIALIZE</span>
+
+                        {/* Scanline Effect */}
+                        <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+
+                        {/* Tech Corners */}
+                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-black group-hover:border-white transition-colors z-20" />
+                        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-black group-hover:border-white transition-colors z-20" />
                     </Link>
                 </div>
 
                 {/* Mobile Hamburger */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="md:hidden p-2 text-white"
+                    className="md:hidden p-2 text-white border border-white/10 bg-white/5 hover:bg-white/10"
                 >
                     <div className="space-y-1.5">
-                        <span className={`block w-6 h-0.5 bg-current transition-transform ${isOpen ? "rotate-45 translate-y-2" : ""}`} />
-                        <span className={`block w-6 h-0.5 bg-current transition-opacity ${isOpen ? "opacity-0" : ""}`} />
-                        <span className={`block w-6 h-0.5 bg-current transition-transform ${isOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+                        <span className={`block w-5 h-px bg-current transition-transform ${isOpen ? "rotate-45 translate-y-2" : ""}`} />
+                        <span className={`block w-5 h-px bg-current transition-opacity ${isOpen ? "opacity-0" : ""}`} />
+                        <span className={`block w-5 h-px bg-current transition-transform ${isOpen ? "-rotate-45 -translate-y-2" : ""}`} />
                     </div>
                 </button>
             </div>
 
-            {/* Mobile Menu Dropdown */}
+            {/* Mobile Menu Dropdown (Tech Style) */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                        className="absolute top-20 left-4 right-4 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 pointer-events-auto md:hidden shadow-2xl"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="absolute top-20 left-0 right-0 bg-black border-b border-white/10 overflow-hidden md:hidden shadow-2xl"
                     >
-                        <div className="flex flex-col gap-4">
+                        {/* Scanline overlay */}
+                        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_2px,rgba(0,0,0,0.5)_2px)] bg-[size:100%_4px] pointer-events-none opacity-50" />
+
+                        <div className="flex flex-col p-6 space-y-4 relative z-10">
                             {navLinks.map(link => (
                                 <Link
                                     key={link.path}
                                     href={link.path}
                                     onClick={() => setIsOpen(false)}
-                                    className="text-lg font-medium text-gray-300 hover:text-cyan-400"
+                                    className="text-sm font-mono text-gray-400 hover:text-cyan-400 border-l-2 border-transparent hover:border-cyan-500 pl-4 transition-all py-2 hover:bg-white/5"
                                 >
                                     {link.name}
                                 </Link>
                             ))}
-                            <Link href="/login" className="text-lg font-medium text-gray-300 hover:text-white">Login</Link>
-                            <Link href="/signup" className="w-full text-center py-3 bg-white text-black font-bold rounded-xl mt-2">
-                                Get Started
+                            <div className="h-px bg-white/10 my-2" />
+                            <Link href="/login" className="text-sm font-mono text-white hover:text-cyan-400 pl-4 py-2">
+                                {">"} LOGIN_TERMINAL
+                            </Link>
+                            <Link href="/signup" className="w-full text-center py-4 bg-white text-black font-mono font-bold text-xs uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition-all">
+                                INITIALIZE_SYSTEM
                             </Link>
                         </div>
                     </motion.div>

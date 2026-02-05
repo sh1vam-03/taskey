@@ -9,54 +9,66 @@ export default function InteractivePricing() {
 
     const plans = [
         {
+            id: "TIER.01",
             name: "Free",
             price: "₹0",
             period: isYearly ? "/yr" : "/mo",
-            credits: "10 Credits",
-            desc: "For individuals exploring AI.",
-            features: ["10 Tasks/mo", "30 Schedules/mo", "Basic Chat"]
+            credits: "10 CREDITS",
+            desc: "Experimental Access.",
+            features: ["10 Tasks/mo", "30 Schedules/mo", "Basic Chat"],
+            status: "STANDBY"
         },
         {
+            id: "TIER.02",
             name: "Pro",
             price: isYearly ? "₹4,999" : "₹499",
             period: isYearly ? "/yr" : "/mo",
-            credits: isYearly ? "600 Credits" : "50 Credits",
-            desc: "For professionals.",
+            credits: isYearly ? "600 CREDITS" : "50 CREDITS",
+            desc: "Professional Bandwidth.",
             highlight: true,
-            features: ["Unlimited Tasks", "Voice Mode", "Calendar Sync", "Priority Support"]
+            features: ["Unlimited Tasks", "Voice Mode", "Calendar Sync", "Priority Support"],
+            status: "RECOMMENDED"
         },
         {
+            id: "TIER.03",
             name: "Plus",
             price: isYearly ? "₹9,999" : "₹999",
             period: isYearly ? "/yr" : "/mo",
-            credits: isYearly ? "1080 Credits" : "90 Credits",
-            desc: "For power users.",
-            features: ["Deep Research", "Custom Workflows", "Team features", "API Access"]
+            credits: isYearly ? "1080 CREDITS" : "90 CREDITS",
+            desc: "Maximum Throughput.",
+            features: ["Deep Research", "Custom Workflows", "Team features", "API Access"],
+            status: "PREMIUM"
         }
     ];
 
     return (
-        <section className="py-32 px-6 bg-black" id="pricing">
+        <section className="py-32 px-6 bg-black border-t border-white/5" id="pricing">
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8 border-b border-white/10 pb-6">
                     <div>
                         <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">Pricing</h2>
-                        <p className="text-gray-500 text-xl font-light">Start free. Upgrade for power.</p>
+                        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
+                            // RESOURCE_ALLOCATION_MATRIX
+                        </p>
                     </div>
 
-                    {/* Toggle */}
-                    <div className="flex items-center gap-4 bg-white/5 p-1 rounded-full border border-white/10">
+                    {/* Tech Toggle */}
+                    <div className="flex items-center gap-1 bg-black p-1 rounded-sm border border-white/20 relative">
+                        {/* Decorative corners for toggle */}
+                        <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-white/30" />
+                        <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-white/30" />
+
                         <button
                             onClick={() => setIsYearly(false)}
-                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
+                            className={`px-6 py-2 text-xs font-mono font-bold transition-all ${!isYearly ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
                         >
-                            Monthly
+                            MONTHLY
                         </button>
                         <button
                             onClick={() => setIsYearly(true)}
-                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
+                            className={`px-6 py-2 text-xs font-mono font-bold transition-all ${isYearly ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
                         >
-                            Yearly
+                            YEARLY
                         </button>
                     </div>
                 </div>
@@ -65,47 +77,53 @@ export default function InteractivePricing() {
                     {plans.map((plan, i) => (
                         <div
                             key={i}
-                            className={`p-8 rounded-3xl border flex flex-col justify-between transition-all duration-300 group ${plan.highlight ? 'bg-white/5 border-cyan-500/50' : 'bg-black border-white/10 hover:border-white/30'}`}
+                            className={`p-8 relative transition-all duration-300 group ${plan.highlight ? 'bg-cyan-950/10 border border-cyan-500/50' : 'bg-black border border-white/10 hover:border-white/30'}`}
                         >
-                            <div>
-                                <div className="flex justify-between items-start mb-8">
-                                    <div>
-                                        <h3 className="text-xl font-mono font-bold text-white mb-1">{plan.name}</h3>
-                                        <p className="text-xs text-cyan-500 font-mono uppercase tracking-wider">{plan.credits}</p>
+                            {/* Corner Brackets */}
+                            <div className={`absolute top-0 left-0 w-3 h-3 border-t border-l transition-colors ${plan.highlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+                            <div className={`absolute top-0 right-0 w-3 h-3 border-t border-r transition-colors ${plan.highlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+                            <div className={`absolute bottom-0 left-0 w-3 h-3 border-b border-l transition-colors ${plan.highlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+                            <div className={`absolute bottom-0 right-0 w-3 h-3 border-b border-r transition-colors ${plan.highlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+
+                            <div className="flex justify-between items-start mb-8">
+                                <div>
+                                    <div className="font-mono text-[10px] text-gray-500 mb-1">[{plan.id}]</div>
+                                    <h3 className={`text-xl font-bold mb-1 ${plan.highlight ? 'text-cyan-400' : 'text-white'}`}>{plan.name}</h3>
+                                    <div className="text-[10px] font-mono text-cyan-600 border border-cyan-900/30 px-2 py-0.5 inline-block rounded-sm bg-cyan-950/20">
+                                        {plan.credits}
                                     </div>
-                                    {plan.highlight && (
-                                        <span className="w-3 h-3 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)] animate-pulse" />
-                                    )}
                                 </div>
+                                {plan.highlight && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                                        <span className="text-[10px] font-mono text-cyan-500">ONLINE</span>
+                                    </div>
+                                )}
+                            </div>
 
-                                <div className="mb-8">
-                                    <span className="text-5xl font-bold text-white tracking-tighter">{plan.price}</span>
-                                    <span className="text-gray-500 text-sm ml-2">{plan.period}</span>
-                                </div>
+                            <div className="mb-8 border-b border-white/5 pb-8">
+                                <span className="text-5xl font-bold text-white tracking-tighter">{plan.price}</span>
+                                <span className="text-gray-500 text-sm ml-2 font-mono">{plan.period}</span>
+                            </div>
 
-                                <div className="space-y-4 mb-8">
-                                    {plan.features.map((feat, j) => (
-                                        <div key={j} className="flex items-center gap-3 text-sm text-gray-400 border-t border-white/5 pt-3 first:border-0 first:pt-0">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
-                                            {feat}
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="space-y-4 mb-8">
+                                {plan.features.map((feat, j) => (
+                                    <div key={j} className="flex items-center gap-3 text-sm text-gray-400 font-mono">
+                                        <span className={`w-1 h-1 ${plan.highlight ? 'bg-cyan-500' : 'bg-gray-600'}`} />
+                                        {feat}
+                                    </div>
+                                ))}
                             </div>
 
                             <Button
                                 variant={plan.highlight ? "primary" : "outline"}
-                                className={`w-full h-14 rounded-2xl text-base font-bold transition-all ${plan.highlight ? 'bg-white text-black hover:scale-[1.02]' : 'border-white/10 hover:bg-white text-white hover:text-black'}`}
+                                className={`w-full h-12 text-sm font-mono font-bold uppercase rounded-sm transition-all ${plan.highlight ? 'bg-cyan-500 text-black hover:bg-cyan-400 border-0' : 'border-white/20 hover:bg-white hover:text-black'}`}
                             >
-                                Get Started
+                                {plan.highlight ? "Initialize_Pro" : "Start_Validating"}
                             </Button>
                         </div>
                     ))}
                 </div>
-
-                <p className="text-center text-gray-600 text-sm mt-12 font-mono">
-                    All plans include 10 free credits on signup. Cancel anytime.
-                </p>
             </div>
         </section>
     )

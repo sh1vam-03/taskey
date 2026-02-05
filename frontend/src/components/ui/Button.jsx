@@ -38,9 +38,9 @@ export default function Button({
 
     // SIZE STYLES
     const sizes = {
-        sm: "h-8 px-3 text-xs font-medium rounded-[var(--radius-sm)]",
-        md: "h-10 px-5 text-sm font-medium rounded-[var(--radius-md)]",
-        lg: "h-12 px-8 text-base font-semibold rounded-[var(--radius-lg)]"
+        sm: "h-8 px-3 text-xs font-mono font-bold uppercase tracking-wider rounded-sm",
+        md: "h-10 px-5 text-sm font-mono font-bold uppercase tracking-wider rounded-sm",
+        lg: "h-12 px-8 text-sm font-mono font-bold uppercase tracking-widest rounded-sm"
     }
 
     // BASE STYLES
