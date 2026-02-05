@@ -1,10 +1,9 @@
 import dotenv from "dotenv";
+dotenv.config(); // Load env before other imports
+
 import app from "./app.js";
 import prisma from "./config/db.js";
 import "./cron/missedSchedule.cron.js";
-
-
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 

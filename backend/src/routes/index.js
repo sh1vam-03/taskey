@@ -14,8 +14,8 @@ import dashboardRoutes from "./dashboard.routes.js";
 import behaviorRoutes from "./behavior.routes.js";
 // import usageRoutes from "./usage.routes.js";
 import billingRoutes from "./billing.routes.js";
-import aiRoutes from "../ai/";
-import voiceRoutes from "../ai";
+import aiRoutes from "../ai/routes/ai.routes.js";
+import voiceRoutes from "../ai/routes/voice.routes.js";
 // voiceRoutes import removed
 
 router.use("/api", healthRoutes);
