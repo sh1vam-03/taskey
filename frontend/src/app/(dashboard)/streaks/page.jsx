@@ -2,24 +2,22 @@
 import { useEffect, useState } from "react"
 import dashboardService from "@/services/dashboard.services"
 
-export default function DashboardWeekly() {
+export default function DashboardStreaks() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                setLoading(true)
-                const result = await dashboardService.getWeeklyDashboard()
+                const result = await dashboardService.getStreakOverview()
                 setData(result)
-            } catch (err: any) {
-                setError(err.message || 'Failed to load weekly data')
+            } catch (err) {
+                setError(err.message)
             } finally {
                 setLoading(false)
             }
         }
-
         fetchData()
     }, [])
 
@@ -27,13 +25,12 @@ export default function DashboardWeekly() {
     if (error) return <div>Error: {error}</div>
 
     return (
-        <>
-            <h1 className="text-2xl font-bold mb-4" style={{ color: "var(--heading)" }}>
-                Weekly Dashboard
-            </h1>
+        <div>
+            <h1 className="text-2xl font-bold mb-4" style={{ color: "var(--heading)" }}>Streak Overview</h1>
             <div className="border p-4 rounded-md">
-                <pre className="text-xs overflow-auto">{JSON.stringify(data, null, 2)}</pre>
+                <p>Current Streak: {data?.currentStreak} days</p>
+                <p>Longest Streak: {data?.longestStreak} days</p>
             </div>
-        </>
+        </div>
     )
 }

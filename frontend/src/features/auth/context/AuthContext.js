@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import api from "@/services/api"
+import * as authActions from "../auth.actions"
 
 const AuthContext = createContext()
 
@@ -19,14 +19,9 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                // Verify token and get user details
-                const { data } = await api.get("/auth/me")
-                // Assumption: specific mount point /auth/me or /api/auth/me depending on index.js
-                // I will adjust the path below if grep shows different mount.
-                // Defaulting to /auth if mounted under /api in index.js
+                const data = await authActions.fetchCurrentUser()
                 setUser(data.user)
             } catch (error) {
-                // console.error("Auth check failed:", error)
                 localStorage.removeItem("token")
                 setUser(null)
             } finally {
@@ -38,17 +33,17 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     const login = async (email, password) => {
-        const { data } = await api.post("/auth/login", { email, password })
-        localStorage.setItem("token", data.token) // Assuming backend returns { token, user }
+        const data = await authActions.loginUser(email, password)
+        localStorage.setItem("token", data.token)
         setUser(data.user)
         router.push("/dashboard")
     }
 
     const logout = async () => {
         try {
-            await api.post("/auth/logout")
+            await authActions.logoutUser()
         } catch (error) {
-            // console.error("Logout failed", error)
+            // ignore
         }
         localStorage.removeItem("token")
         setUser(null)
@@ -56,26 +51,17 @@ export const AuthProvider = ({ children }) => {
     }
 
     const requestOtp = async (email) => {
-        await api.post("/auth/otp-request", { email })
+        await authActions.requestOtp(email)
         return true
     }
 
-    const verifyOtp = async ({ name, email, password, otp }) => {
-        const { data } = await api.post("/auth/verify-otp", {
-            name,
-            email,
-            password,
-            otp
-        })
-        // Usually verify-otp might return a token or just success. 
-        // If it returns token, we log them in. 
-        // Based on auth.controller, verifyOtp usually completes signup/login.
+    const verifyOtp = async (payload) => {
+        const data = await authActions.verifyOtp(payload)
         if (data.token) {
             localStorage.setItem("token", data.token)
             setUser(data.user)
             router.push("/dashboard")
         } else {
-            // If manual login required after verification
             router.push("/login")
         }
     }

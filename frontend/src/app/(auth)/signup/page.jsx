@@ -25,7 +25,7 @@ export default function Signup() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
 
-    const handleContinue = async (e: React.FormEvent) => {
+    const handleContinue = async (e) => {
         e.preventDefault()
         setError("")
         setSuccess("")
@@ -42,14 +42,14 @@ export default function Signup() {
             await requestOtp(email)
             setStep("otp")
             setSuccess("OTP sent to your email")
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message)
         } finally {
             setLoading(false)
         }
     }
 
-    const handleSignup = async (e: React.FormEvent) => {
+    const handleSignup = async (e) => {
         e.preventDefault()
         setError("")
 
@@ -59,7 +59,7 @@ export default function Signup() {
             setLoading(true)
             await verifyOtp({ name, email, password, otp })
             // verifyOtp handles redirect
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message)
             setLoading(false)
         }
@@ -92,7 +92,7 @@ export default function Signup() {
             setTimer(30)
             setCanResend(false)
             setSuccess("OTP resent successfully")
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message)
         } finally {
             setLoading(false)

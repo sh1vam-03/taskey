@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/features/auth/context/AuthContext"
 
-export default function Login() {
+export default function LoginForm() {
     const { login } = useAuth()
     const router = useRouter()
 
@@ -14,7 +14,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         setError("")
 
@@ -29,7 +29,7 @@ export default function Login() {
             setLoading(true)
             await login(email, password)
             // Login handles redirect
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message || "Login failed")
             setLoading(false)
         }

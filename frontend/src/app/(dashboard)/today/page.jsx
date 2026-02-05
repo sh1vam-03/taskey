@@ -4,9 +4,9 @@ import StatCard from "../_components/StatCard"
 import dashboardService from "@/services/dashboard.services"
 
 export default function DashboardToday() {
-    const [data, setData] = useState<any>(null)
+    const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -14,7 +14,7 @@ export default function DashboardToday() {
                 setLoading(true)
                 const result = await dashboardService.getTodayDashboard()
                 setData(result)
-            } catch (err: any) {
+            } catch (err) {
                 setError(err.message || 'Failed to load today data')
             } finally {
                 setLoading(false)
@@ -50,7 +50,7 @@ export default function DashboardToday() {
 
             <div className="space-y-4">
                 {timeline.length === 0 && <p className="opacity-70">No tasks or schedules for today.</p>}
-                {timeline.map((item: any, i: number) => (
+                {timeline.map((item, i) => (
                     <div
                         key={i}
                         className="border rounded-md p-4"

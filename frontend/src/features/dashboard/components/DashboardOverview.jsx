@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from "react"
-import StatCard from "./_components/StatCard"
+import StatCard from "@/app/(dashboard)/_components/StatCard"
 import dashboardService from "@/services/dashboard.services"
 
 export default function DashboardOverview() {
-    const [data, setData] = useState<any>(null)
+    const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -14,7 +14,7 @@ export default function DashboardOverview() {
                 setLoading(true)
                 const result = await dashboardService.getOverview()
                 setData(result)
-            } catch (err: any) {
+            } catch (err) {
                 setError(err.message || 'Failed to load dashboard data')
             } finally {
                 setLoading(false)

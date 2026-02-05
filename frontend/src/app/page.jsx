@@ -115,7 +115,7 @@ export default function Home() {
 }
 
 /* Feature Component */
-const Feature = ({ title, description }: { title: string, description: string }) => (
+const Feature = ({ title, description }) => (
     <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm hover:shadow-md transition card">
         <h3 className="text-xl font-semibold mb-3" style={{ color: "var(--heading)" }}>{title}</h3>
         <p className="opacity-80">{description}</p>
@@ -123,7 +123,7 @@ const Feature = ({ title, description }: { title: string, description: string })
 )
 
 /* Step Component */
-const Step = ({ number, title, description }: { number: string, title: string, description: string }) => (
+const Step = ({ number, title, description }) => (
     <div>
         <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-black text-white font-bold">
             {number}

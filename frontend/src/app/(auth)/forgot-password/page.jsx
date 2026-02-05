@@ -9,7 +9,7 @@ export default function ForgotPassword() {
     const [message, setMessage] = useState("")
     const [error, setError] = useState("")
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         setMessage("")
         setError("")
@@ -21,7 +21,7 @@ export default function ForgotPassword() {
             // Call real API
             await api.post("/auth/forgot-password", { email })
             setMessage("If an account exists, a reset link has been sent.")
-        } catch (err: any) {
+        } catch (err) {
             setError(err.response?.data?.message || "Failed to send reset link")
         } finally {
             setLoading(false)

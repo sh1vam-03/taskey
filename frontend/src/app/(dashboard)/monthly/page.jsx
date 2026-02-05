@@ -5,7 +5,7 @@ import dashboardService from "@/services/dashboard.services"
 export default function DashboardMonthly() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState(null)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -13,7 +13,7 @@ export default function DashboardMonthly() {
                 setLoading(true)
                 const result = await dashboardService.getMonthlyDashboard()
                 setData(result)
-            } catch (err: any) {
+            } catch (err) {
                 setError(err.message || 'Failed to load monthly data')
             } finally {
                 setLoading(false)
