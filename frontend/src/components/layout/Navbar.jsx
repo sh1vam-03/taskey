@@ -1,129 +1,111 @@
 "use client";
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import useTheme from "@/hooks/useDarkmode"
+import { motion, AnimatePresence } from "framer-motion"
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [theme, setTheme] = useTheme()
     const pathname = usePathname()
+    const [scrolled, setScrolled] = useState(false)
 
-    const linkClass = (path) => {
-        const isActive = pathname === path
-        return `relative transition ${isActive
-            ? "font-semibold text-primary"
-            : "opacity-80 hover:opacity-100"
-            }`
-    }
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 50)
+        }
+        window.addEventListener("scroll", handleScroll)
+        return () => window.removeEventListener("scroll", handleScroll)
+    }, [])
 
-    const ActiveBar = ({ path }) => {
-        const isActive = pathname === path
-        return isActive ? (
-            <span
-                className="absolute left-0 -bottom-1 h-[2px] w-full bg-current"
-                style={{ backgroundColor: "var(--text)" }}
-            />
-        ) : null
-    }
-
-    const NavItem = ({ to, label, onClick }) => (
-        <Link
-            href={to}
-            onClick={onClick}
-            className={linkClass(to)}
-            style={{ color: "var(--text)" }}
-        >
-            <span className="relative">
-                {label}
-                <ActiveBar path={to} />
-            </span>
-        </Link>
-    )
+    const navLinks = [
+        { name: "Home", path: "/" },
+        { name: "About", path: "/about" },
+        { name: "Contact", path: "/contact" }
+    ]
 
     return (
-        <nav
-            className="border-b sticky top-0 z-50"
-            style={{
-                backgroundColor: "var(--bg)",
-                borderColor: "var(--border)",
-            }}
+        <motion.nav
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            className={`fixed top-0 inset-x-0 z-50 flex justify-center py-4 px-6 pointer-events-none transition-all duration-300 ${scrolled ? "pt-2" : "pt-6"}`}
         >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-                <Link href="/" className="text-xl font-bold">
-                    Taskey
+            <div className={`relative flex items-center justify-between w-full max-w-5xl px-6 py-3 rounded-full pointer-events-auto border transition-all duration-500
+                ${scrolled
+                    ? "bg-black/60 backdrop-blur-md border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+                    : "bg-transparent border-transparent"}`}
+            >
+                {/* Logo */}
+                <Link href="/" className="text-xl font-bold tracking-tighter hover:text-cyan-400 transition-colors">
+                    Taskey<span className="text-cyan-500">.ai</span>
                 </Link>
 
-                {/* Desktop */}
-                <div className="hidden md:flex items-center gap-6 text-sm">
-                    <NavItem to="/" label="Home" />
-                    <NavItem to="/about" label="About" />
-                    <NavItem to="/contact" label="Contact" />
-                    <NavItem to="/developers" label="Developers" />
-                    <NavItem to="/privacypolicy" label="Privacy" />
-                    <NavItem to="/termsconditions" label="Terms" />
-                    <NavItem to="/login" label="Login" />
-
-                    <button
-                        onClick={() =>
-                            setTheme(theme === "light" ? "dark" : "light")
-                        }
-                        className="border px-3 py-1 rounded-md cursor-pointer"
-                        style={{ borderColor: "var(--border)" }}
-                    >
-                        {theme === "light" ? "🌙Dark" : "☀️Light"}
-                    </button>
+                {/* Desktop Menu */}
+                <div className="hidden md:flex items-center gap-1 bg-white/5 rounded-full px-2 py-1 border border-white/5 backdrop-blur-sm">
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.path}
+                            href={link.path}
+                            className={`relative px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-300 ${pathname === link.path ? "text-black bg-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+                        >
+                            {link.name}
+                        </Link>
+                    ))}
                 </div>
 
-                {/* Hamburger */}
+                {/* Actions */}
+                <div className="hidden md:flex items-center gap-3">
+                    <Link href="/login" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                        Login
+                    </Link>
+                    <Link href="/signup" className="px-5 py-2 text-sm font-bold text-black bg-white rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                        Start Free
+                    </Link>
+                </div>
+
+                {/* Mobile Hamburger */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="md:hidden flex flex-col justify-center items-center w-8 h-8"
+                    className="md:hidden p-2 text-white"
                 >
-                    <span
-                        className={`h-0.5 w-6 bg-current transition-transform duration-300 ${isOpen ? "rotate-45 translate-y-1.5" : ""
-                            }`}
-                    />
-                    <span
-                        className={`h-0.5 w-6 bg-current my-1 transition-opacity duration-300 ${isOpen ? "opacity-0" : "opacity-100"
-                            }`}
-                    />
-                    <span
-                        className={`h-0.5 w-6 bg-current transition-transform duration-300 ${isOpen ? "-rotate-45 -translate-y-1.5" : ""
-                            }`}
-                    />
+                    <div className="space-y-1.5">
+                        <span className={`block w-6 h-0.5 bg-current transition-transform ${isOpen ? "rotate-45 translate-y-2" : ""}`} />
+                        <span className={`block w-6 h-0.5 bg-current transition-opacity ${isOpen ? "opacity-0" : ""}`} />
+                        <span className={`block w-6 h-0.5 bg-current transition-transform ${isOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+                    </div>
                 </button>
             </div>
 
-            {/* Mobile Menu */}
-            <div
-                className={`md:hidden overflow-hidden transition-all duration-300 ${isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-                    }`}
-            >
-                <div
-                    className="flex flex-col px-4 py-4 gap-4 border-t text-sm"
-                    style={{ borderColor: "var(--border)" }}
-                >
-                    <NavItem to="/" label="Home" onClick={() => setIsOpen(false)} />
-                    <NavItem to="/about" label="About" onClick={() => setIsOpen(false)} />
-                    <NavItem to="/contact" label="Contact" onClick={() => setIsOpen(false)} />
-                    <NavItem to="/developers" label="Developers" onClick={() => setIsOpen(false)} />
-                    <NavItem to="/privacypolicy" label="Privacy" onClick={() => setIsOpen(false)} />
-                    <NavItem to="/termsconditions" label="Terms" onClick={() => setIsOpen(false)} />
-                    <NavItem to="/login" label="Login" onClick={() => setIsOpen(false)} />
-
-                    <button
-                        onClick={() =>
-                            setTheme(theme === "light" ? "dark" : "light")
-                        }
-                        className="border px-3 py-2 rounded-md w-fit"
-                        style={{ borderColor: "var(--border)" }}
+            {/* Mobile Menu Dropdown */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        className="absolute top-20 left-4 right-4 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 pointer-events-auto md:hidden shadow-2xl"
                     >
-                        {theme === "light" ? "🌙 Dark" : "☀️ Light"}
-                    </button>
-                </div>
-            </div>
-        </nav>
+                        <div className="flex flex-col gap-4">
+                            {navLinks.map(link => (
+                                <Link
+                                    key={link.path}
+                                    href={link.path}
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-lg font-medium text-gray-300 hover:text-cyan-400"
+                                >
+                                    {link.name}
+                                </Link>
+                            ))}
+                            <Link href="/login" className="text-lg font-medium text-gray-300 hover:text-white">Login</Link>
+                            <Link href="/signup" className="w-full text-center py-3 bg-white text-black font-bold rounded-xl mt-2">
+                                Start Free
+                            </Link>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.nav>
     )
 }
 
