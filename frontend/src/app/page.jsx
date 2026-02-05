@@ -44,7 +44,7 @@ export default function Home() {
 
                 {/* Orb Container */}
                 <div className="relative z-10 mb-12 scale-90 md:scale-110 mt-10">
-                    <AiEnergySphere size={500} speed={0.5} particleCount={80} />
+                    <AiEnergySphere size={600} speed={0.5} particleCount={350} />
 
                     {/* Orb Surround Data */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5 border-dashed animate-spin-slow pointer-events-none opacity-30" style={{ animationDuration: '60s' }} />
