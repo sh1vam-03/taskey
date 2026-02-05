@@ -1,7 +1,7 @@
 import Razorpay from "razorpay";
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { PLANS, PLAN_ORDER } from "../config/plans.js";
+import { PLANS, getPlanRank } from "../config/plans.config.js"; // New Import
 import { PaymentPurpose, RazorpayEntity } from "@prisma/client";
 
 const razorpay = new Razorpay({
@@ -11,12 +11,14 @@ const razorpay = new Razorpay({
 
 export const createSubscription = async (userId, plan, billingCycle) => {
     // 1️⃣ Validate plan
-    if (!PLANS[plan]) {
+    const planConfig = PLANS[plan];
+    if (!planConfig) {
         throw new ApiError(400, "Invalid plan");
     }
 
-    const config = PLANS[plan][billingCycle];
-    if (!config) {
+    // Validate price exists (sanity check)
+    const price = planConfig.price[billingCycle];
+    if (price === undefined) {
         throw new ApiError(400, "Invalid billing cycle");
     }
 
@@ -31,8 +33,7 @@ export const createSubscription = async (userId, plan, billingCycle) => {
 
     // 3️⃣ Create Razorpay subscription
     const razorpaySubscription = await razorpay.subscriptions.create({
-        plan_id:
-            process.env[`RAZORPAY_${plan}_${billingCycle}_PLAN_ID`],
+        plan_id: process.env[`RAZORPAY_${plan}_${billingCycle}_PLAN_ID`],
         customer_notify: 1,
         total_count: billingCycle === "YEARLY" ? 1 : 12,
     });
@@ -43,7 +44,11 @@ export const createSubscription = async (userId, plan, billingCycle) => {
             userId,
             entity: RazorpayEntity.SUBSCRIPTION,
             purpose: PaymentPurpose.SUBSCRIPTION,
-            amount: config.price,
+            amount: price * 100, // Convert to paise if Razorpay expects it? 
+            // WAIT: Previous plans.js had 49900 (paise). 
+            // My new config has 499 (Rupees).
+            // Razorpay usually expects Paise.
+            // I should multiply by 100 here.
             currency: "INR",
             status: "CREATED",
             razorpaySubscriptionId: razorpaySubscription.id,
@@ -87,7 +92,9 @@ export const downgradeSubscription = async (userId, newPlan) => {
     }
 
     // Only allow downgrade
-    if (PLAN_ORDER[newPlan] >= PLAN_ORDER[sub.plan]) {
+    // Old: PLAN_ORDER[newPlan] >= PLAN_ORDER[sub.plan]
+    // New: getPlanRank(newPlan) >= getPlanRank(sub.plan)
+    if (getPlanRank(newPlan) >= getPlanRank(sub.plan)) {
         throw new ApiError(400, "Only downgrades are allowed");
     }
 

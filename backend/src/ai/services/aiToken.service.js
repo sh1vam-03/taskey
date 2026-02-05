@@ -1,151 +1,75 @@
 import prisma from "../../config/db.js";
+import { AI_COSTS } from "../../config/plans.config.js";
 import ApiError from "../../utils/ApiError.js";
-import { AiUsageType } from "@prisma/client";
 
-/**
- * Deduct AI tokens safely (transaction-only)
- * MUST be called inside prisma.$transaction
- */
-export const deductAiTokens = async ({
-    tx,
-    userId,
-    tokens,
-    type = AiUsageType.CHAT,
-}) => {
-    if (!tx) {
-        throw new Error("Transaction client (tx) is required");
-    }
-
-    if (!userId) {
-        throw new ApiError(400, "User ID required for token deduction");
-    }
-
-    if (!Number.isInteger(tokens) || tokens <= 0) {
-        throw new ApiError(400, "Invalid token amount");
-    }
-
-    // 1️⃣ Lock user row (prevents race conditions)
-    const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: {
-            id: true,
-            aiTokenBalance: true,
-            status: true,
-        },
-    });
-
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-
-    if (user.status !== "ACTIVE") {
-        throw new ApiError(403, "Account not active");
-    }
-
-    // 2️⃣ Prevent negative balance
-    if (user.aiTokenBalance < tokens) {
-        throw new ApiError(
-            402,
-            "Insufficient AI tokens. Please recharge or upgrade plan."
-        );
-    }
-
-    // 3️⃣ Deduct tokens
-    await tx.user.update({
-        where: { id: userId },
-        data: {
-            aiTokenBalance: {
-                decrement: tokens,
-            },
-        },
-    });
-
-    // 4️⃣ Log usage (audit trail)
-    await tx.aiUsage.create({
-        data: {
-            userId,
-            type,
-            tokensUsed: tokens,
-        },
-    });
-
-    return {
-        success: true,
-        remainingTokens: user.aiTokenBalance - tokens,
-    };
+// Helper: Estimate token count (heuristic)
+export const countTokens = (text) => {
+    if (!text) return 0;
+    return Math.ceil(text.length / 4);
 };
 
-/**
- * Peek token balance (read-only, no mutation)
- */
-export const getTokenBalance = async (userId) => {
-    if (!userId) {
-        throw new ApiError(400, "User ID required");
+// 1️⃣ Credit check
+export const checkCreditBalance = async (userId, min = 10) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ApiError(404, "User not found");
+
+    if (user.aiCreditBalance < min) {
+        throw new ApiError(402, "AI credits exhausted. Please upgrade your plan or top-up.");
     }
-
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-            aiTokenBalance: true,
-        },
-    });
-
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-
-    return user.aiTokenBalance;
 };
 
-/**
- * Safe token credit (used for top-ups & subscriptions)
- * Can be used OUTSIDE transaction
- */
-export const creditAiTokens = async ({
+// 2️⃣ Credit deduction (Atomic & Ledgered)
+export const deductCredits = async ({
     userId,
-    tokens,
-    source,
-    paymentId,
+    conversationId,
+    credits,
+    source = "AI_USAGE",
+    model,
+    type
 }) => {
-    if (!userId || !tokens || tokens <= 0) {
-        throw new ApiError(400, "Invalid token credit request");
-    }
+    // Ensure positive integer
+    const amount = Math.max(1, Math.ceil(credits));
 
     return prisma.$transaction(async (tx) => {
-        const user = await tx.user.findUnique({
-            where: { id: userId },
-            select: { id: true },
-        });
-
-        if (!user) {
-            throw new ApiError(404, "User not found");
-        }
-
-        // 1️⃣ Add tokens
-        await tx.user.update({
+        // 1. Update user balance
+        const updatedUser = await tx.user.update({
             where: { id: userId },
             data: {
-                aiTokenBalance: {
-                    increment: tokens,
-                },
-            },
+                aiCreditBalance: { decrement: amount }
+            }
         });
 
-        // 2️⃣ Log credit
-        if (paymentId) {
-            await tx.aiTopUp.create({
+        // 2. Usage log (Granular)
+        await tx.aiUsage.create({
+            data: {
+                userId,
+                conversationId,
+                model: model || "unknown",
+                type: type || "CHAT", // CHAT or VOICE
+                creditsUsed: amount
+            }
+        });
+
+        // 3. Ledger (Financial Record)
+        await tx.aiCreditLedger.create({
+            data: {
+                userId,
+                credits: -amount,
+                source: "AI_USAGE",
+                conversationId
+            }
+        });
+
+        // 4. Conversation aggregate
+        if (conversationId) {
+            await tx.aiConversation.update({
+                where: { id: conversationId },
                 data: {
-                    userId,
-                    tokensAdded: tokens,
-                    source,
-                    paymentId,
-                },
+                    totalCreditsUsed: { increment: amount }
+                }
             });
         }
-
-        return {
-            success: true,
-            tokensAdded: tokens,
-        };
     });
 };
+
+
