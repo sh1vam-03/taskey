@@ -27,15 +27,17 @@ export default function DashboardLayout({ children }) {
     if (!isAuthenticated) return null // Will redirect
 
     return (
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen bg-[var(--secondary)]">
             <Sidebar />
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 <DashboardHeader />
                 <main
-                    className="flex-1 px-6 py-6"
-                    style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
+                    className="flex-1 px-8 py-8 overflow-y-auto"
+                    style={{ backgroundColor: "var(--bg)", borderRadius: "var(--radius-lg) 0 0 0" }}
                 >
-                    {children}
+                    <div className="max-w-6xl mx-auto animate-in">
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

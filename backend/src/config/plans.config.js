@@ -5,8 +5,7 @@ import { PlanType } from "@prisma/client";
 // ==========================================
 export const AI_COSTS = {
     CHAT: {
-        "gpt-4o-mini": 1,
-        "gpt-4o": 2
+        "gpt-4o-mini": 1
     },
     VOICE: {
         "whisper-1": 3,

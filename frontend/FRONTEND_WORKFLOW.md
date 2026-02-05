@@ -49,3 +49,15 @@
 - [x] Accessibility basics added
 - [x] Unused code removed
 - [x] App stable on refresh
+
+## UI Foundation – Components & Layouts
+- [x] Primary button redesigned
+- [x] Secondary & ghost buttons added
+- [x] Button hover / active states polished
+- [x] Global design tokens defined
+- [x] Layout spacing & hierarchy improved
+
+## Hero Section – AI Orb
+- [x] AI Orb component created
+- [x] Smooth cursor interaction implemented
+- [x] Idle animation refined
