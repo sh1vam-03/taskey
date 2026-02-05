@@ -28,7 +28,7 @@ export default function LoginForm() {
         try {
             setLoading(true)
             await login(email, password)
-            // Login handles redirect
+            router.push("/dashboard")
         } catch (err) {
             setError(err.message || "Login failed")
             setLoading(false)

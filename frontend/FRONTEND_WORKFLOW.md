@@ -25,3 +25,10 @@
 - [x] Contact feature hooks created
 - [x] Contact feature wired to Contact screen
 - [x] No pages import features directly
+
+## Phase 5 – Auth Protection & Session (JS)
+- [x] Auth token persisted
+- [x] Session restored on refresh
+- [x] Dashboard layout protected
+- [x] Login redirects on success
+- [x] No auth logic in pages

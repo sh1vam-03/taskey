@@ -1,9 +1,26 @@
 "use client";
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Sidebar from "./_components/Sidebar"
 import DashboardHeader from "./_components/DashboardHeader"
+import { useAuth } from "@/features/auth/context/AuthContext"
 
-// Phase 2: Layout Ownership (Structure Only, No Auth yet)
 export default function DashboardLayout({ children }) {
+    const { isAuthenticated, loading } = useAuth()
+    const router = useRouter()
+
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+            router.push("/login")
+        }
+    }, [loading, isAuthenticated, router])
+
+    if (loading) {
+        return <div className="flex h-screen items-center justify-center">Loading...</div>
+    }
+
+    if (!isAuthenticated) return null // Will redirect
+
     return (
         <div className="flex min-h-screen">
             <Sidebar />

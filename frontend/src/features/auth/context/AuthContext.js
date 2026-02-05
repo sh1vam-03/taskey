@@ -1,6 +1,5 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import * as authActions from "../auth.actions"
 
 const AuthContext = createContext()
@@ -8,7 +7,6 @@ const AuthContext = createContext()
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
-    const router = useRouter()
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -36,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         const data = await authActions.loginUser(email, password)
         localStorage.setItem("token", data.token)
         setUser(data.user)
-        router.push("/dashboard")
+        return data.user
     }
 
     const logout = async () => {
@@ -47,7 +45,6 @@ export const AuthProvider = ({ children }) => {
         }
         localStorage.removeItem("token")
         setUser(null)
-        router.push("/login")
     }
 
     const requestOtp = async (email) => {
@@ -60,10 +57,9 @@ export const AuthProvider = ({ children }) => {
         if (data.token) {
             localStorage.setItem("token", data.token)
             setUser(data.user)
-            router.push("/dashboard")
-        } else {
-            router.push("/login")
+            return data.user
         }
+        return null
     }
 
     return (
