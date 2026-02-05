@@ -4,51 +4,67 @@ import { FaMicrophoneLines } from "react-icons/fa6";
 export default function DetailedFeatures() {
     const features = [
         {
+            id: "SYS.01",
             title: "Smart AI Scheduling",
-            desc: "AI analyzes your habits and automatically schedules tasks at optimal times for maximum productivity.",
+            desc: "Time analysis & alloc automation.",
             icon: <FaMagic />,
-            className: "md:col-span-2 md:row-span-2" // Big Feature
+            stat: "98% OPTIMAL",
+            className: "md:col-span-2 md:row-span-2"
         },
         {
-            title: "Natural Language",
-            desc: "Just speak your plans.",
+            id: "SYS.02",
+            title: "Natural Input",
+            desc: "Voice-to-Execution pipeline.",
             icon: <FaMicrophoneLines />,
+            stat: "LATENCY < 50ms",
             className: "md:col-span-1"
         },
         {
+            id: "SYS.03",
             title: "Prioritization",
-            desc: "AI ranks your tasks.",
+            desc: "Deadline logic engines.",
             icon: <FaCheckDouble />,
+            stat: "AUTO-RANK",
             className: "md:col-span-1"
         },
         {
-            title: "Calendar Integration",
-            desc: "Seamless sync with Google/Outlook/Apple.",
+            id: "SYS.04",
+            title: "Sync Core",
+            desc: "G-Cal / Outlook / Apple.",
             icon: <FaCalendarAlt />,
+            stat: "REAL-TIME",
             className: "md:col-span-1"
         },
         {
-            title: "Time Blocking",
-            desc: "Optimized focus blocks.",
+            id: "SYS.05",
+            title: "Time Boxing",
+            desc: "Deep work encapsulation.",
             icon: <FaClock />,
+            stat: "FOCUS MODE",
             className: "md:col-span-1"
         },
         {
+            id: "SYS.06",
             title: "Context Aware",
-            desc: "Smart notifications that know when you're free.",
+            desc: "Dynamic interrupt handling.",
             icon: <FaBell />,
-            className: "md:col-span-2" // Wide Feature
+            stat: "ADAPTIVE",
+            className: "md:col-span-2"
         },
         {
+            id: "SYS.07",
             title: "Auto-Flow",
-            desc: "Dynamic rescheduling.",
+            desc: "Reschedule cascading.",
             icon: <FaLayerGroup />,
+            stat: "INSTANT",
             className: "md:col-span-1"
         },
         {
-            title: "Everywhere",
-            desc: "Cross-platform sync.",
+            id: "SYS.08",
+            title: "Omni-Channel",
+            desc: "Web / Mobile / Desktop.",
             icon: <FaMobileAlt />,
+            stat: "SYNCED",
             className: "md:col-span-1"
         }
     ];
@@ -56,26 +72,42 @@ export default function DetailedFeatures() {
     return (
         <section className="py-32 px-4 bg-black" id="features">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-20">
-                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 text-white text-center md:text-left">
-                        Powerful Features
-                    </h2>
-                    <p className="text-gray-500 text-xl text-center md:text-left max-w-2xl">
-                        Everything you need to orchestrate your life, powered by intelligence.
-                    </p>
+                <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
+                    <div>
+                        <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">
+                            System Capes
+                        </h2>
+                        <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
+                            // Neural Architecture v1.0
+                        </p>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 auto-rows-[minmax(180px,auto)] bg-white/10 border border-white/10 gap-px rounded-3xl overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-4 auto-rows-[minmax(200px,auto)] bg-white/5 border border-white/10 gap-px rounded-sm overflow-hidden">
                     {features.map((feat, i) => (
-                        <div key={i} className={`p-8 bg-black hover:bg-neutral-900/50 transition-colors duration-300 flex flex-col justify-between group ${feat.className || ""}`}>
-                            <div className="text-3xl text-cyan-500 mb-4 group-hover:scale-110 transition-transform duration-300 origin-left">
-                                {feat.icon}
+                        <div key={i} className={`p-8 bg-black hover:bg-neutral-900/30 transition-colors duration-300 flex flex-col justify-between group relative ${feat.className || ""}`}>
+
+                            {/* Tech Decorators (Corner +) */}
+                            <div className="absolute top-2 left-2 text-[10px] text-white/20 font-mono">+</div>
+                            <div className="absolute top-2 right-2 text-[10px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 left-2 text-[10px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 right-2 text-[10px] text-white/20 font-mono">+</div>
+
+                            <div className="flex justify-between items-start">
+                                <div className="text-2xl text-cyan-500 group-hover:text-white transition-colors">
+                                    {feat.icon}
+                                </div>
+                                <span className="font-mono text-[10px] text-gray-700 group-hover:text-cyan-500 transition-colors uppercase border border-white/5 px-2 py-0.5 rounded-full">
+                                    {feat.id}
+                                </span>
                             </div>
-                            <div>
-                                <h3 className={`font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors ${feat.className?.includes('col-span-2') ? 'text-2xl' : 'text-lg'}`}>
+
+                            <div className="mt-8">
+                                <h3 className={`font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors leading-none tracking-tight ${feat.className?.includes('col-span-2') ? 'text-3xl' : 'text-xl'}`}>
                                     {feat.title}
                                 </h3>
-                                <p className="text-sm text-gray-500 leading-relaxed group-hover:text-gray-400 transition-colors">
+                                <div className="h-px w-8 bg-white/20 my-3 group-hover:w-full group-hover:bg-cyan-500/50 transition-all duration-500" />
+                                <p className="text-sm text-gray-500 group-hover:text-gray-400 transition-colors font-mono">
                                     {feat.desc}
                                 </p>
                             </div>

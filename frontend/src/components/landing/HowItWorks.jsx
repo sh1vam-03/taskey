@@ -5,23 +5,23 @@ export default function HowItWorks() {
     const steps = [
         {
             id: "01",
-            title: "Input",
-            subtitle: "Tell Your Assistant",
-            desc: "Describe tasks naturally. \"Workout at 7am\" or \"Project review on Friday\".",
+            title: "INPUT_NODE",
+            subtitle: "Natural Input",
+            desc: "Voice or text command injection.",
             icon: <FaMicrophone />
         },
         {
             id: "02",
-            title: "Process",
-            subtitle: "AI Creates Schedule",
-            desc: "Our engine analyzes your calendar, priorities, and energy levels to build the perfect plan.",
+            title: "PROCESS_CORE",
+            subtitle: "Neural Analysis",
+            desc: "Pattern recognition & optimization.",
             icon: <FaBrain />
         },
         {
             id: "03",
-            title: "Execute",
-            subtitle: "Stay On Track",
-            desc: "Receive smart nudges, adaptive rescheduling, and burnout protection.",
+            title: "OUTPUT_STREAM",
+            subtitle: "Execution",
+            desc: "Schedule generation & compliance.",
             icon: <FaCheckCircle />
         }
     ];
@@ -29,32 +29,44 @@ export default function HowItWorks() {
     return (
         <section className="py-32 px-4 bg-black border-t border-white/5">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-20">
-                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 text-white text-center md:text-left">
-                        How Taskey Works
+                <div className="mb-20 border-b border-white/10 pb-6">
+                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-2 text-white">
+                        Workflow Logic
                     </h2>
-                    <p className="text-gray-500 text-xl text-center md:text-left">
-                        From chaos to clarity in three simple steps.
+                    <p className="text-gray-500 font-mono text-sm">
+                        // EXECUTION_PIPELINE
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                    {/* Connector Line (Desktop) */}
-                    <div className="hidden md:block absolute top-[60px] left-[16%] right-[16%] h-px bg-linear-to-r from-transparent via-cyan-900/50 to-transparent border-t border-dashed border-cyan-900/50" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative">
+                    {/* Circuit Line (Desktop) */}
+                    <div className="hidden md:block absolute top-[40px] left-0 right-0 h-px bg-white/10 z-0">
+                        <div className="absolute top-0 left-0 h-full w-full bg-linear-to-r from-transparent via-cyan-500/50 to-transparent opacity-50" />
+                    </div>
 
                     {steps.map((step, i) => (
-                        <div key={i} className="relative group">
-                            {/* Step Number Badge */}
-                            <div className="w-16 h-16 mx-auto mb-8 bg-black border border-white/10 rounded-2xl flex items-center justify-center text-xl font-mono font-bold text-cyan-500 relative z-10 group-hover:border-cyan-500/50 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all duration-300">
-                                {step.id}
+                        <div key={i} className="relative group pt-20 px-6 border-l border-white/5 first:border-l-0">
+                            {/* Circuit Node */}
+                            <div className="absolute top-[32px] left-6 w-4 h-4 bg-black border-2 border-white/20 rounded-full z-10 group-hover:border-cyan-400 group-hover:bg-cyan-900 transition-colors">
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white rounded-full group-hover:bg-cyan-200" />
                             </div>
 
-                            <div className="p-8 bg-black border border-white/10 rounded-3xl hover:bg-white/5 transition-all duration-300 h-full">
-                                <h4 className="text-xs font-mono text-cyan-500 mb-2 uppercase tracking-widest">{step.title}</h4>
-                                <h3 className="text-2xl font-bold text-white mb-4">{step.subtitle}</h3>
-                                <p className="text-gray-500 leading-relaxed text-sm">
-                                    {step.desc}
-                                </p>
+                            <div className="space-y-4">
+                                <div className="text-cyan-500 opacity-0 transform -translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                    {step.icon}
+                                </div>
+
+                                <div>
+                                    <h4 className="font-mono text-xs text-gray-600 mb-1 group-hover:text-cyan-500 transition-colors">
+                                        [{step.title}]
+                                    </h4>
+                                    <h3 className="text-2xl font-bold text-white mb-2">
+                                        {step.subtitle}
+                                    </h3>
+                                    <p className="text-sm text-gray-500 font-mono leading-relaxed">
+                                        {"> " + step.desc}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     ))}
