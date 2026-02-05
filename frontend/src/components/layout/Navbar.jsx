@@ -60,7 +60,7 @@ const Navbar = () => {
                         Login
                     </Link>
                     <Link href="/signup" className="px-5 py-2 text-sm font-bold text-black bg-white rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                        Start Free
+                        Get Started
                     </Link>
                 </div>
 
@@ -99,7 +99,7 @@ const Navbar = () => {
                             ))}
                             <Link href="/login" className="text-lg font-medium text-gray-300 hover:text-white">Login</Link>
                             <Link href="/signup" className="w-full text-center py-3 bg-white text-black font-bold rounded-xl mt-2">
-                                Start Free
+                                Get Started
                             </Link>
                         </div>
                     </motion.div>

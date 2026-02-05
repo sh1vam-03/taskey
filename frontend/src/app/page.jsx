@@ -166,7 +166,7 @@ export default function Home() {
                     </h2>
                     <Link href="/signup">
                         <button className="px-12 py-5 bg-white text-black font-bold rounded-full text-xl hover:scale-105 transition-all">
-                            Initialize System
+                            Get Started
                         </button>
                     </Link>
                 </div>

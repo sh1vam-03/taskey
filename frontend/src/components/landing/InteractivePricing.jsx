@@ -9,118 +9,103 @@ export default function InteractivePricing() {
 
     const plans = [
         {
-            name: "Free Tier",
+            name: "Free",
             price: "₹0",
             period: isYearly ? "/yr" : "/mo",
-            credits: isYearly ? "10 AI credits / year" : "10 AI credits / month",
-            desc: "Start free and scale as you grow.",
-            features: [
-                "10 tasks per month", // Wait, user prompt said 30? "30 tasks per month"
-                "30 schedules per month",
-                "30 behavior patterns",
-                "10 free AI credits on signup",
-                "Basic AI chat support",
-                "Mobile & Web access"
-            ]
+            credits: "10 Credits",
+            desc: "For individuals exploring AI.",
+            features: ["10 Tasks/mo", "30 Schedules/mo", "Basic Chat"]
         },
         {
             name: "Pro",
             price: isYearly ? "₹4,999" : "₹499",
             period: isYearly ? "/yr" : "/mo",
-            credits: isYearly ? "600 AI credits / year" : "50 AI credits / month",
-            desc: "Most Popular",
+            credits: isYearly ? "600 Credits" : "50 Credits",
+            desc: "For professionals.",
             highlight: true,
-            features: [
-                "Unlimited tasks & schedules",
-                "Unlimited behavior patterns",
-                isYearly ? "50 AI credits/mo (billed yearly)" : "50 AI credits / month",
-                "Advanced AI chat (GPT-4o-mini)",
-                "Voice input & output",
-                "Priority support",
-                "Calendar integrations"
-            ]
+            features: ["Unlimited Tasks", "Voice Mode", "Calendar Sync", "Priority Support"]
         },
         {
-            name: "Pro Plus",
+            name: "Plus",
             price: isYearly ? "₹9,999" : "₹999",
             period: isYearly ? "/yr" : "/mo",
-            credits: isYearly ? "1080 AI credits / year" : "90 AI credits / month",
-            desc: "For power users & teams.",
-            features: [
-                "Everything in Pro",
-                isYearly ? "90 AI credits/mo (billed yearly)" : "90 AI credits / month",
-                "Advanced AI research (Tavily)",
-                "Unlimited voice interactions",
-                "Custom AI workflows",
-                "Team collaboration",
-                "Dedicated support"
-            ]
+            credits: isYearly ? "1080 Credits" : "90 Credits",
+            desc: "For power users.",
+            features: ["Deep Research", "Custom Workflows", "Team features", "API Access"]
         }
     ];
 
     return (
         <section className="py-32 px-6 bg-black" id="pricing">
             <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-16 space-y-6">
-                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter">Simple Pricing</h2>
-                    <p className="text-gray-400 text-xl">Choose plans that scale with your ambitions.</p>
+                <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+                    <div>
+                        <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">Pricing</h2>
+                        <p className="text-gray-500 text-xl font-light">Start free. Upgrade for power.</p>
+                    </div>
 
                     {/* Toggle */}
-                    <div className="flex items-center justify-center gap-4 pt-4">
-                        <span className={`text-sm font-medium ${!isYearly ? "text-white" : "text-gray-500"}`}>Monthly</span>
+                    <div className="flex items-center gap-4 bg-white/5 p-1 rounded-full border border-white/10">
                         <button
-                            onClick={() => setIsYearly(!isYearly)}
-                            className="w-14 h-7 bg-white/10 rounded-full relative p-1 transition-colors hover:bg-white/20"
+                            onClick={() => setIsYearly(false)}
+                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
                         >
-                            <motion.div
-                                animate={{ x: isYearly ? 28 : 0 }}
-                                className="w-5 h-5 bg-cyan-500 rounded-full shadow-lg"
-                            />
+                            Monthly
                         </button>
-                        <span className={`text-sm font-medium ${isYearly ? "text-white" : "text-gray-500"}`}>Yearly (Save ~17%)</span>
+                        <button
+                            onClick={() => setIsYearly(true)}
+                            className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            Yearly
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="grid md:grid-cols-3 gap-6">
                     {plans.map((plan, i) => (
                         <div
                             key={i}
-                            className={`p-8 rounded-3xl border transition-all duration-300 flex flex-col relative ${plan.highlight ? 'bg-[#0a0a0a] border-cyan-500/50 shadow-[0_0_30px_rgba(6,182,212,0.1)] scale-105 z-10' : 'bg-black border-white/10 hover:border-white/20'}`}
+                            className={`p-8 rounded-3xl border flex flex-col justify-between transition-all duration-300 group ${plan.highlight ? 'bg-white/5 border-cyan-500/50' : 'bg-black border-white/10 hover:border-white/30'}`}
                         >
-                            {plan.highlight && (
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                    Most Popular
+                            <div>
+                                <div className="flex justify-between items-start mb-8">
+                                    <div>
+                                        <h3 className="text-xl font-mono font-bold text-white mb-1">{plan.name}</h3>
+                                        <p className="text-xs text-cyan-500 font-mono uppercase tracking-wider">{plan.credits}</p>
+                                    </div>
+                                    {plan.highlight && (
+                                        <span className="w-3 h-3 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)] animate-pulse" />
+                                    )}
                                 </div>
-                            )}
 
-                            <div className="mb-6">
-                                <h3 className="text-xl font-bold mb-2 text-white">{plan.name}</h3>
-                                <p className="text-sm text-cyan-400 font-medium">{plan.credits}</p>
+                                <div className="mb-8">
+                                    <span className="text-5xl font-bold text-white tracking-tighter">{plan.price}</span>
+                                    <span className="text-gray-500 text-sm ml-2">{plan.period}</span>
+                                </div>
+
+                                <div className="space-y-4 mb-8">
+                                    {plan.features.map((feat, j) => (
+                                        <div key={j} className="flex items-center gap-3 text-sm text-gray-400 border-t border-white/5 pt-3 first:border-0 first:pt-0">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
+                                            {feat}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-
-                            <div className="flex items-baseline gap-1 mb-8">
-                                <span className="text-4xl font-bold text-white">{plan.price}</span>
-                                <span className="text-gray-500">{plan.period}</span>
-                            </div>
-
-                            <ul className="space-y-4 mb-8 flex-1">
-                                {plan.features.map((feat, j) => (
-                                    <li key={j} className="flex items-start gap-3 text-sm text-gray-400">
-                                        <span className="text-cyan-500 mt-0.5"><FaCheck /></span>
-                                        {feat}
-                                    </li>
-                                ))}
-                            </ul>
 
                             <Button
                                 variant={plan.highlight ? "primary" : "outline"}
-                                className={`w-full h-12 rounded-xl text-sm font-bold ${plan.highlight ? 'bg-white text-black hover:bg-gray-200' : 'border-white/10 hover:bg-white/5'}`}
+                                className={`w-full h-14 rounded-2xl text-base font-bold transition-all ${plan.highlight ? 'bg-white text-black hover:scale-[1.02]' : 'border-white/10 hover:bg-white text-white hover:text-black'}`}
                             >
-                                Choose {plan.name}
+                                Get Started
                             </Button>
                         </div>
                     ))}
                 </div>
+
+                <p className="text-center text-gray-600 text-sm mt-12 font-mono">
+                    All plans include 10 free credits on signup. Cancel anytime.
+                </p>
             </div>
         </section>
     )
