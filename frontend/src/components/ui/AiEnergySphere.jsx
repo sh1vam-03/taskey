@@ -3,22 +3,31 @@ import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 
 export default function AiEnergySphere({
-    size = 400,
+    size = 500,
     speed = 1,
-    particleCount = 60
+    particleCount = 120
 }) {
-    // Generate random particles for the "nano-bot" swarm
+    // Generate particles in a spherical distribution
     const particles = useMemo(() => {
-        return [...Array(particleCount)].map((_, i) => ({
-            id: i,
-            x: Math.random() * 100 - 50, // -50% to 50% relative to center
-            y: Math.random() * 100 - 50,
-            angle: Math.random() * 360,
-            duration: 3 + Math.random() * 5,
-            delay: Math.random() * 2,
-            scale: 0.5 + Math.random() * 0.5,
-            orbitScale: 0.8 + Math.random() * 0.4
-        }));
+        return [...Array(particleCount)].map((_, i) => {
+            // Spherical coordinates for even distribution
+            const r = 140 + Math.random() * 100; // Radius spread
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+
+            // Convert to Cartesian
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+
+            return {
+                id: i,
+                x, y, z,
+                scale: 0.5 + Math.random() * 1.5, // Varied sizes
+                opacity: 0.3 + Math.random() * 0.7,
+                duration: 10 + Math.random() * 20
+            };
+        });
     }, [particleCount]);
 
     return (
@@ -26,87 +35,86 @@ export default function AiEnergySphere({
             className="relative flex items-center justify-center select-none pointer-events-none"
             style={{ width: size, height: size, perspective: "1000px" }}
         >
-            <div className="relative w-full h-full transform-3d" style={{ transformStyle: "preserve-3d" }}>
+            <div className="relative w-full h-full transform-3d flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
 
-                {/* 1. CORE SINGULARITY (Stable, Non-blinking) */}
-                <div className="absolute inset-[40%] rounded-full bg-cyan-500/10 blur-xl" />
-                <div className="absolute inset-[45%] rounded-full bg-white/20 blur-md" />
-                <div className="absolute inset-[48%] rounded-full bg-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.6)]" />
-
-                {/* 2. NANO-BOT SWARM */}
-                {particles.map((p) => (
-                    <motion.div
-                        key={p.id}
-                        className="absolute w-1 h-1 bg-cyan-400 rounded-full"
-                        style={{
-                            left: "50%",
-                            top: "50%",
-                            boxShadow: "0 0 5px rgba(34,211,238,0.8)"
-                        }}
-                        animate={{
-                            rotate: [p.angle, p.angle + 360],
-                            translateX: [
-                                `${p.orbitScale * 100}px`,
-                                `${p.orbitScale * 120}px`,
-                                `${p.orbitScale * 100}px`
-                            ],
-                            translateY: [
-                                `${p.orbitScale * 20}px`,
-                                `${p.orbitScale * -20}px`,
-                                `${p.orbitScale * 20}px`
-                            ],
-                            scale: [p.scale, p.scale * 1.2, p.scale],
-                            opacity: [0.4, 0.8, 0.4]
-                        }}
-                        transition={{
-                            duration: p.duration / speed,
-                            repeat: Infinity,
-                            ease: "linear",
-                            delay: p.delay
-                        }}
-                    />
-                ))}
-
-                {/* 3. ADDITIONAL GYROSCOPIC RINGS (Increased Count) */}
-                {/* Ring 1 - Fast Inner */}
+                {/* 0. GLOBAL ROTATION CONTAINER (Slow Spin) */}
                 <motion.div
-                    className="absolute inset-[25%] rounded-full border border-cyan-500/30 border-t-white/80"
+                    className="absolute inset-0 flex items-center justify-center"
                     style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateX: 360, rotateY: 15 }}
-                    transition={{ duration: 8 / speed, repeat: Infinity, ease: "linear" }}
+                    animate={{ rotateY: 360, rotateZ: 45 }}
+                    transition={{ duration: 60 / speed, repeat: Infinity, ease: "linear" }}
+                >
+                    {/* 1. NANO-BOT SWARM */}
+                    {particles.map((p) => (
+                        <motion.div
+                            key={p.id}
+                            className="absolute bg-cyan-400 rounded-full"
+                            style={{
+                                width: p.scale * 2,
+                                height: p.scale * 2,
+                                left: "50%",
+                                top: "50%",
+                                x: p.x,
+                                y: p.y,
+                                z: p.z,
+                                opacity: p.opacity,
+                                boxShadow: "0 0 4px rgba(34,211,238,0.8)"
+                            }}
+                            animate={{
+                                opacity: [p.opacity, 0.2, p.opacity],
+                                scale: [1, 1.2, 1]
+                            }}
+                            transition={{
+                                duration: 3 + Math.random() * 2,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: Math.random() * 2
+                            }}
+                        />
+                    ))}
+                </motion.div>
+
+                {/* 2. CORE SINGULARITY */}
+                <div className="absolute w-20 h-20 bg-cyan-500/20 blur-2xl rounded-full animate-pulse" />
+                <div className="absolute w-10 h-10 bg-white/50 blur-xl rounded-full" />
+                <div className="absolute w-4 h-4 bg-cyan-400 rounded-full shadow-[0_0_50px_rgba(6,182,212,1)]" />
+
+                {/* 3. GYROSCOPIC RINGS */}
+                {/* Ring 1 - Dashed Data Ring */}
+                <motion.div
+                    className="absolute w-[60%] h-[60%] border border-dashed border-cyan-500/30 rounded-full box-border"
+                    style={{ transformStyle: "preserve-3d" }}
+                    animate={{ rotateX: 360, rotateY: 360 }}
+                    transition={{ duration: 20 / speed, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* Ring 2 - Vertical */}
+                {/* Ring 2 - Solid Orbital */}
                 <motion.div
-                    className="absolute inset-[20%] rounded-full border border-cyan-400/20 border-r-white/60"
+                    className="absolute w-[80%] h-[80%] border-[2px] border-transparent border-t-cyan-500/50 border-b-cyan-500/50 rounded-full"
                     style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: 360, rotateX: 340 }}
-                    transition={{ duration: 12 / speed, repeat: Infinity, ease: "linear" }}
-                />
-
-                {/* Ring 3 - Diagonal */}
-                <motion.div
-                    className="absolute inset-[15%] rounded-full border border-blue-500/20 border-b-cyan-300/50"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateZ: 360, rotateX: 60 }}
+                    animate={{ rotateZ: 360, rotateX: 45 }}
                     transition={{ duration: 15 / speed, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* Ring 4 - Outer Large */}
+                {/* Ring 3 - Large Outer */}
                 <motion.div
-                    className="absolute inset-[5%] rounded-full border-[0.5px] border-white/10 border-l-cyan-500/50"
+                    className="absolute w-[100%] h-[100%] border border-white/5 rounded-full"
                     style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateZ: -360, rotateX: -45 }}
-                    transition={{ duration: 25 / speed, repeat: Infinity, ease: "linear" }}
+                    animate={{ rotateY: -360, rotateZ: 15 }}
+                    transition={{ duration: 30 / speed, repeat: Infinity, ease: "linear" }}
+                >
+                    {/* Ring Decorator */}
+                    <div className="absolute top-1/2 -right-1 w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_10px_cyan]" />
+                </motion.div>
+
+                {/* Ring 4 - Vertical Scanning */}
+                <motion.div
+                    className="absolute w-[70%] h-[70%] border border-cyan-900/40 rounded-full"
+                    style={{ transformStyle: "preserve-3d" }}
+                    animate={{ rotateY: 360 }}
+                    transition={{ duration: 10 / speed, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* Ring 5 - The "Data Field" (Dotted) */}
-                <motion.div
-                    className="absolute inset-0 rounded-full border border-dashed border-cyan-900/40"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: -360 }}
-                    transition={{ duration: 40 / speed, repeat: Infinity, ease: "linear" }}
-                />
             </div>
         </div>
     );
