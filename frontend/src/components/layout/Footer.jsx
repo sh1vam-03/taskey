@@ -1,6 +1,21 @@
 import Link from "next/link";
 import { FaTwitter, FaGithub, FaLinkedin } from "react-icons/fa";
 
+const FooterLink = ({ href, children }) => (
+    <Link
+        href={href}
+        className="relative px-3 py-1 text-xs text-gray-500 hover:text-cyan-400 transition-all rounded-sm group overflow-hidden inline-block"
+    >
+        <span className="relative z-10 group-hover:font-bold transition-all duration-300 flex items-center gap-2">
+            {children}
+        </span>
+        {/* Hover BG */}
+        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Bottom Line */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] w-0 bg-cyan-500 group-hover:w-full transition-all duration-300" />
+    </Link>
+);
+
 const Footer = () => {
     return (
         <footer className="bg-black border-t border-white/10 pt-16 pb-8 font-mono relative overflow-hidden">
@@ -22,27 +37,27 @@ const Footer = () => {
 
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Modules</h4>
-                        <ul className="space-y-3 text-xs text-gray-500">
-                            <li><Link href="#features" className="hover:text-cyan-400 transition-colors flex items-center gap-2"><span className="w-1 h-1 bg-gray-700 rounded-full" />NeuralEngine</Link></li>
-                            <li><Link href="#pricing" className="hover:text-cyan-400 transition-colors flex items-center gap-2"><span className="w-1 h-1 bg-gray-700 rounded-full" />ResourceAlloc</Link></li>
-                            <li><Link href="/api" className="hover:text-cyan-400 transition-colors flex items-center gap-2"><span className="w-1 h-1 bg-gray-700 rounded-full" />API_Access</Link></li>
+                        <ul className="space-y-1">
+                            <li><FooterLink href="#features"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />NeuralEngine</FooterLink></li>
+                            <li><FooterLink href="#pricing"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />ResourceAlloc</FooterLink></li>
+                            <li><FooterLink href="/api"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />API_Access</FooterLink></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Protocol</h4>
-                        <ul className="space-y-3 text-xs text-gray-500">
-                            <li><Link href="/about" className="hover:text-cyan-400 transition-colors">Manifesto</Link></li>
-                            <li><Link href="/changelog" className="hover:text-cyan-400 transition-colors">Changelog_v1.0</Link></li>
-                            <li><Link href="/status" className="hover:text-cyan-400 transition-colors">System_Status</Link></li>
+                        <ul className="space-y-1">
+                            <li><FooterLink href="/about">Manifesto</FooterLink></li>
+                            <li><FooterLink href="/changelog">Changelog_v1.0</FooterLink></li>
+                            <li><FooterLink href="/status">System_Status</FooterLink></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Compliance</h4>
-                        <ul className="space-y-3 text-xs text-gray-500">
-                            <li><Link href="/privacy" className="hover:text-cyan-400 transition-colors">Privacy_Protocol</Link></li>
-                            <li><Link href="/terms" className="hover:text-cyan-400 transition-colors">Terms_of_Service</Link></li>
+                        <ul className="space-y-1">
+                            <li><FooterLink href="/privacy">Privacy_Protocol</FooterLink></li>
+                            <li><FooterLink href="/terms">Terms_of_Service</FooterLink></li>
                         </ul>
                     </div>
                 </div>

@@ -28,11 +28,16 @@ export default function Button({
         ghost: `
             bg-transparent text-[var(--text-secondary)]
             hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-[var(--text)]
+            border border-transparent hover:border-white/10
         `,
         danger: `
             bg-red-500 text-white shadow-sm
             hover:bg-red-600
             active:scale-[0.98]
+        `,
+        scanline: `
+            bg-white text-black relative overflow-hidden group border-0
+            hover:text-white transition-colors duration-300
         `
     }
 
@@ -40,7 +45,7 @@ export default function Button({
     const sizes = {
         sm: "h-8 px-3 text-xs font-mono font-bold uppercase tracking-wider rounded-sm",
         md: "h-10 px-5 text-sm font-mono font-bold uppercase tracking-wider rounded-sm",
-        lg: "h-12 px-8 text-sm font-mono font-bold uppercase tracking-widest rounded-sm"
+        lg: "h-14 px-10 text-base font-mono font-bold uppercase tracking-widest rounded-sm"
     }
 
     // BASE STYLES
@@ -62,8 +67,20 @@ export default function Button({
             disabled={disabled || isLoading}
             {...props}
         >
-            {isLoading && <Spinner size="sm" className="border-current border-t-transparent opacity-80" />}
-            {children}
+            {isLoading && <Spinner size="sm" className="border-current border-t-transparent opacity-80 relative z-20" />}
+
+            {variant === 'scanline' ? (
+                <>
+                    <span className="relative z-10 transition-colors duration-300 group-hover:text-white">{children}</span>
+                    {/* Scanline Fill */}
+                    <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+                    {/* Tech Corners */}
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-black group-hover:border-white transition-colors z-20" />
+                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-black group-hover:border-white transition-colors z-20" />
+                </>
+            ) : (
+                children
+            )}
         </button>
     )
 }

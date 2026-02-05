@@ -69,13 +69,14 @@ export default function Home() {
 
                     <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-8">
                         <Link href="/signup">
-                            <button className="relative group px-10 py-4 bg-white text-black font-bold font-mono text-lg rounded-sm hover:scale-105 transition-all">
-                                <span className="relative z-10">INITIALIZE_SYSTEM</span>
-                                <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-0 group-hover:opacity-40 transition-opacity" />
-                            </button>
+                            <Button variant="scanline" size="lg">
+                                INITIALIZE_SYSTEM
+                            </Button>
                         </Link>
-                        <Link href="#how-it-works" className="text-gray-500 hover:text-white transition-colors font-mono text-sm border-b border-transparent hover:border-white">
-                            // VIEW_SCHEMATICS
+                        <Link href="#how-it-works">
+                            <Button variant="ghost" className="text-gray-500 hover:text-white">
+                                // VIEW_SCHEMATICS
+                            </Button>
                         </Link>
                     </div>
                 </div>
