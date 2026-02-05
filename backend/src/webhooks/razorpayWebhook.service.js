@@ -1,19 +1,13 @@
 import prisma from "../config/db.js";
-import {
-    PaymentStatus,
-    PlanType,
-    TokenSource,
-} from "@prisma/client";
-import { PLANS, RAZORPAY_PLAN_MAP } from "../config/plans.js";
+import { PaymentStatus, PlanType } from "@prisma/client";
+import { PLANS } from "../config/plans.config.js"; // New Import
 
-export const handleEvent = async (event) => {
-    const { event: type, payload } = event;
+export const handleRazorpayEvent = async (event) => {
+    switch (event.event) {
 
-    switch (type) {
-
-        // ✅ Subscription started
+        /* ================= SUBSCRIPTION ACTIVATED ================= */
         case "subscription.activated": {
-            const sub = payload.subscription.entity;
+            const sub = event.payload.subscription.entity;
 
             const payment = await prisma.payment.findFirst({
                 where: { razorpaySubscriptionId: sub.id },
@@ -21,29 +15,51 @@ export const handleEvent = async (event) => {
 
             if (!payment) return;
 
-            const plan = RAZORPAY_PLAN_MAP[sub.plan_id];
-            if (!plan) return;
+            const subscriptionPlan = payment.plan; // stored earlier (e.g. PRO)
+            const billingCycle = payment.billingCycle; // MONTHLY or YEARLY
+
+            // Fetch credit amount from new config
+            // WAS: PLANS[subscriptionPlan][billingCycle].credits
+            // NOW: PLANS[subscriptionPlan].credits[billingCycle]
+            const credits = PLANS[subscriptionPlan]?.credits?.[billingCycle] || 0;
 
             await prisma.$transaction(async (tx) => {
                 await tx.subscription.upsert({
                     where: { userId: payment.userId },
                     update: {
-                        plan,
+                        plan: subscriptionPlan,
+                        billingCycle,
+                        cycleCredits: credits,
                         isActive: true,
                         razorpaySubscriptionId: sub.id,
                     },
                     create: {
                         userId: payment.userId,
-                        plan,
-                        billingCycle: "MONTHLY",
-                        monthlyTokens: PLANS[plan].MONTHLY.tokens,
+                        plan: subscriptionPlan,
+                        billingCycle,
+                        cycleCredits: credits,
+                        isActive: true,
                         razorpaySubscriptionId: sub.id,
                     },
                 });
 
+                // Grant Credits + Ledger
                 await tx.user.update({
                     where: { id: payment.userId },
-                    data: { plan },
+                    data: {
+                        plan: subscriptionPlan,
+                        aiCreditBalance: { increment: credits },
+                    },
+                });
+
+                await tx.aiCreditLedger.create({
+                    data: {
+                        userId: payment.userId,
+                        credits: credits,
+                        source: "PLAN_CYCLE",
+                        paymentId: payment.id,
+                        reason: `Subscription Activated: ${subscriptionPlan}`
+                    }
                 });
 
                 await tx.payment.update({
@@ -55,20 +71,21 @@ export const handleEvent = async (event) => {
             break;
         }
 
-        // ✅ Monthly invoice paid → add tokens
+        /* ================= INVOICE PAID (RECURRING) ================= */
         case "invoice.payment_paid": {
-            const invoice = payload.invoice.entity;
+            const invoice = event.payload.invoice.entity;
 
-            const sub = await prisma.subscription.findFirst({
+            const subscription = await prisma.subscription.findFirst({
                 where: {
                     razorpaySubscriptionId: invoice.subscription_id,
                     isActive: true,
                 },
             });
 
-            if (!sub) return;
+            if (!subscription) return;
 
-            const tokens = PLANS[sub.plan].MONTHLY.tokens;
+            // Fetch credits based on active subscription
+            const credits = PLANS[subscription.plan]?.credits?.[subscription.billingCycle] || 0;
 
             await prisma.$transaction(async (tx) => {
                 const payment = await tx.payment.create({
@@ -79,42 +96,45 @@ export const handleEvent = async (event) => {
                         purpose: "SUBSCRIPTION",
                         amount: invoice.amount_paid,
                         currency: invoice.currency,
-                        status: "PAID",
-                        userId: sub.userId,
+                        status: PaymentStatus.PAID,
+                        userId: subscription.userId,
                     },
                 });
 
+                // Grant Credits + Ledger
                 await tx.user.update({
-                    where: { id: sub.userId },
+                    where: { id: subscription.userId },
                     data: {
-                        aiTokenBalance: { increment: tokens },
+                        aiCreditBalance: { increment: credits },
                     },
                 });
 
-                await tx.aiTopUp.create({
+                await tx.aiCreditLedger.create({
                     data: {
-                        tokensAdded: tokens,
-                        source: TokenSource.PLAN_MONTHLY,
+                        userId: subscription.userId,
+                        credits: credits,
+                        source: "PLAN_CYCLE",
                         paymentId: payment.id,
-                        userId: sub.userId,
-                    },
+                        reason: "Monthly Renewal"
+                    }
                 });
             });
 
             break;
         }
 
-        // ❌ Subscription cancelled
-        case "subscription.cancelled": {
-            const sub = payload.subscription.entity;
+        /* ================= SUBSCRIPTION CANCELLED ================= */
+        case "subscription.cancelled":
+        case "subscription.completed": {
+            const sub = event.payload.subscription.entity;
+
+            const subscription = await prisma.subscription.findFirst({
+                where: { razorpaySubscriptionId: sub.id },
+            });
+
+            if (!subscription) return;
 
             await prisma.$transaction(async (tx) => {
-                const subscription = await tx.subscription.findFirst({
-                    where: { razorpaySubscriptionId: sub.id },
-                });
-
-                if (!subscription) return;
-
                 await tx.subscription.update({
                     where: { id: subscription.id },
                     data: {
@@ -132,9 +152,24 @@ export const handleEvent = async (event) => {
             break;
         }
 
-        // ❌ Invoice failed (no downgrade yet)
+        /* ================= PAYMENT FAILED ================= */
         case "invoice.payment_failed": {
-            // log only
+            const invoice = event.payload.invoice.entity;
+
+            // Log attempt
+            await prisma.payment.create({
+                data: {
+                    razorpayPaymentId: invoice.payment_id ?? null,
+                    razorpaySubscriptionId: invoice.subscription_id,
+                    entity: "INVOICE",
+                    purpose: "SUBSCRIPTION",
+                    amount: invoice.amount_due,
+                    currency: invoice.currency,
+                    status: PaymentStatus.FAILED,
+                    userId: invoice.customer_id, // Ensure this maps to our UUID if Razorpay uses our ID
+                },
+            });
+
             break;
         }
 

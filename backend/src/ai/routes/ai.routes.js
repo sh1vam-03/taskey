@@ -1,26 +1,20 @@
 import { Router } from "express";
 import authMiddleware from "../../middlewares/auth.middleware.js";
-import { executeAi, getHistory } from "../controllers/ai.controller.js";
-import { requireAiTokens, precheckAiTokens } from "../../middlewares/ai.middleware.js";
-import { AiUsageType } from "@prisma/client";
+import { createConversation, getConversations, getConversation, deleteConversation, getMessages, sendMessage } from "../controllers/ai.controller.js";
+// import { upload } from "../../middlewares/upload.middleware.js";
 
 const router = Router();
 
-router.post(
-    "/execute",
-    authMiddleware,
-    requireAiTokens(AiUsageType.TEXT),   // ⬅ REQUIRED
-    precheckAiTokens(AiUsageType.TEXT),  // ⬅ REQUIRED
-    executeAi
-);
+// Conversations
+router.post("/conversations", authMiddleware, createConversation);
+router.get("/conversations", authMiddleware, getConversations);
+router.get("/conversations/:id", authMiddleware, getConversation);
+router.delete("/conversations/:id", authMiddleware, deleteConversation);
 
-router.get(
-    "/history",
-    authMiddleware,
-    getHistory
-);
+// Messages (Text)
+router.get("/conversations/:id/messages", authMiddleware, getMessages);
+router.post("/conversations/:id/message", authMiddleware, sendMessage);
 
-router.get("/usage", authMiddleware, getMyUsage);
 
 
 export default router;

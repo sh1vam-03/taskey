@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import asyncHandler from "../utils/asyncHandler.js";
-import * as webhookService from "../services/webhook.service.js";
+import * as webhookService from "./razorpayWebhook.service.js";
 
 export const razorpayWebhook = asyncHandler(async (req, res) => {
     const signature = req.headers["x-razorpay-signature"];

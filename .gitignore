@@ -30,4 +30,9 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
 ai.backup/
+=======
+# AI Backup
+ai.backup/
+>>>>>>> c2a44bd9d4d650f730ef4f1253fd7c7e378a76ff

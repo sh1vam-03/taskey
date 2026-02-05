@@ -1,6 +1,7 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { validateSchedule } from "../ai/validators/schedule.validator.js";
 
 // Create Schedule
 export const createSchedule = async (data) => {
@@ -52,6 +53,15 @@ export const createSchedule = async (data) => {
         }
     });
 
+    // 1. Validator Logic (AI Requirement)
+    // This will throw an error if validation fails
+    validateSchedule({
+        scheduleDate,
+        startTime,
+        endTime
+    });
+
+    // 2. Conflict Check (Detailed)
     for (const schedule of existingSchedule) {
         if (hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(
@@ -60,6 +70,10 @@ export const createSchedule = async (data) => {
             );
         }
     }
+
+    // 3. Array/Overlap Validation (If needed, but here we process single)
+    // The validateSchedule helper also checks array overlaps, but we are creating one.
+    // If we wanted to batch create, we would pass array. Here we pass single object.
 
     // Duplicate check
     const duplicateWhere = {
@@ -193,6 +207,18 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     if (!existing) {
         throw new ApiError(404, "Schedule not found");
     }
+
+    if (!existing) {
+        throw new ApiError(404, "Schedule not found");
+    }
+
+    // 1. Validator Logic (AI Requirement)
+    // This will throw an error if validation fails
+    validateSchedule({
+        scheduleDate,
+        startTime,
+        endTime
+    });
 
     // Normalize time
     // Normalize time (Force UTC to ensure consistent comparison)
