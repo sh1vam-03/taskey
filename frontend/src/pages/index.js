@@ -1,78 +1,134 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Link from "next/link"
+import Navbar from "../components/common/Navbar"
 
 export default function Home() {
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen" style={{ color: "var(--text)" }}>
+      <Navbar />
+
+      <section className="bg min-h-screen flex flex-col justify-center items-center text-center px-6 fade-up">
+        <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: "var(--heading)" }}>
+          Organize Your Life with <span className="text-gray-500">Taskey</span>
+        </h1>
+
+        <p className="max-w-2xl text-lg text-gray-600 mb-8">
+          Taskey helps you manage tasks, plan schedules, and track habits —
+          all in one simple and powerful platform.
+        </p>
+
+        <div className="flex gap-4">
+          <Link
+            href="/signup"
+            className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Get Started
+          </Link>
         </div>
-      </main>
+      </section>
+
+
+      <section
+        className="rounded-xl border p-6"
+        style={{
+          backgroundColor: "var(--card)",
+          borderColor: "var(--border)"
+        }}
+      >
+        <h2 className="text-3xl font-bold text-center mb-12" style={{ color: "var(--heading)" }}>
+          Key Features
+        </h2>
+
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
+        >
+          <Feature
+            title="Task Management"
+            description="Create, organize, and prioritize tasks to stay productive every day."
+          />
+          <Feature
+            title="Smart Scheduling"
+            description="Plan your day, week, and month with an intuitive scheduling system."
+          />
+          <Feature
+            title="Behavior Tracking"
+            description="Build habits and track your behavior to improve consistency and focus."
+          />
+        </div>
+      </section>
+
+
+      <section className="py-20 px-6">
+        <h2 className="text-3xl font-bold text-center mb-12" style={{ color: "var(--heading)" }}>
+          How Taskey Works
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto text-center">
+          <Step number="1" title="Sign Up" description="Create your free Taskey account in seconds." />
+          <Step number="2" title="Add Tasks" description="Set tasks, schedules, and habits easily." />
+          <Step number="3" title="Track Progress" description="Stay consistent and achieve your goals." />
+        </div>
+      </section>
+
+      {/* SCREENSHOTS PLACEHOLDER */}
+      <section
+        className="rounded-xl border p-6"
+        style={{
+          backgroundColor: "var(--card)",
+          borderColor: "var(--border)"
+        }}
+      >
+        <h2 className="text-3xl font-bold text-center mb-12" style={{ color: "var(--heading)" }}>
+          See Taskey in Action
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {["Dashboard", "Task View", "Habit Tracker"].map((text) => (
+            <div
+              key={text}
+              className="h-56 rounded-xl border shadow flex items-center justify-center text-gray-400 bg-gray-50 dark:bg-gray-900"
+            >
+              {text} Screenshot
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-20 px-6 text-center">
+        <h2 className="text-3xl font-bold mb-6" style={{ color: "var(--heading)" }}>
+          Start Managing Your Life Better
+        </h2>
+
+        <p className="text-gray-600 mb-8">
+          Join Taskey today and take control of your tasks and habits.
+        </p>
+
+        <Link
+          href="/signup"
+          className="bg-black text-white px-8 py-4 rounded-lg hover:bg-gray-800 transition"
+        >
+          Create Free Account
+        </Link>
+      </section>
     </div>
-  );
+  )
 }
+
+/* Feature Component */
+const Feature = ({ title, description }) => (
+  <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm hover:shadow-md transition card">
+    <h3 className="text-xl font-semibold mb-3" style={{ color: "var(--heading)" }}>{title}</h3>
+    <p className="opacity-80">{description}</p>
+  </div>
+)
+
+/* Step Component */
+const Step = ({ number, title, description }) => (
+  <div>
+    <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-black text-white font-bold">
+      {number}
+    </div>
+    <h3 className="text-xl font-semibold mb-2" style={{ color: "var(--heading)" }}>{title}</h3>
+    <p className="opacity-80">{description}</p>
+  </div>
+)
