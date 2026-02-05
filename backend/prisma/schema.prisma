@@ -1,0 +1,580 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//======================
+// ENUMS
+//======================
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Mood {
+  HAPPY
+  NEUTRAL
+  SAD
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum PlanType {
+  FREE
+  PRO
+  PRO_PLUS
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum AiUsageType {
+  CHAT
+  VOICE
+}
+
+enum CreditSource {
+  PLAN_CYCLE // monthly or yearly subscription credit
+  TOP_UP // add-on purchase
+  REFUND // admin or system refund
+  AI_USAGE // consumption
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AiConversationType {
+  GENERAL
+  DAILY_PLANNING
+  REFLECTION
+  VOICE
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  TOP_UP
+  REFUND
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum RazorpayEntity {
+  PAYMENT
+  SUBSCRIPTION
+  INVOICE
+}
+
+//======================
+// USER
+//======================
+
+model User {
+  id              String  @id @default(uuid())
+  name            String
+  email           String  @unique
+  password        String
+  isEmailVerified Boolean @default(false)
+  timezone        String?
+
+  role   UserRole      @default(USER)
+  plan   PlanType      @default(FREE)
+  status AccountStatus @default(ACTIVE)
+
+  aiCreditBalance Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core relations
+  tasks                Task[]
+  schedules            Schedule[]
+  scheduleCompletions  ScheduleCompletion[]
+  taskDailyCompletions TaskDailyCompletion[]
+  missedSchedules      MissedSchedule[]
+  categories           Category[]
+  behaviors            BehaviorLog[]
+  otps                 Otp[]
+  sessions             Session[]
+  subscription         Subscription?
+  usageStats           UsageStat[]
+  payments             Payment[]
+
+  // AI
+  aiUsages        AiUsage[]
+  aiTopUps        AiTopUp[]
+  aiConversations AiConversation[]
+  aiMessages      AiMessage[]
+  creditLedger    AiCreditLedger[]
+
+  @@index([email])
+  @@index([status])
+}
+
+//======================
+// OTP
+//======================
+
+model Otp {
+  id        String     @id @default(uuid())
+  code      String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  isUsed    Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
+//======================
+// SESSION (JWT SECURITY)
+//======================
+
+model Session {
+  id String @id @default(uuid())
+
+  // JWT access credit identifier (jti)
+  accessTokenJti String @unique
+
+  // Refresh credit (HASHED)
+  refreshTokenHash String @unique
+
+  userAgent String?
+  ipAddress String?
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+//======================
+// SUBSCRIPTION (PLAN ONLY, NO ADS)
+//======================
+
+model Subscription {
+  id String @id @default(uuid())
+
+  plan         PlanType
+  billingCycle BillingCycle
+
+  // 🔑 credits granted per cycle (monthly OR yearly)
+  cycleCredits Int
+
+  startsAt      DateTime  @default(now())
+  endsAt        DateTime?
+  nextBillingAt DateTime
+  lastBilledAt  DateTime?
+
+  isActive            Boolean   @default(true)
+  lastCreditGrantedAt DateTime?
+
+  razorpaySubscriptionId String? @unique
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, isActive])
+  @@index([nextBillingAt])
+  @@index([billingCycle])
+  @@index([isActive])
+}
+
+//======================
+// USAGE TRACKING (FREE VS PRO LIMITS)
+//======================
+
+model UsageStat {
+  id    String @id @default(uuid())
+  month Int
+  year  Int
+
+  taskCount     Int @default(0)
+  scheduleCount Int @default(0)
+  behaviorCount Int @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@index([userId])
+}
+
+//======================
+// TASK
+//======================
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  order       Int?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  schedules        Schedule[]
+  dailyCompletions TaskDailyCompletion[]
+
+  isArchived Boolean   @default(false)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+//======================
+// CATEGORY
+//======================
+
+model Category {
+  id    String  @id @default(uuid())
+  name  String
+  color String?
+  icon  String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+//======================
+// SCHEDULE
+//======================
+
+model Schedule {
+  id    String  @id @default(uuid())
+  notes String?
+
+  scheduleDate DateTime @db.Date
+  startTime    DateTime @db.Time
+  endTime      DateTime @db.Time
+
+  recurrence   RecurrenceType @default(NONE)
+  repeatUntil  DateTime?      @db.Date
+  repeatOnDays Int[]          @default([])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  completions     ScheduleCompletion[]
+  missedSchedules MissedSchedule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([userId, scheduleDate])
+  @@index([recurrence, scheduleDate])
+  @@index([repeatUntil])
+}
+
+//======================
+// SCHEDULE COMPLETION
+//======================
+
+model ScheduleCompletion {
+  id          String   @id @default(uuid())
+  completedAt DateTime @default(now())
+  completedOn DateTime @db.Date
+
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, completedOn])
+  @@index([userId, completedOn])
+  @@index([completedOn])
+  @@index([scheduleId])
+}
+
+//======================
+// TASK DAILY COMPLETION
+//======================
+
+model TaskDailyCompletion {
+  id            String   @id @default(uuid())
+  completedDate DateTime @db.Date
+  completedAt   DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, completedDate])
+  @@index([completedDate])
+  @@index([userId, completedDate])
+}
+
+//======================
+// MISSED SCHEDULE
+//======================
+
+model MissedSchedule {
+  id       String   @id @default(uuid())
+  missedAt DateTime @default(now())
+  missedOn DateTime @db.Date
+
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, missedOn])
+  @@index([missedOn])
+  @@index([userId, missedOn])
+  @@index([scheduleId])
+}
+
+//======================
+// BEHAVIOR LOG
+//======================
+
+model BehaviorLog {
+  id         String   @id @default(uuid())
+  date       DateTime @db.Date
+  mood       Mood
+  sleepHours Float?
+  exercise   Boolean  @default(false)
+  notes      String?
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+//======================
+// CONTACT US
+//======================
+
+model ContactUs {
+  id      String @id @default(uuid())
+  name    String
+  email   String
+  subject String
+  message String
+
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+//======================
+// AI & USAGE & MANAGEMENT
+//======================
+
+model AiConversation {
+  id String @id @default(uuid())
+
+  title String?
+  type  AiConversationType @default(GENERAL)
+
+  totalCreditsUsed Int @default(0)
+
+  isPinned   Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  lastMessageAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages AiMessage[]
+  aiUsages AiUsage[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([lastMessageAt])
+}
+
+model AiMessage {
+  id String @id @default(uuid())
+
+  role    AiMessageRole
+  content String
+
+  creditsUsed Int @default(0)
+
+  meta Json?
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AiUsage {
+  id String @id @default(uuid())
+
+  type        AiUsageType
+  model       String // gpt-4o-mini, whisper-1, tts-1
+  creditsUsed Int
+
+  conversationId String?
+  conversation   AiConversation? @relation(fields: [conversationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model AiTopUp {
+  id String @id @default(uuid())
+
+  creditsAdded Int
+
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AiCreditLedger {
+  id String @id @default(uuid())
+
+  credits Int // + or -
+  source  CreditSource
+  reason  String?
+
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  conversationId String?
+  paymentId      String?
+
+  @@index([userId])
+  @@index([source])
+  @@index([createdAt])
+}
+
+//======================
+// PAYMENT
+//======================
+
+model Payment {
+  id String @id @default(uuid())
+
+  // Razorpay identifiers
+  razorpayPaymentId      String? @unique
+  razorpayOrderId        String?
+  razorpaySubscriptionId String?
+
+  entity  RazorpayEntity
+  purpose PaymentPurpose
+
+  amount   Int // in paise
+  currency String // INR, USD
+
+  status PaymentStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  aiTopUp AiTopUp?
+
+  @@index([userId])
+  @@index([status])
+}
