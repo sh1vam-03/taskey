@@ -2,13 +2,10 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { PlanType, UserRole } from "@prisma/client";
 import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { PLANS } from "../config/plans.config.js";
 
-// FREE plan limits
-const FREE_LIMITS = {
-    TASK: 20,
-    SCHEDULE: 30,
-    BEHAVIOR: 30,
-};
+// FREE plan limits from config
+const FREE_LIMITS = PLANS[PlanType.FREE].limits;
 
 export const usageLimit = (type) => {
     return async (req, res, next) => {
@@ -48,21 +45,21 @@ export const usageLimit = (type) => {
         }
 
         // 4️⃣ Check limits
-        if (type === "TASK" && usage.taskCount >= FREE_LIMITS.TASK) {
+        if (type === "TASK" && usage.taskCount >= FREE_LIMITS.task) {
             throw new ApiError(
                 403,
                 "Free plan task limit reached. Upgrade to PRO."
             );
         }
 
-        if (type === "SCHEDULE" && usage.scheduleCount >= FREE_LIMITS.SCHEDULE) {
+        if (type === "SCHEDULE" && usage.scheduleCount >= FREE_LIMITS.schedule) {
             throw new ApiError(
                 403,
                 "Free plan schedule limit reached. Upgrade to PRO."
             );
         }
 
-        if (type === "BEHAVIOR" && usage.behaviorCount >= FREE_LIMITS.BEHAVIOR) {
+        if (type === "BEHAVIOR" && usage.behaviorCount >= FREE_LIMITS.behavior) {
             throw new ApiError(
                 403,
                 "Free plan behavior limit reached. Upgrade to PRO."
