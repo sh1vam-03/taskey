@@ -1,35 +1,37 @@
 "use client";
-import { useEffect, useState } from "react"
 import StatCard from "@/app/(dashboard)/_components/StatCard"
-import dashboardService from "@/services/dashboard.services"
+import { useDashboard } from "../useDashboard"
+import Skeleton from "@/components/ui/Skeleton"
 
 export default function DashboardOverview() {
-    const [data, setData] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true)
-                const result = await dashboardService.getOverview()
-                setData(result)
-            } catch (err) {
-                setError(err.message || 'Failed to load dashboard data')
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchData()
-    }, [])
+    const { data, loading, error, refresh } = useDashboard()
 
     if (loading) {
-        return <div className="flex items-center justify-center h-64">Loading...</div>
+        return (
+            <div className="space-y-6">
+                <Skeleton className="h-8 w-1/3" />
+                <div className="grid md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <Skeleton key={i} className="h-32 rounded-xl" />
+                    ))}
+                </div>
+                <Skeleton className="h-40 w-full" />
+            </div>
+        )
     }
 
     if (error) {
-        return <div className="text-red-500">Error: {error}</div>
+        return (
+            <div className="p-4 bg-red-50 text-red-600 rounded-md border border-red-200">
+                <p><strong>Error:</strong> {error}</p>
+                <button
+                    onClick={refresh}
+                    className="mt-2 text-sm underline hover:text-red-800"
+                >
+                    Try Again
+                </button>
+            </div>
+        )
     }
 
     const today = data?.today || { totalTasks: 0, completedTasks: 0, pendingTasks: 0, missedTasks: 0 }

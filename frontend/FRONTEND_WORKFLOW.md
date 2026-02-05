@@ -32,3 +32,20 @@
 - [x] Dashboard layout protected
 - [x] Login redirects on success
 - [x] No auth logic in pages
+
+## Phase 6 – Dashboard Data & Features (JS)
+- [x] Dashboard feature implemented
+- [x] Dashboard data wired to UI
+- [x] Tasks feature implemented
+- [x] Tasks wired to UI
+- [x] Loading & error states handled
+- [x] No API calls in pages or layouts
+
+## Phase 7 – UX Polish & Final Cleanup
+- [x] Loading states polished
+- [x] Empty states improved
+- [x] Error handling refined
+- [x] UX consistency verified
+- [x] Accessibility basics added
+- [x] Unused code removed
+- [x] App stable on refresh

@@ -1,6 +1,7 @@
 "use client";
 import React from "react"
 import { useContactForm } from "../useContactForm"
+import Spinner from "@/components/ui/Spinner"
 
 export default function ContactFormScreen() {
     const {
@@ -65,7 +66,7 @@ export default function ContactFormScreen() {
                     disabled={isSubmitting}
                     className="w-full bg-black text-white py-3 rounded-lg font-bold disabled:opacity-50"
                 >
-                    {isSubmitting ? "Sending..." : "Send Message"}
+                    {isSubmitting ? <Spinner size="sm" className="text-white" /> : "Send Message"}
                 </button>
             </form>
         </div>

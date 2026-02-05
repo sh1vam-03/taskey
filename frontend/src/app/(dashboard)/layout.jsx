@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import Sidebar from "./_components/Sidebar"
 import DashboardHeader from "./_components/DashboardHeader"
 import { useAuth } from "@/features/auth/context/AuthContext"
+import Spinner from "@/components/ui/Spinner"
 
 export default function DashboardLayout({ children }) {
     const { isAuthenticated, loading } = useAuth()
@@ -16,7 +17,11 @@ export default function DashboardLayout({ children }) {
     }, [loading, isAuthenticated, router])
 
     if (loading) {
-        return <div className="flex h-screen items-center justify-center">Loading...</div>
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <Spinner size="lg" />
+            </div>
+        )
     }
 
     if (!isAuthenticated) return null // Will redirect

@@ -1,0 +1,6 @@
+export const DASHBOARD_VIEWS = {
+    OVERVIEW: "OVERVIEW",
+    TODAY: "TODAY",
+    WEEKLY: "WEEKLY",
+    MONTHLY: "MONTHLY"
+}

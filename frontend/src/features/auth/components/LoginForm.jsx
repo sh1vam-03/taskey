@@ -3,6 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/features/auth/context/AuthContext"
+import Spinner from "@/components/ui/Spinner"
 
 export default function LoginForm() {
     const { login } = useAuth()
@@ -119,7 +120,7 @@ export default function LoginForm() {
                         disabled={loading}
                         className="w-full sm:w-auto bg-black text-white dark:bg-white dark:text-black py-3 rounded-lg font-medium transition hover:opacity-90 disabled:opacity-50"
                     >
-                        {loading ? "Logging in..." : "Log In"}
+                        {loading ? <Spinner size="sm" className="text-white dark:text-black" /> : "Log In"}
                     </button>
 
                     {/* Switch */}
