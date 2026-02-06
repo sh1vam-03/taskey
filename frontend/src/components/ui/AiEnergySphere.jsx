@@ -149,7 +149,7 @@ export default function AiEnergySphere({
                 const radius = Math.max(0.5, p.size * scale);
 
                 ctx.beginPath();
-                ctx.fillStyle = `hsla(${210 + depth * 120}, 90%, 60%, ${0.15 + depth * 0.6})`;
+                ctx.fillStyle = `hsla(${180 + depth * 20}, 100%, 70%, ${0.2 + depth * 0.8})`;
                 ctx.shadowBlur = distSq < hoverRadiusSq ? 4 : 2;
                 ctx.shadowColor = ctx.fillStyle;
                 ctx.arc(px, py, radius, 0, Math.PI * 2);
