@@ -105,8 +105,10 @@ export default function CareersPage() {
 
                 <div className="mt-20 text-center">
                     <p className="text-gray-500 mb-6">Don't see your node?</p>
-                    <a href="mailto:careers@taskey.ai" className="text-white border-b border-cyan-500 pb-1 hover:text-cyan-400 transition-colors">
-                        Transcode your resume to careers@taskey.ai
+                    <a href="mailto:careers@taskey.ai">
+                        <Button variant="scanline" size="lg" className="uppercase tracking-wider">
+                            Transcode your resume to careers@taskey.ai
+                        </Button>
                     </a>
                 </div>
             </div>

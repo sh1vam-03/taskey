@@ -27,7 +27,7 @@ export default function HowItWorks() {
     ];
 
     return (
-        <section className="py-32 px-4 bg-black border-t border-white/5">
+        <section className="py-32 px-4 bg-black border-t border-white/5" id="how-it-works">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-20 border-b border-white/10 pb-6">
                     <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-2 text-white">

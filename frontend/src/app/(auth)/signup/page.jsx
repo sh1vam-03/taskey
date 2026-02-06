@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/features/auth/context/AuthContext"
+import Button from "@/components/ui/Button"
 
 export default function Signup() {
     const [timer, setTimer] = useState(30)
@@ -166,13 +167,15 @@ export default function Signup() {
                                     color: "var(--text)",
                                 }}
                             />
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-4 opacity-70 cursor-pointer"
+                                className="absolute right-2 top-2 opacity-70 hover:opacity-100"
                             >
                                 {showPassword ? "Hide" : "Show"}
-                            </button>
+                            </Button>
                         </div>
 
                         {/* Confirm Password */}
@@ -189,18 +192,20 @@ export default function Signup() {
                                     color: "var(--text)",
                                 }}
                             />
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-4 top-4 opacity-70 cursor-pointer"
+                                className="absolute right-2 top-2 opacity-70 hover:opacity-100"
                             >
                                 {showConfirmPassword ? "Hide" : "Show"}
-                            </button>
+                            </Button>
                         </div>
 
-                        <button className="bg-black w-full sm:w-auto text-white dark:bg-white dark:text-black py-3 rounded-lg cursor-pointer transition hover:opacity-90">
-                            {loading ? "Sending OTP..." : "Continue"}
-                        </button>
+                        <Button className="w-full sm:w-auto" disabled={loading} isLoading={loading}>
+                            {loading ? "Sending..." : "Continue"}
+                        </Button>
                     </form>
                 )}
 
@@ -218,19 +223,21 @@ export default function Signup() {
                             }}
                         />
 
-                        <button className="bg-black w-full sm:w-auto text-white dark:bg-white dark:text-black py-3 rounded-lg cursor-pointer transition hover:opacity-90">
+                        <Button className="w-full sm:w-auto" disabled={loading} isLoading={loading}>
                             {loading ? "Verifying..." : "Create Account"}
-                        </button>
+                        </Button>
 
                         <div className="text-sm text-center opacity-80">
                             {canResend ? (
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={handleResendOtp}
-                                    className="underline w-full sm:w-auto cursor-pointer"
+                                    className="underline"
                                 >
                                     Resend OTP
-                                </button>
+                                </Button>
                             ) : (
                                 <span>Resend OTP in {timer}s</span>
                             )}
@@ -245,6 +252,6 @@ export default function Signup() {
                     </Link>
                 </p>
             </div>
-        </div>
+        </div >
     )
 }

@@ -116,8 +116,8 @@ export default function InteractivePricing() {
                             </div>
 
                             <Button
-                                variant={plan.highlight ? "scanline" : "secondary"}
-                                className={`w-full ${!plan.highlight && 'text-gray-400 hover:text-white border-white/10 hover:border-white'}`}
+                                variant={plan.highlight ? "scanline" : "ghost"}
+                                className="w-full"
                             >
                                 {plan.highlight ? "Initialize_Pro" : "Start_Validating"}
                             </Button>

@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Button from "@/components/ui/Button";
 
 export default function PrivacyPage() {
     const lastUpdated = "October 24, 2025";
@@ -81,7 +82,11 @@ export default function PrivacyPage() {
                             <h2 className="text-2xl font-bold text-white mb-4">6. Contact Signal</h2>
                             <p>
                                 For privacy audits or data requests, establish a direct line to our Data Protection Officer: <br />
-                                <a href="mailto:privacy@taskey.ai" className="text-cyan-400 hover:underline">privacy@taskey.ai</a>
+                                <a href="mailto:privacy@taskey.ai" className="inline-block mt-4">
+                                    <Button variant="scanline" size="md">
+                                        privacy@taskey.ai
+                                    </Button>
+                                </a>
                             </p>
                         </section>
                     </div>

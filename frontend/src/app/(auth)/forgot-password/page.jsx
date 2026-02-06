@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import api from "@/services/api"
+import Button from "@/components/ui/Button"
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("")
@@ -72,13 +73,14 @@ export default function ForgotPassword() {
                         />
                     </div>
 
-                    <button
+                    <Button
                         type="submit"
                         disabled={loading}
-                        className="bg-black w-full sm:w-auto text-white dark:bg-white dark:text-black py-3 rounded-lg hover:opacity-90 transition cursor-pointer disabled:opacity-50"
+                        isLoading={loading}
+                        className="w-full sm:w-auto font-medium"
                     >
-                        {loading ? "Sending..." : "Send Reset Link"}
-                    </button>
+                        Send Reset Link
+                    </Button>
                 </form>
 
                 <p className="text-center text-sm mt-6">

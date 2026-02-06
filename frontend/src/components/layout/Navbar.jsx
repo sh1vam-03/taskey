@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import Button from "@/components/ui/Button"
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false)
@@ -82,15 +83,10 @@ const Navbar = () => {
                         <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400 tracking-widest text-center">LOGIN</span>
                     </Link>
 
-                    <Link href="/signup" className="group relative px-8 py-3 bg-white text-black text-xs font-mono font-bold uppercase tracking-wider overflow-hidden">
-                        <span className="relative z-10 group-hover:text-white transition-colors duration-300">INITIALIZE</span>
-
-                        {/* Scanline Effect */}
-                        <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
-
-                        {/* Tech Corners */}
-                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-black group-hover:border-white transition-colors z-20" />
-                        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-black group-hover:border-white transition-colors z-20" />
+                    <Link href="/signup">
+                        <Button variant="scanline" size="sm">
+                            INITIALIZE
+                        </Button>
                     </Link>
                 </div>
 
@@ -134,8 +130,10 @@ const Navbar = () => {
                             <Link href="/login" className="text-sm font-mono text-white hover:text-cyan-400 pl-4 py-2">
                                 {">"} LOGIN_TERMINAL
                             </Link>
-                            <Link href="/signup" className="w-full text-center py-4 bg-white text-black font-mono font-bold text-xs uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition-all">
-                                INITIALIZE_SYSTEM
+                            <Link href="/signup" className="w-full">
+                                <Button variant="scanline" className="w-full justify-center">
+                                    INITIALIZE_SYSTEM
+                                </Button>
                             </Link>
                         </div>
                     </motion.div>

@@ -72,7 +72,7 @@ export default function Home() {
                             </Button>
                         </Link>
                         <Link href="#how-it-works">
-                            <Button variant="ghost" className="text-gray-500 hover:text-white">
+                            <Button variant="ghost" size="lg" className="text-gray-500 hover:text-white">
                                 // VIEW_SCHEMATICS
                             </Button>
                         </Link>
