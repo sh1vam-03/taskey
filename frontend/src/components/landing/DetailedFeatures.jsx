@@ -94,7 +94,7 @@ export default function DetailedFeatures() {
                             <div className="absolute bottom-2 right-2 text-[10px] text-white/20 font-mono">+</div>
 
                             <div className="flex justify-between items-start">
-                                <div className="text-2xl text-cyan-500 group-hover:text-white transition-colors">
+                                <div className="text-2xl text-white group-hover:text-cyan-500 transition-colors">
                                     {feat.icon}
                                 </div>
                                 <span className="font-mono text-[10px] text-gray-700 group-hover:text-cyan-500 transition-colors uppercase border border-white/5 px-2 py-0.5 rounded-full">

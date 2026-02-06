@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 export const BentoGrid = ({ className, children }) => {
     return (
         <div
-            className={`grid md:auto-rows-[18rem] grid-cols-1 md:grid-cols-3 gap-4 max-w-7xl mx-auto ${className}`}
+            className={`grid md:auto-rows-[18rem] grid-cols-1 md:grid-cols-3 bg-white/5 border border-white/10 gap-px rounded-sm overflow-hidden max-w-7xl mx-auto ${className}`}
         >
             {children}
         </div>
@@ -23,29 +23,31 @@ export const BentoGridItem = ({
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className={`row-span-1 rounded-sm group/bento hover:bg-neutral-900/40 hover:border-cyan-500/30 transition duration-300 shadow-none p-6 bg-black border border-white/10 justify-between flex flex-col space-y-4 relative ${span} ${className}`}
+            className={`row-span-1 group/bento p-8 bg-black hover:bg-neutral-900/30 transition-colors duration-300 flex flex-col justify-between relative ${span} ${className}`}
         >
             {/* Tech Decorators (Corner +) */}
-            <div className="absolute top-2 left-2 text-[8px] text-white/10 font-mono">+</div>
-            <div className="absolute top-2 right-2 text-[8px] text-white/10 font-mono">+</div>
-            <div className="absolute bottom-2 left-2 text-[8px] text-white/10 font-mono">+</div>
-            <div className="absolute bottom-2 right-2 text-[8px] text-white/10 font-mono">+</div>
+            <div className="absolute top-2 left-2 text-[10px] text-white/20 font-mono">+</div>
+            <div className="absolute top-2 right-2 text-[10px] text-white/20 font-mono">+</div>
+            <div className="absolute bottom-2 left-2 text-[10px] text-white/20 font-mono">+</div>
+            <div className="absolute bottom-2 right-2 text-[10px] text-white/20 font-mono">+</div>
 
-            {header}
-            <div className="group-hover/bento:translate-x-1 transition duration-200">
-                <div className="text-cyan-500 mb-3 mt-2 text-2xl group-hover/bento:text-cyan-400">
+            <div className="flex justify-between items-start">
+                <div className="text-2xl text-white group-hover/bento:text-cyan-500 transition-colors">
                     {icon}
                 </div>
-                <div className="font-sans font-bold text-neutral-200 mb-2 mt-2 group-hover/bento:text-white">
+                {/* Optional ID label if needed, or keeping it clean for Bento */}
+            </div>
+
+            <div className="mt-4">
+                <h3 className="font-bold text-white mb-2 group-hover/bento:text-cyan-400 transition-colors leading-none tracking-tight text-xl">
                     {title}
-                </div>
-                <div className="font-sans font-normal text-neutral-400 text-sm text-pretty leading-relaxed">
+                </h3>
+                {/* DetailedFeatures style Line separator */}
+                <div className="h-px w-8 bg-white/20 my-3 group-hover/bento:w-full group-hover/bento:bg-cyan-500/50 transition-all duration-500" />
+
+                <p className="font-mono text-sm text-gray-500 group-hover/bento:text-gray-400 transition-colors leading-relaxed">
                     {description}
-                </div>
-                {/* Tech Label in Bottom Right Hover */}
-                <div className="flex justify-end opacity-0 group-hover/bento:opacity-100 transition-opacity duration-300 mt-2">
-                    <span className="text-[10px] text-cyan-900 bg-cyan-500/10 px-1 py-0.5 rounded font-mono">SYS.NODE</span>
-                </div>
+                </p>
             </div>
         </motion.div>
     );
