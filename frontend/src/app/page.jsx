@@ -42,12 +42,9 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* Orb Container */}
-                <div className="relative z-10 mb-12 scale-90 md:scale-110 mt-10">
-                    <AiEnergySphere size={900} rotationSpeed={0.01} particleCount={1500} />
-
-                    {/* Orb Surround Data */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/5 border-dashed animate-spin-slow pointer-events-none opacity-30" style={{ animationDuration: '60s' }} />
+                {/* Orb Container - BACKGROUND */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-60 md:opacity-100">
+                    <AiEnergySphere size={800} particleCount={2000} baseRadius={300} hoverRadius={100} />
                 </div>
 
                 <div className="relative z-20 text-center max-w-4xl mx-auto space-y-8">
