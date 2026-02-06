@@ -1,179 +1,183 @@
 "use client";
-import React, { useMemo, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+
+import React, { useEffect, useRef } from "react";
 
 export default function AiEnergySphere({
     size = 600,
-    speed = 0.5,
-    particleCount = 600 // Increased for Core + Shell
+    particleCount = 1000,
+    baseRadius = 200,
+    waveStrength = 5,
+    rotationSpeed = 0.01,
+    hoverRadius = 65,
+    repelStrength = 14,
+    springStrength = 0.08,
 }) {
-    const [isMounted, setIsMounted] = useState(false);
+    const canvasRef = useRef(null);
+    const mouseRef = useRef({ x: 9999, y: 9999 });
+    const particlesRef = useRef([]);
+    const rafRef = useRef(null);
 
+    /* ===============================
+       Mouse tracking (SCREEN SPACE)
+    =============================== */
     useEffect(() => {
-        setIsMounted(true);
+        const move = (e) => {
+            const rect = canvasRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            mouseRef.current.x = e.clientX - rect.left - rect.width / 2;
+            mouseRef.current.y = e.clientY - rect.top - rect.height / 2;
+        };
+
+        const leave = () => {
+            mouseRef.current.x = 9999;
+            mouseRef.current.y = 9999;
+        };
+
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseleave", leave);
+        return () => {
+            window.removeEventListener("mousemove", move);
+            window.removeEventListener("mouseleave", leave);
+        };
     }, []);
 
-    const { shellParticles, coreParticles } = useMemo(() => {
-        if (!isMounted) return { shellParticles: [], coreParticles: [] };
+    /* ===============================
+       Particle initialization
+    =============================== */
+    useEffect(() => {
+        const particles = [];
 
-        const shell = [];
-        const core = [];
-        const shellRadius = 180;
-
-        // 1. OUTER SHELL (Surface Mesh)
-        const latCount = 20;
-        const longCount = 30;
-
-        for (let lat = 0; lat < latCount; lat++) {
-            const phi = Math.PI * (lat / (latCount - 1));
-            const ringRadius = shellRadius * Math.sin(phi);
-            const y = shellRadius * Math.cos(phi);
-
-            for (let long = 0; long < longCount; long++) {
-                const theta = Math.PI * 2 * (long / longCount);
-                const x = ringRadius * Math.cos(theta);
-                const z = ringRadius * Math.sin(theta);
-
-                shell.push({
-                    id: `shell-${lat}-${long}`,
-                    x, y, z,
-                    scale: 0.8 + Math.random() * 0.5,
-                    opacity: 0.6 + Math.random() * 0.4,
-                    color: Math.random() > 0.9 ? "white" : "rgb(34, 211, 238)", // Cyan + White Sparkles
-                });
-            }
-        }
-
-        // 2. INNER CORE (Dense Volume)
-        for (let i = 0; i < 200; i++) {
-            const r = Math.random() * 100; // Solid center radius
+        for (let i = 0; i < particleCount; i++) {
             const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
+            const phi = Math.acos(2 * Math.random() - 1);
+            const bias = Math.pow(Math.random(), 0.4);
+            const r = baseRadius + bias * 12;
 
             const x = r * Math.sin(phi) * Math.cos(theta);
             const y = r * Math.sin(phi) * Math.sin(theta);
             const z = r * Math.cos(phi);
 
-            core.push({
-                id: `core-${i}`,
+            particles.push({
+                baseX: x,
+                baseY: y,
+                baseZ: z,
                 x, y, z,
-                scale: 1 + Math.random(),
-                opacity: 0.8,
-                color: "rgb(6, 182, 212)" // Darker dense Cyan
+                phase: Math.random() * Math.PI * 2,
+                speed: 0.4 + Math.random() * 0.6,
+                size: 0.55 + Math.random() * 1.05,
             });
         }
 
-        return { shellParticles: shell, coreParticles: core };
-    }, [isMounted]);
+        particlesRef.current = particles;
+    }, [particleCount, baseRadius]);
 
-    if (!isMounted) {
-        return (
-            <div
-                className="relative flex items-center justify-center select-none pointer-events-none"
-                style={{ width: size, height: size }}
-            >
-                <div className="absolute w-40 h-40 bg-cyan-500/20 blur-3xl rounded-full" />
-            </div>
-        );
-    }
+    /* ===============================
+       Animation loop (CORRECT SPACE)
+    =============================== */
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        ctx.scale(dpr, dpr);
+
+        let t = 0;
+        const hoverRadiusSq = hoverRadius * hoverRadius;
+
+        const animate = () => {
+            t += 1;
+            ctx.clearRect(0, 0, size, size);
+            ctx.save();
+            ctx.translate(size / 2, size / 2);
+
+            const mx = mouseRef.current.x;
+            const my = mouseRef.current.y;
+
+            const cosR = Math.cos(t * rotationSpeed);
+            const sinR = Math.sin(t * rotationSpeed);
+
+            for (const p of particlesRef.current) {
+                /* ---- base surface ---- */
+                const wave =
+                    Math.sin(t * 0.018 * p.speed + p.phase) * waveStrength;
+
+                const baseX = p.baseX * cosR - p.baseZ * sinR + wave;
+                const baseZ = p.baseX * sinR + p.baseZ * cosR;
+                const baseY =
+                    p.baseY + Math.cos(t * 0.014 + p.phase) * wave;
+
+                /* ---- spring toward base ---- */
+                p.x += (baseX - p.x) * springStrength;
+                p.y += (baseY - p.y) * springStrength;
+                p.z += (baseZ - p.z) * springStrength;
+
+                /* ---- depth & projection ---- */
+                const rawDepth = (p.z + baseRadius) / (baseRadius * 2);
+                const depth = Math.min(1, Math.max(0, rawDepth));
+                const scale = 0.55 + depth;
+
+                const px = p.x * scale;
+                const py = p.y * scale;
+
+                /* ---- cursor interaction (PROJECTED SPACE ✔) ---- */
+                const dx = px - mx;
+                const dy = py - my;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq < hoverRadiusSq) {
+                    // surface normal
+                    const len = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
+                    const nx = p.x / len;
+                    const ny = p.y / len;
+                    const nz = p.z / len;
+
+                    const k = 1 - distSq / hoverRadiusSq;
+                    const force = k * repelStrength;
+
+                    p.x += nx * force;
+                    p.y += ny * force;
+                    p.z += nz * force;
+                }
+
+                /* ---- draw ---- */
+                const radius = Math.max(0.5, p.size * scale);
+
+                ctx.beginPath();
+                ctx.fillStyle = `hsla(${210 + depth * 120}, 90%, 60%, ${0.15 + depth * 0.6})`;
+                ctx.shadowBlur = distSq < hoverRadiusSq ? 4 : 2;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.arc(px, py, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+            rafRef.current = requestAnimationFrame(animate);
+        };
+
+        animate();
+        return () => cancelAnimationFrame(rafRef.current);
+    }, [
+        size,
+        waveStrength,
+        rotationSpeed,
+        baseRadius,
+        hoverRadius,
+        repelStrength,
+        springStrength,
+    ]);
 
     return (
         <div
-            className="relative flex items-center justify-center select-none pointer-events-none"
-            style={{ width: size, height: size, perspective: "1000px" }}
+            className="relative flex items-center justify-center"
+            style={{ width: size, height: size }}
         >
-            <div className="relative w-full h-full transform-3d flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
-
-                {/* 1. SHELL ROTATION CONTAINER */}
-                <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: 360 }}
-                    transition={{ duration: 50 / speed, repeat: Infinity, ease: "linear" }}
-                >
-                    {shellParticles.map((p) => (
-                        <div
-                            key={p.id}
-                            className="absolute rounded-full"
-                            style={{
-                                width: p.scale * 3,
-                                height: p.scale * 3,
-                                backgroundColor: p.color,
-                                left: "50%",
-                                top: "50%",
-                                transform: `translate3d(${p.x}px, ${p.y}px, ${p.z}px)`,
-                                opacity: p.opacity,
-                                boxShadow: `0 0 4px ${p.color}`
-                            }}
-                        />
-                    ))}
-                </motion.div>
-
-                {/* 2. CORE ROTATION (Counter-Spin for depth) */}
-                <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: -360 }}
-                    transition={{ duration: 40 / speed, repeat: Infinity, ease: "linear" }}
-                >
-                    {coreParticles.map((p) => (
-                        <div
-                            key={p.id}
-                            className="absolute rounded-full"
-                            style={{
-                                width: p.scale * 3,
-                                height: p.scale * 3,
-                                backgroundColor: p.color,
-                                left: "50%",
-                                top: "50%",
-                                transform: `translate3d(${p.x}px, ${p.y}px, ${p.z}px)`,
-                                opacity: p.opacity,
-                            }}
-                        />
-                    ))}
-                </motion.div>
-
-                {/* 3. CENTER GLOW */}
-                <div className="absolute w-40 h-40 bg-cyan-500/30 blur-3xl rounded-full" />
-                <div className="absolute w-20 h-20 bg-white/40 blur-2xl rounded-full" />
-
-                {/* 4. TRUE ORBITAL RINGS */}
-
-                {/* Ring A: Equatorial (Fast Spin) */}
-                <motion.div
-                    className="absolute w-[60%] h-[60%] border border-cyan-400/40 rounded-full"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateX: 80, rotateZ: 360 }}
-                    transition={{ duration: 20 / speed, repeat: Infinity, ease: "linear" }}
-                />
-
-                {/* Ring B: Polar (Vertical Flip) */}
-                <motion.div
-                    className="absolute w-[70%] h-[70%] border border-cyan-500/20 rounded-full"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: 360, rotateZ: 0 }}
-                    transition={{ duration: 30 / speed, repeat: Infinity, ease: "linear" }}
-                />
-
-                {/* Ring C: Diagonal Gyro 1 */}
-                <motion.div
-                    className="absolute w-[80%] h-[80%] border-[0.5px] border-cyan-300/30 rounded-full"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateX: 360, rotateY: 180 }}
-                    transition={{ duration: 25 / speed, repeat: Infinity, ease: "linear" }}
-                />
-
-                {/* Ring D: Diagonal Gyro 2 (Opposite) */}
-                <motion.div
-                    className="absolute w-[90%] h-[90%] border border-cyan-500/10 border-dashed rounded-full"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: -360, rotateZ: 45 }}
-                    transition={{ duration: 40 / speed, repeat: Infinity, ease: "linear" }}
-                >
-                    <div className="absolute top-0 left-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_10px_cyan]" />
-                </motion.div>
-
-            </div>
+            <canvas ref={canvasRef} />
         </div>
     );
 }
