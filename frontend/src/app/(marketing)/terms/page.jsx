@@ -19,7 +19,7 @@ export default function TermsPage() {
                             // SYSTEM_CONTRACT
                         </span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Terms of Service</h1>
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tighter">TERMS OF SERVICE</h1>
                     <p className="text-sm font-mono text-gray-500">EFFECTIVE_DATE: {lastUpdated}</p>
                 </div>
 
@@ -32,7 +32,7 @@ export default function TermsPage() {
 
                     <div className="space-y-12 text-lg leading-relaxed">
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">1. Access Agreement</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">1. Access Agreement</h2>
                             <p>
                                 By initializing a Taskey account or accessing our neural interface, you agree to be bound by these Terms.
                                 If you do not agree, do not establish an uplink to our systems.
@@ -40,7 +40,7 @@ export default function TermsPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">2. The AI Paradigm (Disclaimer)</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">2. The AI Paradigm (Disclaimer)</h2>
                             <div className="bg-red-500/10 border-l-2 border-red-500 p-4 rounded-r-md text-base mb-4">
                                 <strong>Critical Warning:</strong> Taskey is a probabilistic system, not a deterministic one.
                             </div>
@@ -51,7 +51,7 @@ export default function TermsPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">3. Account Security</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">3. Account Security</h2>
                             <p>
                                 You are the architect of your node. You are responsible for maintaining the confidentiality of your cryptographic keys (passwords)
                                 and for all activities that occur under your designation.
@@ -59,7 +59,7 @@ export default function TermsPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">4. Acceptable Use</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">4. Acceptable Use</h2>
                             <p>You agree not to use the System to:</p>
                             <ul className="list-disc pl-6 space-y-2 text-gray-400 mt-2">
                                 <li>Reverse engineer the neural architecture or interfere with our network latency.</li>
@@ -69,14 +69,14 @@ export default function TermsPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">5. Termination</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">5. Termination</h2>
                             <p>
                                 We reserve the right to sever your uplink immediately, without prior notice, if you violate these Terms or if your usage patterns degrade the integrity of the collective network.
                             </p>
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">6. Limitation of Liability</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">6. Limitation of Liability</h2>
                             <p>
                                 To the maximum extent permitted by law, Taskey shall not be liable for any indirect, incidental, special, or consequential damages resulting from the use or inability to use the service.
                             </p>

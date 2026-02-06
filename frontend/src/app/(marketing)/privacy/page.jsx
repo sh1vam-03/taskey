@@ -19,7 +19,7 @@ export default function PrivacyPage() {
                             // ENCRYPTED_CONNECTION
                         </span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Privacy Protocols</h1>
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tighter">PRIVACY PROTOCOLS</h1>
                     <p className="text-sm font-mono text-gray-500">LAST_UPDATE: {lastUpdated}</p>
                 </div>
 
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
 
                     <div className="space-y-12 text-lg leading-relaxed">
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">1. The Prime Directive</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">1. The Prime Directive</h2>
                             <p>
                                 Taskey ("The System") generates value by analyzing your intent, not by trading your identity.
                                 We believe that your thoughts, tasks, and behavioral patterns ("Neural Data") are extensions of your mind and remain your sovereign property.
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">2. Data Ingestion</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">2. Data Ingestion</h2>
                             <ul className="list-disc pl-6 space-y-2 text-gray-400">
                                 <li><strong>Identity Tokens:</strong> Name, email address, and authentication credentials used to establish your uplink.</li>
                                 <li><strong>Operational Data:</strong> Tasks, schedules, goals, and project metadata you input into the interface.</li>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">3. AI Processing & The Neural Engine</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">3. AI Processing & The Neural Engine</h2>
                             <p className="mb-4">
                                 To function as a "Thinking Partner," Taskey processes your Operational Data through Large Language Models (LLMs).
                             </p>
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">4. Storage & Encryption</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">4. Storage & Encryption</h2>
                             <p>
                                 All data transmission occurs over SSL/TLS 1.3 encrypted channels.
                                 Data at rest is protected using AES-256 standard encryption within our secure cloud enclaves.
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">5. User Sovereignty</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">5. User Sovereignty</h2>
                             <p className="mb-4">You maintain absolute control over your node:</p>
                             <ul className="list-disc pl-6 space-y-2 text-gray-400">
                                 <li><strong>Export:</strong> You may request a raw JSON dump of your neural graph at any time.</li>
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
                         </section>
 
                         <section>
-                            <h2 className="text-2xl font-bold text-white mb-4">6. Contact Signal</h2>
+                            <h2 className="text-xl font-bold text-white mb-4 uppercase tracking-widest">6. Contact Signal</h2>
                             <p>
                                 For privacy audits or data requests, establish a direct line to our Data Protection Officer: <br />
                                 <a href="mailto:privacy@taskey.ai" className="inline-block mt-4">
