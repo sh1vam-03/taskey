@@ -36,28 +36,29 @@ const Footer = () => {
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Modules</h4>
+                        <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Product</h4>
                         <ul className="space-y-1">
-                            <li><FooterLink href="#features"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />NeuralEngine</FooterLink></li>
-                            <li><FooterLink href="#pricing"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />ResourceAlloc</FooterLink></li>
-                            <li><FooterLink href="/api"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />API_Access</FooterLink></li>
+                            <li><FooterLink href="#features"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />System_Capes</FooterLink></li>
+                            <li><FooterLink href="#pricing"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Pricing_Grid</FooterLink></li>
+                            <li><FooterLink href="#how-it-works"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Workflow_Logic</FooterLink></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Protocol</h4>
+                        <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Company</h4>
                         <ul className="space-y-1">
                             <li><FooterLink href="/about">Manifesto</FooterLink></li>
-                            <li><FooterLink href="/changelog">Changelog_v1.0</FooterLink></li>
-                            <li><FooterLink href="/status">System_Status</FooterLink></li>
+                            <li><FooterLink href="/careers">Neural_Collective</FooterLink></li>
+                            <li><FooterLink href="/contact">Establish_Uplink</FooterLink></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Compliance</h4>
+                        <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Legal</h4>
                         <ul className="space-y-1">
                             <li><FooterLink href="/privacy">Privacy_Protocol</FooterLink></li>
-                            <li><FooterLink href="/terms">Terms_of_Service</FooterLink></li>
+                            <li><FooterLink href="/terms">System_Contract</FooterLink></li>
+                            <li><FooterLink href="/security">Security_Arch</FooterLink></li>
                         </ul>
                     </div>
                 </div>
