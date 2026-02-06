@@ -22,61 +22,69 @@ export default function PrivacyPage() {
                     <p className="text-sm font-mono text-gray-500">LAST_UPDATE: {lastUpdated}</p>
                 </div>
 
-                <div className="space-y-12 text-lg leading-relaxed">
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">1. The Prime Directive</h2>
-                        <p>
-                            Taskey ("The System") generates value by analyzing your intent, not by trading your identity.
-                            We believe that your thoughts, tasks, and behavioral patterns ("Neural Data") are extensions of your mind and remain your sovereign property.
-                        </p>
-                    </section>
+                <div className="bg-white/5 border border-white/10 p-8 md:p-12 rounded-sm relative overflow-hidden">
+                    {/* Tech Decorators */}
+                    <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                    <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+                    <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                    <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
 
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">2. Data Ingestion</h2>
-                        <ul className="list-disc pl-6 space-y-2 text-gray-400">
-                            <li><strong>Identity Tokens:</strong> Name, email address, and authentication credentials used to establish your uplink.</li>
-                            <li><strong>Operational Data:</strong> Tasks, schedules, goals, and project metadata you input into the interface.</li>
-                            <li><strong>Behavioral Metrics:</strong> Completion velocity, focus times, and interaction patterns used to calibrate the AI model.</li>
-                        </ul>
-                    </section>
-
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">3. AI Processing & The Neural Engine</h2>
-                        <p className="mb-4">
-                            To function as a "Thinking Partner," Taskey processes your Operational Data through Large Language Models (LLMs).
-                        </p>
-                        <div className="bg-white/5 border-l-2 border-cyan-500 p-4 rounded-r-md">
-                            <p className="text-sm text-cyan-200">
-                                <strong>System Logic:</strong> We do not use your Operational Data to train public foundation models.
-                                Your data is ephemeral to the inference process or stored within your private vector embeddings.
+                    <div className="space-y-12 text-lg leading-relaxed">
+                        <section>
+                            <h2 className="text-2xl font-bold text-white mb-4">1. The Prime Directive</h2>
+                            <p>
+                                Taskey ("The System") generates value by analyzing your intent, not by trading your identity.
+                                We believe that your thoughts, tasks, and behavioral patterns ("Neural Data") are extensions of your mind and remain your sovereign property.
                             </p>
-                        </div>
-                    </section>
+                        </section>
 
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">4. Storage & Encryption</h2>
-                        <p>
-                            All data transmission occurs over SSL/TLS 1.3 encrypted channels.
-                            Data at rest is protected using AES-256 standard encryption within our secure cloud enclaves.
-                        </p>
-                    </section>
+                        <section>
+                            <h2 className="text-2xl font-bold text-white mb-4">2. Data Ingestion</h2>
+                            <ul className="list-disc pl-6 space-y-2 text-gray-400">
+                                <li><strong>Identity Tokens:</strong> Name, email address, and authentication credentials used to establish your uplink.</li>
+                                <li><strong>Operational Data:</strong> Tasks, schedules, goals, and project metadata you input into the interface.</li>
+                                <li><strong>Behavioral Metrics:</strong> Completion velocity, focus times, and interaction patterns used to calibrate the AI model.</li>
+                            </ul>
+                        </section>
 
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">5. User Sovereignty</h2>
-                        <p className="mb-4">You maintain absolute control over your node:</p>
-                        <ul className="list-disc pl-6 space-y-2 text-gray-400">
-                            <li><strong>Export:</strong> You may request a raw JSON dump of your neural graph at any time.</li>
-                            <li><strong>Deletion:</strong> Initiating the "Purge Protocol" (Account Deletion) permanently wipes your data from our active shards immediately.</li>
-                        </ul>
-                    </section>
+                        <section>
+                            <h2 className="text-2xl font-bold text-white mb-4">3. AI Processing & The Neural Engine</h2>
+                            <p className="mb-4">
+                                To function as a "Thinking Partner," Taskey processes your Operational Data through Large Language Models (LLMs).
+                            </p>
+                            <div className="bg-white/5 border-l-2 border-cyan-500 p-4 rounded-r-md">
+                                <p className="text-sm text-cyan-200">
+                                    <strong>System Logic:</strong> We do not use your Operational Data to train public foundation models.
+                                    Your data is ephemeral to the inference process or stored within your private vector embeddings.
+                                </p>
+                            </div>
+                        </section>
 
-                    <section>
-                        <h2 className="text-2xl font-bold text-white mb-4">6. Contact Signal</h2>
-                        <p>
-                            For privacy audits or data requests, establish a direct line to our Data Protection Officer: <br />
-                            <a href="mailto:privacy@taskey.ai" className="text-cyan-400 hover:underline">privacy@taskey.ai</a>
-                        </p>
-                    </section>
+                        <section>
+                            <h2 className="text-2xl font-bold text-white mb-4">4. Storage & Encryption</h2>
+                            <p>
+                                All data transmission occurs over SSL/TLS 1.3 encrypted channels.
+                                Data at rest is protected using AES-256 standard encryption within our secure cloud enclaves.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-2xl font-bold text-white mb-4">5. User Sovereignty</h2>
+                            <p className="mb-4">You maintain absolute control over your node:</p>
+                            <ul className="list-disc pl-6 space-y-2 text-gray-400">
+                                <li><strong>Export:</strong> You may request a raw JSON dump of your neural graph at any time.</li>
+                                <li><strong>Deletion:</strong> Initiating the "Purge Protocol" (Account Deletion) permanently wipes your data from our active shards immediately.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h2 className="text-2xl font-bold text-white mb-4">6. Contact Signal</h2>
+                            <p>
+                                For privacy audits or data requests, establish a direct line to our Data Protection Officer: <br />
+                                <a href="mailto:privacy@taskey.ai" className="text-cyan-400 hover:underline">privacy@taskey.ai</a>
+                            </p>
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>

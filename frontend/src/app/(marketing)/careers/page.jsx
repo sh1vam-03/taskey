@@ -30,15 +30,24 @@ export default function CareersPage() {
                 </div>
 
                 {/* CULTURE GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-32">
                     {[
                         { title: "Radical Autonomy", desc: "We don't manage. We agree on the 'Why' and let you execute the 'How'. Ownership is absolute." },
                         { title: "Speed as a Habit", desc: "Perfect is the enemy of shipped. We iterate in real-time and deploy to production daily." },
                         { title: "First Principles", desc: "We ignore 'industry standards'. We solve problems from the physics of the user experience." }
                     ].map((item, i) => (
-                        <div key={i} className="bg-white/5 border border-white/10 p-8 rounded-sm hover:border-cyan-500/30 transition-colors group">
-                            <h3 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
-                            <p className="text-gray-500 leading-relaxed text-sm">{item.desc}</p>
+                        <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
+                            {/* Tech Decorators */}
+                            <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+
+                            <div>
+                                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
+                                <div className="h-px w-8 bg-white/20 my-3 group-hover:w-full group-hover:bg-cyan-500/50 transition-all duration-500" />
+                                <p className="text-gray-500 leading-relaxed text-sm font-mono">{item.desc}</p>
+                            </div>
                         </div>
                     ))}
                 </div>

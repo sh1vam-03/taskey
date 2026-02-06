@@ -74,16 +74,23 @@ export default function About() {
                         { title: "Data Enclave", desc: "Your thoughts are sovereign. Local-first encryption ensures absolute privacy.", icon: <FaFingerprint /> },
                         { title: "Neural Adaptivity", desc: "The system molds to you. Strict rigid workflows are a relic of the past.", icon: <FaBrain /> }
                     ].map((item, i) => (
-                        <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative">
+                        <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
                             <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
                             <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
 
                             <div className="text-2xl text-white group-hover:text-cyan-500 transition-colors mb-6">
                                 {item.icon}
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
-                            <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+
+                            <div>
+                                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
+                                {/* Expanding Line */}
+                                <div className="h-px w-8 bg-white/20 my-3 group-hover:w-full group-hover:bg-cyan-500/50 transition-all duration-500" />
+                                <p className="text-gray-500 text-sm leading-relaxed font-mono">{item.desc}</p>
+                            </div>
                         </div>
                     ))}
                 </div>

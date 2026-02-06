@@ -47,13 +47,18 @@ export default function ContactPage() {
                     transition={{ duration: 0.5 }}
                     className="bg-white/5 border border-white/10 p-8 md:p-12 rounded-sm backdrop-blur-sm relative overflow-hidden"
                 >
+                    {/* Tech Decorators */}
+                    <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                    <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+                    <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                    <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
                     {/* Console Scanline Decorator */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-50" />
 
                     {result && (
                         <div className={`p-4 mb-8 rounded ${result.type === "success"
-                                ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400"
-                                : "bg-red-500/10 border border-red-500/30 text-red-500"
+                            ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400"
+                            : "bg-red-500/10 border border-red-500/30 text-red-500"
                             } font-mono text-sm`}>
                             {result.type === 'success' ? '> TRANSMISSION_RECEIVED' : '> ERROR: SIGNAL_LOST'} : {result.message}
                         </div>

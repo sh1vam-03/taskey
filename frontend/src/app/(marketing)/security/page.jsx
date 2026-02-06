@@ -52,14 +52,23 @@ export default function SecurityPage() {
                             icon: <FaUserSecret />
                         }
                     ].map((item, i) => (
-                        <div key={i} className="bg-black p-10 group hover:bg-neutral-900/30 transition-colors relative">
+                        <div key={i} className="bg-black p-10 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
-                            <div className="absolute top-4 right-4 text-2xl text-neutral-800 group-hover:text-green-500/50 transition-colors">
+                            <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                            <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+
+                            <div className="absolute top-6 right-6 text-2xl text-neutral-800 group-hover:text-green-500/50 transition-colors duration-500">
                                 {item.icon}
                             </div>
 
-                            <h3 className="text-xl font-bold text-white mb-4 group-hover:text-green-400 transition-colors">{item.title}</h3>
-                            <p className="text-gray-500 leading-relaxed text-sm">{item.desc}</p>
+                            <div>
+                                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">{item.title}</h3>
+                                {/* Expanding Line */}
+                                <div className="h-px w-8 bg-white/20 my-4 group-hover:w-full group-hover:bg-green-500/50 transition-all duration-500" />
+                                <p className="text-gray-500 leading-relaxed text-sm font-mono">{item.desc}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
