@@ -56,12 +56,14 @@ export default function Button({
         disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none
     `
 
-    // CORNER SIZE STYLES
-    const cornerSizes = {
-        sm: "w-1.5 h-1.5",
-        md: "w-2 h-2",
-        lg: "w-3 h-3"
+    // CORNER STYLES (Size + Border Width)
+    const cornerStyles = {
+        sm: { tl: "w-1.5 h-1.5 border-t-[1.5px] border-l-[1.5px]", br: "w-1.5 h-1.5 border-b-[1.5px] border-r-[1.5px]" },
+        md: { tl: "w-2 h-2 border-t-2 border-l-2", br: "w-2 h-2 border-b-2 border-r-2" },
+        lg: { tl: "w-4 h-4 border-t-[2px] border-l-[2px]", br: "w-4 h-4 border-b-[2px] border-r-[2px]" }
     }
+
+    const activeCorner = cornerStyles[size] || cornerStyles.md
 
     return (
         <button
@@ -82,8 +84,8 @@ export default function Button({
                     {/* Scanline Fill */}
                     <div className="absolute inset-0 bg-cyan-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
                     {/* Tech Corners */}
-                    <div className={`absolute top-0 left-0 ${cornerSizes[size] || cornerSizes.md} border-t border-l border-black group-hover:border-white transition-colors z-20`} />
-                    <div className={`absolute bottom-0 right-0 ${cornerSizes[size] || cornerSizes.md} border-b border-r border-black group-hover:border-white transition-colors z-20`} />
+                    <div className={`absolute top-0 left-0 ${activeCorner.tl} border-black group-hover:border-white transition-colors z-20`} />
+                    <div className={`absolute bottom-0 right-0 ${activeCorner.br} border-black group-hover:border-white transition-colors z-20`} />
                 </>
             ) : (
                 children
