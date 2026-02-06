@@ -8,8 +8,9 @@ import Button from "@/components/ui/Button";
 import InteractivePricing from "@/components/landing/InteractivePricing";
 import HowItWorks from "@/components/landing/HowItWorks";
 import DetailedFeatures from "@/components/landing/DetailedFeatures";
+import CallToAction from "@/components/landing/CallToAction";
 import { motion } from "framer-motion";
-import { FaBrain, FaCalendarAlt, FaShieldAlt } from "react-icons/fa";
+import { FaBrain, FaCalendarAlt, FaShieldAlt, FaSync } from "react-icons/fa";
 import { MdSmartToy, MdPsychology } from "react-icons/md";
 
 export default function Home() {
@@ -80,9 +81,45 @@ export default function Home() {
             </section>
 
             {/* SECTIONS */}
+
+            {/* 1. BENTO GRID (Restored) */}
+            <section className="py-20 px-4 max-w-7xl mx-auto">
+                <BentoGrid>
+                    <BentoGridItem
+                        title="Neural Engine"
+                        description="Advanced decision matrices that adapt to your working style in real-time."
+                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
+                        icon={<FaBrain className="h-4 w-4 text-neutral-500" />}
+                        className="md:col-span-2"
+                    />
+                    <BentoGridItem
+                        title="Quantum Sync"
+                        description="Instant state synchronization across all connected neural nodes."
+                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
+                        icon={<FaSync className="h-4 w-4 text-neutral-500" />}
+                        className="md:col-span-1"
+                    />
+                    <BentoGridItem
+                        title="Privacy Core"
+                        description="Local-first processing ensuring your data never leaves the secure enclave."
+                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
+                        icon={<FaShieldAlt className="h-4 w-4 text-neutral-500" />}
+                        className="md:col-span-1"
+                    />
+                    <BentoGridItem
+                        title="Decision Velocity"
+                        description="Reduce cognitive load with automated micro-decisions and routing."
+                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
+                        icon={<MdSmartToy className="h-4 w-4 text-neutral-500" />}
+                        className="md:col-span-2"
+                    />
+                </BentoGrid>
+            </section>
+
             <DetailedFeatures />
-            <HowItWorks />
             <InteractivePricing />
+            <HowItWorks />
+            <CallToAction />
 
             <Footer />
         </main>
