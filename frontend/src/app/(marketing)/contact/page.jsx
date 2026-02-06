@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { motion } from "framer-motion"; // Assuming framer-motion is available as it's used elsewhere
+import { motion } from "framer-motion";
 import { useContactForm } from "@/features/contact-form/useContactForm";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
@@ -40,96 +40,102 @@ export default function ContactPage() {
                     </p>
                 </div>
 
-                {/* TRANSMISSION CONSOLE (Form) */}
+                {/* TRANSMISSION CONSOLE (Auth Style Layout) */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="bg-white/5 border border-white/10 p-8 md:p-12 rounded-sm backdrop-blur-sm relative overflow-hidden"
+                    className="flex justify-center items-center w-full"
                 >
-                    {/* Tech Decorators */}
-                    <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
-                    <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
-                    <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
-                    <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
-                    {/* Console Scanline Decorator */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-50" />
+                    <div className="flex flex-col gap-6 p-8 border border-white/10 w-full max-w-md rounded-md shadow-2xl bg-black/80 backdrop-blur-md relative overflow-hidden">
 
-                    {result && (
-                        <div className={`p-4 mb-8 rounded ${result.type === "success"
-                            ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400"
-                            : "bg-red-500/10 border border-red-500/30 text-red-500"
-                            } font-mono text-sm`}>
-                            {result.type === 'success' ? '> TRANSMISSION_RECEIVED' : '> ERROR: SIGNAL_LOST'} : {result.message}
-                        </div>
-                    )}
+                        {/* Tech Decorators */}
+                        <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                        <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
+                        <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
+                        <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
 
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        {/* Name Input */}
-                        <div className="group">
-                            <label className="block text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest group-focus-within:text-cyan-400 transition-colors">
-                                // IDENTITY_TOKEN
-                            </label>
-                            <input
-                                name="name"
-                                value={values.name}
-                                onChange={handleChange}
-                                placeholder="Enter designation..."
-                                className="w-full bg-transparent border-b border-white/20 py-3 text-white placeholder-gray-700 outline-none focus:border-cyan-500 transition-colors font-mono"
-                            />
-                            {errors.name && <p className="text-red-500 text-xs mt-2 font-mono">! {errors.name}</p>}
+                        <div className="mb-2 text-center">
+                            <h2 className="text-xl font-bold text-white">Secure Uplink</h2>
+                            <p className="text-gray-500 text-sm">Enter designation credentials</p>
                         </div>
 
-                        {/* Email Input */}
-                        <div className="group">
-                            <label className="block text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest group-focus-within:text-cyan-400 transition-colors">
-                                // COMMS_CHANNEL (EMAIL)
-                            </label>
-                            <input
-                                name="email"
-                                type="email"
-                                value={values.email}
-                                onChange={handleChange}
-                                placeholder="user@node.sys"
-                                className="w-full bg-transparent border-b border-white/20 py-3 text-white placeholder-gray-700 outline-none focus:border-cyan-500 transition-colors font-mono"
-                            />
-                            {errors.email && <p className="text-red-500 text-xs mt-2 font-mono">! {errors.email}</p>}
-                        </div>
+                        {result && (
+                            <div className={`p-4 rounded text-sm ${result.type === "success"
+                                ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400"
+                                : "bg-red-500/10 border border-red-500/30 text-red-500"
+                                }`}>
+                                {result.message}
+                            </div>
+                        )}
 
-                        {/* Message Input */}
-                        <div className="group">
-                            <label className="block text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest group-focus-within:text-cyan-400 transition-colors">
-                                // PAYLOAD_DATA
-                            </label>
-                            <textarea
-                                name="message"
-                                value={values.message}
-                                onChange={handleChange}
-                                rows={5}
-                                placeholder="Enter transmission content..."
-                                className="w-full bg-transparent border-b border-white/20 py-3 text-white placeholder-gray-700 outline-none focus:border-cyan-500 transition-colors font-mono resize-none"
-                            />
-                            {errors.message && <p className="text-red-500 text-xs mt-2 font-mono">! {errors.message}</p>}
-                        </div>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                            {/* Name Input */}
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-gray-300">
+                                    Designation (Name)
+                                </label>
+                                <input
+                                    name="name"
+                                    value={values.name}
+                                    onChange={handleChange}
+                                    placeholder="Enter your name"
+                                    className="w-full text-sm border border-white/20 bg-black/50 rounded-lg px-4 py-3 text-white placeholder-gray-600 outline-none transition focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                />
+                                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                            </div>
 
-                        <div className="pt-4">
-                            <Button
-                                variant="scanline"
-                                size="lg"
-                                className="w-full"
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <span className="flex items-center gap-2">
-                                        <Spinner size="sm" className="text-black" />
-                                        TRANSMITTING...
-                                    </span>
-                                ) : (
-                                    "INITIATE_TRANSMISSION"
-                                )}
-                            </Button>
-                        </div>
-                    </form>
+                            {/* Email Input */}
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-gray-300">
+                                    Comms Channel (Email)
+                                </label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    value={values.email}
+                                    onChange={handleChange}
+                                    placeholder="user@example.com"
+                                    className="w-full text-sm border border-white/20 bg-black/50 rounded-lg px-4 py-3 text-white placeholder-gray-600 outline-none transition focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                />
+                                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                            </div>
+
+                            {/* Message Input */}
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-gray-300">
+                                    Payload Data (Message)
+                                </label>
+                                <textarea
+                                    name="message"
+                                    value={values.message}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    placeholder="Enter transmission content..."
+                                    className="w-full text-sm border border-white/20 bg-black/50 rounded-lg px-4 py-3 text-white placeholder-gray-600 outline-none transition focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
+                                />
+                                {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message}</p>}
+                            </div>
+
+                            <div className="mt-2">
+                                <Button
+                                    variant="primary"
+                                    size="lg"
+                                    className="w-full uppercase tracking-wider"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <Spinner size="sm" className="text-black" />
+                                            Establishing...
+                                        </span>
+                                    ) : (
+                                        "Initiate Transmission"
+                                    )}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
                 </motion.div>
 
                 {/* Footer Decorator */}

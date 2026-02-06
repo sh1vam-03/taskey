@@ -2,6 +2,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FaFingerprint, FaBolt, FaBrain, FaCodeBranch } from "react-icons/fa";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
 
 export default function About() {
     return (
@@ -102,9 +104,11 @@ export default function About() {
                         We are a small team of engineers and designers obsessed with human performance.
                     </p>
                     <div className="inline-flex gap-4">
-                        <button className="px-6 py-3 bg-white text-black font-bold uppercase text-sm tracking-wider hover:bg-cyan-400 transition-colors">
-                            View Careers
-                        </button>
+                        <Link href="/careers">
+                            <Button variant="primary" size="lg" className="uppercase tracking-wider">
+                                View Careers
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </div>

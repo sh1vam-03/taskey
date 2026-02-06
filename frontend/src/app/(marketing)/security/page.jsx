@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
 import { FaLock, FaShieldAlt, FaServer, FaUserSecret } from "react-icons/fa";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
 
 export default function SecurityPage() {
     return (
@@ -13,9 +15,9 @@ export default function SecurityPage() {
             <div className="max-w-5xl mx-auto relative z-10">
                 {/* HERO */}
                 <div className="text-center mb-24">
-                    <div className="inline-block border border-green-500/30 bg-green-500/10 px-4 py-1.5 rounded-full mb-8">
-                        <span className="text-green-400 text-xs font-mono font-bold tracking-widest flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <div className="inline-block border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-8">
+                        <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest flex items-center gap-2">
+                            <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
                             // SYSTEM_DEFENSE: ACTIVE
                         </span>
                     </div>
@@ -59,14 +61,14 @@ export default function SecurityPage() {
                             <div className="absolute bottom-2 left-2 text-[8px] text-white/20 font-mono">+</div>
                             <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
 
-                            <div className="absolute top-6 right-6 text-2xl text-neutral-800 group-hover:text-green-500/50 transition-colors duration-500">
+                            <div className="absolute top-6 right-6 text-2xl text-neutral-800 group-hover:text-cyan-500/50 transition-colors duration-500">
                                 {item.icon}
                             </div>
 
                             <div>
-                                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">{item.title}</h3>
+                                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{item.title}</h3>
                                 {/* Expanding Line */}
-                                <div className="h-px w-8 bg-white/20 my-4 group-hover:w-full group-hover:bg-green-500/50 transition-all duration-500" />
+                                <div className="h-px w-8 bg-white/20 my-4 group-hover:w-full group-hover:bg-cyan-500/50 transition-all duration-500" />
                                 <p className="text-gray-500 leading-relaxed text-sm font-mono">{item.desc}</p>
                             </div>
                         </div>
@@ -80,9 +82,11 @@ export default function SecurityPage() {
                         We welcome collaboration with the security research community.
                         If you identify a vulnerability in the Neural Architecture, report it immediately.
                     </p>
-                    <a href="mailto:security@taskey.ai" className="inline-block bg-white text-black font-bold uppercase text-sm px-6 py-3 tracking-wider hover:bg-green-400 hover:text-black transition-colors">
-                        Report Vulnerability
-                    </a>
+                    <Link href="mailto:security@taskey.ai">
+                        <Button variant="primary" size="lg" className="uppercase tracking-wider">
+                            Report Vulnerability
+                        </Button>
+                    </Link>
                 </div>
             </div>
         </div>

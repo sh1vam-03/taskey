@@ -38,9 +38,9 @@ const Footer = () => {
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Product</h4>
                         <ul className="space-y-1">
-                            <li><FooterLink href="#features"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />System_Capes</FooterLink></li>
-                            <li><FooterLink href="#pricing"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Pricing_Grid</FooterLink></li>
-                            <li><FooterLink href="#how-it-works"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Workflow_Logic</FooterLink></li>
+                            <li><FooterLink href="/#features"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />System_Capes</FooterLink></li>
+                            <li><FooterLink href="/#pricing"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Pricing_Grid</FooterLink></li>
+                            <li><FooterLink href="/#how-it-works"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Workflow_Logic</FooterLink></li>
                         </ul>
                     </div>
 
