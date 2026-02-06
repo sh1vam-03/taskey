@@ -30,10 +30,10 @@ export default function HowItWorks() {
         <section className="py-32 px-4 bg-black border-t border-white/5" id="how-it-works">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-20 border-b border-white/10 pb-6">
-                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-2 text-white">
+                    <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">
                         Workflow Logic
                     </h2>
-                    <p className="text-gray-500 font-mono text-sm">
+                    <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
                         // EXECUTION_PIPELINE
                     </p>
                 </div>
@@ -57,10 +57,10 @@ export default function HowItWorks() {
                                 </div>
 
                                 <div>
-                                    <h4 className="font-mono text-xs text-gray-600 mb-1 group-hover:text-cyan-500 transition-colors">
+                                    <h4 className="font-mono text-xs text-gray-600 mb-1 group-hover:text-cyan-500 transition-colors uppercase tracking-widest">
                                         [{step.title}]
                                     </h4>
-                                    <h3 className="text-2xl font-bold text-white mb-2">
+                                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
                                         {step.subtitle}
                                     </h3>
                                     <p className="text-sm text-gray-500 font-mono leading-relaxed">
