@@ -19,7 +19,7 @@ export default function AuthLayout({
 
                     {/* Orb - Perfectly Centered in Left Panel */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-80 pointer-events-none">
-                        <AiEnergySphere size={800} speed={0.2} particleCount={1000} baseRadius={250} waveStrength={100} />
+                        <AiEnergySphere size={800} particleCount={1000} baseRadius={250} waveStrength={100} />
                     </div>
                 </div>
 
