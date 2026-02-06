@@ -97,6 +97,7 @@ export default function ContactPage() {
                                     onChange={handleChange}
                                     placeholder="user@example.com"
                                     className="w-full text-sm border border-white/20 bg-black/50 rounded-lg px-4 py-3 text-white placeholder-gray-600 outline-none transition focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                    suppressHydrationWarning={true}
                                 />
                                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                             </div>
@@ -119,7 +120,7 @@ export default function ContactPage() {
 
                             <div className="mt-2">
                                 <Button
-                                    variant="primary"
+                                    variant="scanline"
                                     size="lg"
                                     className="w-full uppercase tracking-wider"
                                     disabled={isSubmitting}

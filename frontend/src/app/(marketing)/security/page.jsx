@@ -83,7 +83,7 @@ export default function SecurityPage() {
                         If you identify a vulnerability in the Neural Architecture, report it immediately.
                     </p>
                     <Link href="mailto:security@taskey.ai">
-                        <Button variant="primary" size="lg" className="uppercase tracking-wider">
+                        <Button variant="scanline" size="lg" className="uppercase tracking-wider">
                             Report Vulnerability
                         </Button>
                     </Link>

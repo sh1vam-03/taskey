@@ -56,6 +56,13 @@ export default function Button({
         disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none
     `
 
+    // CORNER SIZE STYLES
+    const cornerSizes = {
+        sm: "w-1.5 h-1.5",
+        md: "w-2 h-2",
+        lg: "w-3 h-3"
+    }
+
     return (
         <button
             className={`
@@ -73,10 +80,10 @@ export default function Button({
                 <>
                     <span className="relative z-10 transition-colors duration-300 group-hover:text-white">{children}</span>
                     {/* Scanline Fill */}
-                    <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+                    <div className="absolute inset-0 bg-cyan-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
                     {/* Tech Corners */}
-                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-black group-hover:border-white transition-colors z-20" />
-                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-black group-hover:border-white transition-colors z-20" />
+                    <div className={`absolute top-0 left-0 ${cornerSizes[size] || cornerSizes.md} border-t border-l border-black group-hover:border-white transition-colors z-20`} />
+                    <div className={`absolute bottom-0 right-0 ${cornerSizes[size] || cornerSizes.md} border-b border-r border-black group-hover:border-white transition-colors z-20`} />
                 </>
             ) : (
                 children

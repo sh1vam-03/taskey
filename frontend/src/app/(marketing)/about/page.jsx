@@ -105,7 +105,7 @@ export default function About() {
                     </p>
                     <div className="inline-flex gap-4">
                         <Link href="/careers">
-                            <Button variant="primary" size="lg" className="uppercase tracking-wider">
+                            <Button variant="scanline" size="lg" className="uppercase tracking-wider">
                                 View Careers
                             </Button>
                         </Link>
