@@ -1,43 +1,111 @@
 "use client";
 import AiEnergySphere from "@/components/ui/AiEnergySphere";
+import Link from "next/link";
+import { FaArrowLeft } from "react-icons/fa";
 
 export default function AuthLayout({
     children,
 }) {
     return (
-        <main className="min-h-screen w-full flex items-center justify-center bg-black relative overflow-hidden font-mono text-white">
+        <div className="min-h-screen w-full flex bg-black font-mono text-white overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-500">
 
-            {/* Background Atmosphere */}
-            <div className="absolute inset-0 z-0">
-                {/* Grid */}
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+            {/* LEFT PANEL: VISUAL CORTEX (Desktop Only) */}
+            <div className="hidden lg:flex w-1/2 relative flex-col items-center justify-center overflow-hidden border-r border-white/10 bg-zinc-950/50">
 
-                {/* Orb far background */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30 scale-[2] pointer-events-none">
-                    <AiEnergySphere size={800} speed={0.2} particleCount={40} />
+                {/* Background Layer */}
+                <div className="absolute inset-0 bg-black">
+                    {/* Grid */}
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+
+                    {/* Orb - Perfectly Centered in Left Panel */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-80 pointer-events-none">
+                        <AiEnergySphere size={800} speed={0.2} particleCount={1000} />
+                    </div>
+                </div>
+
+                {/* Content Overlay */}
+                <div className="relative z-10 text-center space-y-8 max-w-lg px-8">
+                    {/* Logo/Identity */}
+                    <div className="inline-flex items-center gap-3 border border-white/10 bg-black/50 backdrop-blur-md px-6 py-2 rounded-full mb-4">
+                        <div className="w-2 h-2 bg-cyan-500 rounded-sm animate-pulse" />
+                        <span className="text-sm tracking-widest text-cyan-500">TASKEY_INTELLIGENCE</span>
+                    </div>
+
+                    <h1 className="text-5xl xl:text-7xl font-bold tracking-tighter text-white drop-shadow-2xl">
+                        THINKING<br />PARTNER
+                    </h1>
+
+                    <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto border-l-2 border-cyan-500/50 pl-4 py-1 text-left">
+                        Advanced cognitive protocols for automated agency.<br />
+                        Status: <span className="text-cyan-400 font-bold">OPTIMAL</span>
+                    </p>
+
+                    {/* Decorative Data Grid */}
+                    <div className="grid grid-cols-2 gap-8 text-[10px] text-gray-500 uppercase tracking-widest mt-12 pt-8 border-t border-white/10">
+                        <div className="text-center">
+                            <div className="mb-1">System_Load</div>
+                            <div className="text-white text-2xl font-bold font-mono">12%</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="mb-1">Active_Nodes</div>
+                            <div className="text-white text-2xl font-bold font-mono flex items-center justify-center gap-2">
+                                4,096
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tech Decorator Bottom */}
+                <div className="absolute bottom-8 left-8 text-[10px] text-gray-600 font-mono">
+                    // NEURAL_INTERFACE_V2.0
                 </div>
             </div>
 
-            {/* Auth Container */}
-            <div className="z-10 w-full max-w-md relative">
-                {/* Tech Decorators */}
-                <div className="absolute -top-12 left-0 text-xs text-gray-500">SERVER: SECURE_01</div>
-                <div className="absolute -top-12 right-0 text-xs text-cyan-500 animate-pulse">● ENCRYPTED_CONN</div>
+            {/* RIGHT PANEL: TERMINAL (Auth Form) */}
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 lg:p-12 relative z-10 bg-black/95">
 
-                <div className="bg-black/80 backdrop-blur-xl border border-white/10 p-8 rounded-sm relative shadow-2xl">
-                    {/* Corner Brackets */}
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-cyan-500/50" />
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-cyan-500/50" />
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-cyan-500/50" />
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-cyan-500/50" />
-
-                    {children}
+                {/* Mobile Background (Subtle) */}
+                <div className="absolute inset-0 lg:hidden">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
                 </div>
 
-                <div className="mt-8 text-center text-[10px] text-gray-600">
-                    // UNAUTHORIZED_ACCESS_IS_PROHIBITED
+                {/* Back Link */}
+                <div className="absolute top-8 left-8 z-20">
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-cyan-400 transition-colors uppercase tracking-widest group"
+                    >
+                        <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" />
+                        Return_Home
+                    </Link>
+                </div>
+
+                {/* Form Container */}
+                <div className="w-full max-w-md relative z-10">
+                    {/* Header for Form */}
+                    <div className="mb-12 text-center lg:text-left">
+                        <div className="w-12 h-1 bg-cyan-500 mb-6 lg:ml-0 mx-auto" />
+                        <h2 className="text-3xl font-bold tracking-tight text-white mb-2">Initialize Session</h2>
+                        <p className="text-gray-500 text-sm">Enter credentials to access the grid.</p>
+                    </div>
+
+                    {/* The Form Itself (Children) */}
+                    <div className="relative">
+                        {children}
+                    </div>
+
+                    {/* Bottom Status */}
+                    <div className="mt-12 flex items-center justify-between text-[10px] text-gray-700 uppercase tracking-widest border-t border-white/10 pt-6">
+                        <span>Encrypted_Connection</span>
+                        <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 bg-green-900 rounded-full" />
+                            <span>Secure_01</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </main>
+
+        </div>
     )
 }

@@ -37,24 +37,24 @@ export default function ForgotPassword() {
                     borderColor: "var(--border)",
                 }}
             >
-                <h1 className="text-2xl font-bold text-center mb-2" style={{ color: "var(--heading)" }}>
-                    Forgot Password
+                <h1 className="text-3xl font-bold tracking-tighter text-white text-center mb-2">
+                    Recover_Access
                 </h1>
 
-                <p className="text-center opacity-80 mb-8">
-                    Enter your email and we’ll send you a reset link.
+                <p className="text-center text-gray-400 text-sm font-mono mb-8 max-w-sm mx-auto">
+                    // ENTER_ID_TO_INITIATE_RESET_PROTOCOL
                 </p>
 
-                {message && <p className="text-green-500 text-sm text-center">{message}</p>}
-                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                {message && <p className="text-green-500 text-sm text-center font-mono mb-4 border border-green-500/20 bg-green-500/10 p-2 rounded">{message}</p>}
+                {error && <p className="text-red-500 text-sm text-center font-mono mb-4 border border-red-500/20 bg-red-500/10 p-2 rounded">{error}</p>}
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                     <div>
                         <label
                             htmlFor="email"
-                            className="block mb-1 text-sm font-medium"
+                            className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase"
                         >
-                            Email
+                            Registered_Email
                         </label>
 
                         <input
@@ -63,12 +63,8 @@ export default function ForgotPassword() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="you@example.com"
-                            className="w-full px-4 py-3 text-sm sm:text-base border rounded-lg outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition"
-                            style={{
-                                backgroundColor: "var(--bg)",
-                                borderColor: "var(--border)",
-                                color: "var(--text)",
-                            }}
+                            suppressHydrationWarning
+                            className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm rounded-sm outline-none text-white placeholder-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                             required
                         />
                     </div>
@@ -77,18 +73,20 @@ export default function ForgotPassword() {
                         type="submit"
                         disabled={loading}
                         isLoading={loading}
-                        className="w-full sm:w-auto font-medium"
+                        variant="scanline"
+                        className="w-full sm:w-auto mt-2"
                     >
-                        Send Reset Link
+                        Transmit_Reset_Link
                     </Button>
                 </form>
 
-                <p className="text-center text-sm mt-6">
+                <p className="text-center text-xs font-mono mt-8 text-gray-500">
+                    // RECALL_CREDENTIALS?
                     <Link
                         href="/login"
-                        className="font-medium hover:underline"
+                        className="ml-2 text-cyan-500 hover:text-white transition-colors uppercase tracking-widest"
                     >
-                        ← Back to Login
+                        ABORT_RESET
                     </Link>
                 </p>
 

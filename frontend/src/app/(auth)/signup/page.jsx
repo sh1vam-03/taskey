@@ -132,12 +132,8 @@ export default function Signup() {
                             placeholder="Name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="border w-full px-4 py-3 text-sm sm:text-base rounded-lg outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                            style={{
-                                backgroundColor: "var(--bg)",
-                                borderColor: "var(--border)",
-                                color: "var(--text)",
-                            }}
+                            suppressHydrationWarning
+                            className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm sm:text-base rounded-sm outline-none text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                         />
 
                         {/* Email */}
@@ -145,66 +141,59 @@ export default function Signup() {
                             placeholder="Email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="border w-full px-4 py-3 text-sm sm:text-base rounded-lg outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                            style={{
-                                backgroundColor: "var(--bg)",
-                                borderColor: "var(--border)",
-                                color: "var(--text)",
-                            }}
+                            suppressHydrationWarning
+                            className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm sm:text-base rounded-sm outline-none text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                         />
 
                         {/* Password */}
-                        <div className="relative">
+                        <div className="flex items-stretch gap-3">
                             <input
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="border w-full px-4 py-3 text-sm sm:text-base rounded-lg outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                                style={{
-                                    backgroundColor: "var(--bg)",
-                                    borderColor: "var(--border)",
-                                    color: "var(--text)",
-                                }}
+                                suppressHydrationWarning
+                                className="bg-zinc-950 border border-white/10 flex-grow px-4 py-3 text-sm sm:text-base rounded-sm outline-none text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                             />
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-2 top-2 opacity-70 hover:opacity-100"
+                                className="h-auto px-4 border border-white/10 font-mono text-cyan-500 hover:text-white"
                             >
                                 {showPassword ? "Hide" : "Show"}
                             </Button>
                         </div>
 
                         {/* Confirm Password */}
-                        <div className="relative">
+                        <div className="flex items-stretch gap-3">
                             <input
                                 type={showConfirmPassword ? "text" : "password"}
                                 placeholder="Confirm Password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="border w-full px-4 py-3 text-sm sm:text-base rounded-lg outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                                style={{
-                                    backgroundColor: "var(--bg)",
-                                    borderColor: "var(--border)",
-                                    color: "var(--text)",
-                                }}
+                                suppressHydrationWarning
+                                className="bg-zinc-950 border border-white/10 flex-grow px-4 py-3 text-sm sm:text-base rounded-sm outline-none text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                             />
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-2 top-2 opacity-70 hover:opacity-100"
+                                className="h-auto px-4 border border-white/10 font-mono text-cyan-500 hover:text-white"
                             >
                                 {showConfirmPassword ? "Hide" : "Show"}
                             </Button>
                         </div>
 
-                        <Button className="w-full sm:w-auto" disabled={loading} isLoading={loading}>
-                            {loading ? "Sending..." : "Continue"}
+                        <Button
+                            className="w-full sm:w-auto mt-4"
+                            disabled={loading}
+                            isLoading={loading}
+                            variant="scanline"
+                        >
+                            {loading ? "Sending..." : "Initialize_Account"}
                         </Button>
                     </form>
                 )}
@@ -212,34 +201,35 @@ export default function Signup() {
                 {step === "otp" && (
                     <form onSubmit={handleSignup} className="flex flex-col gap-5">
                         <input
-                            placeholder="Enter OTP"
+                            placeholder="Enter Code"
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
-                            className="border w-full px-4 py-3 text-sm sm:text-base rounded-lg outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-                            style={{
-                                backgroundColor: "var(--bg)",
-                                borderColor: "var(--border)",
-                                color: "var(--text)",
-                            }}
+                            suppressHydrationWarning
+                            className="bg-zinc-950 border border-white/10 w-full text-center tracking-[1em] px-4 py-3 text-lg rounded-sm outline-none text-white placeholder-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                         />
 
-                        <Button className="w-full sm:w-auto" disabled={loading} isLoading={loading}>
-                            {loading ? "Verifying..." : "Create Account"}
+                        <Button
+                            className="w-full sm:w-auto"
+                            disabled={loading}
+                            isLoading={loading}
+                            variant="scanline"
+                        >
+                            {loading ? "Verifying..." : "Confirm_Identity"}
                         </Button>
 
-                        <div className="text-sm text-center opacity-80">
+                        <div className="text-sm text-center opacity-80 font-mono text-gray-500">
                             {canResend ? (
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     onClick={handleResendOtp}
-                                    className="underline"
+                                    className="underline decoration-cyan-500 underline-offset-4"
                                 >
-                                    Resend OTP
+                                    Resend_Signal
                                 </Button>
                             ) : (
-                                <span>Resend OTP in {timer}s</span>
+                                <span>Signal_Refind_In: {timer}s</span>
                             )}
                         </div>
                     </form>
