@@ -44,7 +44,7 @@ export default function Home() {
 
                 {/* Orb Container - BACKGROUND */}
                 <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-60 md:opacity-100">
-                    <AiEnergySphere size={800} particleCount={2000} baseRadius={300} hoverRadius={100} />
+                    <AiEnergySphere size={1000} particleCount={1200} baseRadius={300} hoverRadius={100} />
                 </div>
 
                 <div className="relative z-20 text-center max-w-4xl mx-auto space-y-8">

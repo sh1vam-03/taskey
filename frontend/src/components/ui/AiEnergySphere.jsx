@@ -6,7 +6,7 @@ export default function AiEnergySphere({
     size = 600,
     particleCount = 1000,
     baseRadius = 200,
-    waveStrength = 5,
+    waveStrength = 10,
     rotationSpeed = 0.01,
     hoverRadius = 65,
     repelStrength = 14,
