@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 
 export default function AiEnergySphere({
-    size = 600,
+    size =600,
     particleCount = 1000,
     baseRadius = 200,
     waveStrength = 10,

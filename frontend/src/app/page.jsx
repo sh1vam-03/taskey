@@ -45,16 +45,16 @@ export default function Home() {
 
                 {/* Orb Container - BACKGROUND */}
                 <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-60 md:opacity-100">
-                    <AiEnergySphere size={1000} particleCount={1200} baseRadius={300} hoverRadius={100} />
+                    <AiEnergySphere size={1000} particleCount={1200} baseRadius={260} hoverRadius={100} />
                 </div>
 
                 <div className="relative z-20 text-center max-w-4xl mx-auto space-y-8">
-                    {/* Label */}
+                    {/* Label
                     <div className="inline-block border border-white/10 bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-full mb-4">
                         <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">
                             ● NEURAL_ARCHITECTURE_V1
                         </span>
-                    </div>
+                    </div> */}
 
                     <h1 className="text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-[linear-gradient(to_bottom,white_40%,rgba(255,255,255,0.5)_100%)]">
                         Your AI Thinking Partner.
