@@ -18,9 +18,8 @@ import Today from './pages/dashboard/today'
 import Weekly from './pages/dashboard/weekly'
 import Monthly from './pages/dashboard/monthly'
 import Streaks from './pages/dashboard/streaks'
+import Tasks from './pages/dashboard/Tasks'
 
-import Dashboard from './pages/dashboard/DashboardLayout'
-import ProtectedRoute from './Routes/ProtectedRoute'
 
 const App = () => {
 
@@ -54,6 +53,8 @@ const App = () => {
   <Route path="weekly" element={<Weekly />} />
   <Route path="monthly" element={<Monthly />} />
   <Route path="streaks" element={<Streaks />} />
+  <Route path="tasks" element={<Tasks />} />
+
 </Route>
 
 </Routes>

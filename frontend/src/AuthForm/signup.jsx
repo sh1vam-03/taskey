@@ -32,7 +32,7 @@ const Signup = () => {
     setError("")
     setSuccess("")
 
-    if (!name) return setError("Name is required")
+    if (!name || !email || !password || !confirmPassword) return setError("All fields are required")
     if (!email.includes("@")) return setError("Invalid email")
     if (password.length < 6 || password.length > 8)
       return setError("Password must be between 6 to 8 characters")
@@ -60,7 +60,7 @@ const Signup = () => {
     try {
       setLoading(true)
       await verifyOtp({ name, email, password, otp })
-      navigate("/")
+      navigate("/dashboard")
     } catch (err) {
       setError(err.message)
     } finally {

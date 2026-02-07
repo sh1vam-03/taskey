@@ -28,7 +28,7 @@ const Login = () => {
     try {
       setLoading(true)
       await login(email, password)
-      navigate("/")
+      navigate("/dashboard")
     } catch (err) {
       setError(err.message || "Login failed")
     } finally {
