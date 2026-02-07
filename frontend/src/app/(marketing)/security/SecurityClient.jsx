@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { FaLock, FaShieldAlt, FaServer, FaUserSecret } from "react-icons/fa";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import AiEnergySphere from "@/components/ui/AiEnergySphere";
 
 export default function SecurityClient() {
     // 🔹 RESPONSIVE ORB SIZING
@@ -33,10 +32,7 @@ export default function SecurityClient() {
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_70%,transparent_100%)] opacity-50" />
 
-                {/* 🔹 RESPONSIVE ORB */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 opacity-40">
-                    <AiEnergySphere size={orbSize} particleCount={800} baseRadius={orbSize * 0.25} hoverRadius={100} />
-                </div>
+                {/* RESPONSIVE AiEnergySphere */}
             </div>
 
             <div className="w-full max-w-[var(--container-width)] mx-auto relative z-10">
