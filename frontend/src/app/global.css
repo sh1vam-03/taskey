@@ -15,6 +15,11 @@
     --heading: #ffffff;
     --primary: #ffffff;
     --secondary: #0a0a0a;
+
+    /* Layout Variables */
+    --container-width: 1200px;
+    --container-padding: clamp(1rem, 5vw, 2.5rem);
+    --section-spacing: clamp(4rem, 10vh, 8rem);
   }
 
   html,

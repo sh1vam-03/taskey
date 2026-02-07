@@ -5,12 +5,12 @@ import Button from "@/components/ui/Button";
 
 export default function CallToAction() {
     return (
-        <section className="relative py-32 px-4 bg-black overflow-hidden border-t border-white/5">
+        <section className="relative py-[var(--section-spacing)] px-[var(--container-padding)] bg-black overflow-hidden border-t border-white/5">
             {/* Background Decorators */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px] opacity-50" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-            <div className="relative z-10 max-w-5xl mx-auto text-center space-y-8">
+            <div className="relative z-10 w-full max-w-[var(--container-width)] mx-auto text-center space-y-8">
                 {/* Tech Label */}
                 <div className="inline-block border border-white/10 bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-full mb-4">
                     <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest animate-pulse">

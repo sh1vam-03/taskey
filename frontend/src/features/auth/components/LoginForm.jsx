@@ -38,18 +38,9 @@ export default function LoginForm() {
     }
 
     return (
-        <div
-            className="flex justify-center items-center w-full"
-            style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
-        >
-            <div
-                className="flex flex-col gap-6 p-8 border w-full max-w-md rounded-md shadow-md"
-                style={{
-                    backgroundColor: "var(--card)",
-                    borderColor: "var(--border)",
-                }}
-            >
-                <h1 className="text-2xl font-bold text-center mb-2" style={{ color: "var(--heading)" }}>
+        <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
+            <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
+                <h1 className="text-2xl font-bold text-center mb-2 text-[var(--heading)]">
                     Welcome Back
                 </h1>
 

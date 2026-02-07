@@ -42,8 +42,8 @@ export default function InteractivePricing() {
     ];
 
     return (
-        <section className="py-32 px-6 bg-black border-t border-white/5" id="pricing">
-            <div className="max-w-7xl mx-auto">
+        <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black border-t border-white/5" id="pricing">
+            <div className="w-full max-w-[var(--container-width)] mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8 border-b border-white/10 pb-6">
                     <div>
                         <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">Pricing</h2>

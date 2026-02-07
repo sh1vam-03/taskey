@@ -2,8 +2,8 @@ import './global.css'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
 
 export const metadata = {
-    title: 'Taskey',
-    description: 'Organize Your Life',
+    title: 'Taskey | Neural Task Orchestration',
+    description: 'Automating human cognitive throughput via adaptive intelligence protocols.',
 }
 
 export default function RootLayout({

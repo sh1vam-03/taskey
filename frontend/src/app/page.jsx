@@ -16,18 +16,17 @@ import { MdSmartToy, MdPsychology } from "react-icons/md";
 
 export default function Home() {
     // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1000); // Default desktop
+    const [orbSize, setOrbSize] = useState(1400); // Default desktop
 
     useEffect(() => {
         const updateSize = () => {
             const width = window.innerWidth;
             const height = window.innerHeight;
 
-            // Clamp Logic: 600px -> 1000px based on width
-            // On standard laptop (1366), width*0.6 = ~820px.
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
+            // Base size on width, but cap it for smaller screens
+            let newSize = Math.min(1200, Math.max(600, width * 0.6));
 
-            // Height Constraint for Laptops (short screens)
+            // Height Constraint for Laptops (1366x768) and smaller
             if (height < 800) {
                 newSize = Math.min(newSize, 700);
             }
@@ -40,6 +39,8 @@ export default function Home() {
         return () => window.removeEventListener("resize", updateSize);
     }, []);
 
+    const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
+
     return (
         <main className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-500">
             {/* Navbar */}
@@ -48,9 +49,8 @@ export default function Home() {
             </div>
 
             {/* HERO SECTION with Neural Interface HUD */}
-            {/* 🔹 RESPONSIVE HEIGHT: min-h-screen but capped at 1080px for large displays, flexible padding */}
-            {/* Short screens (laptops): Reduced padding to fit content. */}
-            <section className="relative min-h-dvh lg:min-h-screen max-h-[1080px] flex flex-col items-center justify-center pt-32 pb-20 lg:py-32 [@media(max-height:800px)]:pt-24 [@media(max-height:800px)]:pb-12 px-4 border-b border-white/5 overflow-hidden transition-all duration-300">
+            {/* Height: Fits 1366x768 without scrolling. vertical rhythm: var(--section-spacing) */}
+            <section className="relative min-h-[100dvh] max-h-[900px] flex flex-col items-center justify-center py-[var(--section-spacing)] border-b border-white/5 overflow-hidden transition-all duration-300">
 
                 {/* HUD Decorators */}
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none select-none overflow-hidden">
@@ -76,14 +76,13 @@ export default function Home() {
                     <AiEnergySphere size={orbSize} particleCount={1200} baseRadius={orbSize * 0.25} hoverRadius={100} />
                 </div>
 
-                <div className="relative z-20 text-center max-w-4xl mx-auto space-y-6 lg:space-y-8 mt-12 lg:mt-0">
-                    {/* Label commented out in original, kept commented */}
+                <div className={`relative z-20 text-center space-y-6 lg:space-y-8 mt-12 lg:mt-0 ${CONTAINER_CLASS}`}>
 
-                    <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-[linear-gradient(to_bottom,white_40%,rgba(255,255,255,0.5)_100%)]">
+                    <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-bold tracking-tighter leading-[0.95] text-transparent bg-clip-text bg-[linear-gradient(to_bottom,white_40%,rgba(255,255,255,0.5)_100%)]">
                         Your AI Thinking Partner.
                     </h1>
 
-                    <p className="text-lg sm:text-xl md:text-2xl text-gray-400 font-light max-w-2xl mx-auto leading-relaxed px-4">
+                    <p className="text-[clamp(1rem,2vw,1.25rem)] text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
                         Taskey orchestrates your life with <span className="text-white font-medium">adaptive intelligence</span>.
                         No friction. Just flow.
                     </p>
@@ -106,10 +105,10 @@ export default function Home() {
             {/* SECTIONS */}
 
             {/* 1. BENTO GRID (Restored) */}
-            <section className="py-20 px-4 max-w-7xl mx-auto">
+            <section className={`py-[var(--section-spacing)] ${CONTAINER_CLASS}`}>
                 <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>
-                        <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">
+                        <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-tighter mb-4 text-white">
                             Neural Nodes
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
@@ -135,7 +134,7 @@ export default function Home() {
                     />
                     <BentoGridItem
                         title="Privacy Core"
-                        description="Local-first processing ensuring your data never leaves the secure enclave."
+                        description="Local-first processing ensuring your data never leaks from the secure enclave."
                         header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                         icon={<FaShieldAlt />}
                         className="md:col-span-1"

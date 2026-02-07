@@ -70,8 +70,8 @@ export default function DetailedFeatures() {
     ];
 
     return (
-        <section className="py-32 px-4 bg-black" id="features">
-            <div className="max-w-7xl mx-auto">
+        <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black" id="features">
+            <div className="w-full max-w-[var(--container-width)] mx-auto">
                 <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>
                         <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">

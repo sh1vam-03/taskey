@@ -23,9 +23,6 @@ const Navbar = () => {
     const navData = {
         Product: [
             { name: "System_Capes", path: "/#features" },
-            { name: "Methodology", path: "/#how-it-works" }, // Renamed from Workflow_Logic to Methodology in main generic map? User said "Methodology" in request but Footer has Workflow_Logic. User said "replace... with ... when user hover on it show its links just like in the footer". Footer has "Workflow_Logic". I should probably use Footer's names: System_Capes, Pricing_Grid, Workflow_Logic.
-            // Wait, user said "replace ... Feature, Methodology, Pricing ... with Product, Company, Legal".
-            // So Product -> System_Capes, Pricing_Grid, Workflow_Logic
             { name: "Pricing_Grid", path: "/#pricing" },
             { name: "Workflow_Logic", path: "/#how-it-works" }
         ],

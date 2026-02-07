@@ -14,8 +14,13 @@ export default function AuthLayout({
         const updateSize = () => {
             const width = window.innerWidth;
             const height = window.innerHeight;
+            // Base size on width, but cap it for smaller screens
             let newSize = Math.min(1000, Math.max(600, width * 0.6));
-            if (height < 800) newSize = Math.min(newSize, 700);
+
+            // Height Constraint for Laptops (1366x768) and smaller
+            if (height < 800) {
+                newSize = Math.min(newSize, 700);
+            }
             setOrbSize(newSize);
         };
         updateSize();
@@ -79,7 +84,7 @@ export default function AuthLayout({
             </div>
 
             {/* RIGHT PANEL: TERMINAL (Auth Form) */}
-            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 lg:p-12 relative z-10 bg-black/80 backdrop-blur-md">
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-[var(--container-padding)] relative z-10 bg-black/80 backdrop-blur-md">
 
                 {/* Back Link */}
                 <div className="absolute top-8 left-8 z-20">
