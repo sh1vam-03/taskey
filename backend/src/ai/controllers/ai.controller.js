@@ -1,105 +1,146 @@
+import prisma from "../../config/db.js";
 import asyncHandler from "../../utils/asyncHandler.js";
 import ApiError from "../../utils/ApiError.js";
+import { processAiRequest } from "../services/aiOrchestrator.service.js";
 
-import { createAgent } from "../agent/agent.factory.js";
-import { runIntentChain } from "../chains/intent.chain.js";
-import { runPlannerChain } from "../chains/planner.chain.js";
-import { runReflectionChain } from "../chains/reflection.chain.js";
-
-import { validateSafety } from "../validators/safety.validator.js";
-import { validateSchedule } from "../validators/schedule.validator.js";
-
-import { executeAiPlan } from "../services/aiExecution.service.js";
-import { consumeAiTokens } from "../services/aiToken.service.js";
-
-import { estimateTokens } from "../utils/token.utils.js"; // simple estimator
+// Helper to format messages
+const formatMessage = (msg) => ({
+    id: msg.id,
+    role: msg.role === "USER" ? "user" : "assistant",
+    content: msg.content,
+    createdAt: msg.createdAt
+});
 
 /**
- * POST /api/ai/execute
- * Main AI entry point
+ * POST /api/ai/conversations
  */
-export const executeAi = asyncHandler(async (req, res) => {
-    const user = req.user;
+export const createConversation = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
     const { message } = req.body;
 
-    if (!message || !message.trim()) {
-        throw new ApiError(400, "Message is required");
+    // Create Conversation
+    const conversation = await prisma.aiConversation.create({
+        data: { userId }
+    });
+
+    let aiMessage = null;
+
+    // If initial message provided, process it
+    if (message) {
+        aiMessage = await processAiRequest({
+            userId,
+            conversationId: conversation.id,
+            message,
+            mode: "TEXT"
+        });
     }
 
-    /**
-     * 1️⃣ Create AI agent (prompt + memory)
-     */
-    const agent = await createAgent({
-        userId: user.id,
-    });
-
-    /**
-     * 2️⃣ INTENT CHAIN
-     * Understand what user wants
-     */
-    const intentResult = await runIntentChain({
-        agent,
-        input: message,
-    });
-
-    /**
-     * 3️⃣ PLANNER CHAIN
-     * Build tasks + schedules
-     */
-    const plan = await runPlannerChain({
-        agent,
-        intent: intentResult,
-    });
-
-    /**
-     * 4️⃣ REFLECTION CHAIN
-     * Self-correction & sanity improvements
-     */
-    const refinedPlan = await runReflectionChain({
-        agent,
-        plan,
-    });
-
-    /**
-     * 5️⃣ SAFETY VALIDATION
-     */
-    validateSafety(refinedPlan);
-
-    /**
-     * 6️⃣ SCHEDULE SANITY VALIDATION
-     */
-    validateSchedule(refinedPlan.schedules);
-
-    /**
-     * 7️⃣ TOKEN ESTIMATION + DEDUCTION
-     */
-    const estimatedTokens = estimateTokens(message, refinedPlan);
-
-    await consumeAiTokens({
-        userId: user.id,
-        tokens: estimatedTokens,
-        type: "CHAT",
-    });
-
-    /**
-     * 8️⃣ EXECUTE PLAN (DB WRITES)
-     */
-    const executionResult = await executeAiPlan({
-        userId: user.id,
-        plan: refinedPlan,
-    });
-
-    /**
-     * 9️⃣ RESPONSE
-     */
-    res.status(200).json({
+    res.status(201).json({
         success: true,
         data: {
-            summary: refinedPlan.summary,
-            tasks: executionResult.tasks,
-            schedules: executionResult.schedules,
-            notes: refinedPlan.notes ?? [],
-            remainingTokens: executionResult.remainingTokens,
-        },
+            conversation,
+            message: aiMessage ? formatMessage(aiMessage) : null
+        }
+    });
+});
+
+/**
+ * GET /api/ai/conversations
+ */
+export const getConversations = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const conversations = await prisma.aiConversation.findMany({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        take: 50
+    });
+
+    res.status(200).json({
+        success: true,
+        data: conversations
+    });
+});
+
+/**
+ * GET /api/ai/conversations/:id
+ */
+export const getConversation = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const conversation = await prisma.aiConversation.findUnique({
+        where: { id, userId }
+    });
+
+    if (!conversation) throw new ApiError(404, "Conversation not found");
+
+    res.status(200).json({
+        success: true,
+        data: conversation
+    });
+});
+
+/**
+ * DELETE /api/ai/conversations/:id
+ */
+export const deleteConversation = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    await prisma.aiConversation.delete({
+        where: { id, userId }
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Conversation deleted"
+    });
+});
+
+/**
+ * GET /api/ai/conversations/:id/messages
+ */
+export const getMessages = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    // Verify ownership
+    const conversation = await prisma.aiConversation.findUnique({
+        where: { id, userId }
+    });
+    if (!conversation) throw new ApiError(404, "Conversation not found");
+
+    const messages = await prisma.aiMessage.findMany({
+        where: { conversationId: id },
+        orderBy: { createdAt: 'asc' }
+    });
+
+    res.status(200).json({
+        success: true,
+        data: messages.map(formatMessage)
+    });
+});
+
+/**
+ * POST /api/ai/conversations/:id/message
+ */
+export const sendMessage = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { message } = req.body;
+
+    if (!message) throw new ApiError(400, "Message is required");
+
+    const aiMessage = await processAiRequest({
+        userId,
+        conversationId: id,
+        message,
+        mode: "TEXT"
+    });
+
+    res.status(200).json({
+        success: true,
+        data: formatMessage(aiMessage)
     });
 });
