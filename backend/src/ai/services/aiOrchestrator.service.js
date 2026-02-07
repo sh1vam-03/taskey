@@ -88,7 +88,7 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
         userId,
         conversationId,
         credits: creditsUsed,
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         type: mode === "VOICE" ? "VOICE" : "CHAT"
     });
 

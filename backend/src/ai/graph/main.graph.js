@@ -42,7 +42,7 @@ export const runAgentGraph = async ({ userId, messages, user, conversationId }) 
     // 2. Initialize Tools & Model (Generic)
     const tools = getBoundTools(); // No userId needed
     const model = new ChatOpenAI({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         temperature: 0,
         apiKey: process.env.OPENAI_API_KEY,
         timeout: 30000,   // Fix 2: 30s timeout
