@@ -1,15 +1,37 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FaLock, FaShieldAlt, FaServer, FaUserSecret } from "react-icons/fa";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import AiEnergySphere from "@/components/ui/AiEnergySphere";
 
 export default function SecurityPage() {
+    // 🔹 RESPONSIVE ORB SIZING
+    const [orbSize, setOrbSize] = useState(1000);
+
+    useEffect(() => {
+        const updateSize = () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            let newSize = Math.min(1000, Math.max(600, width * 0.6));
+            if (height < 800) newSize = Math.min(newSize, 700);
+            setOrbSize(newSize);
+        };
+        updateSize();
+        window.addEventListener("resize", updateSize);
+        return () => window.removeEventListener("resize", updateSize);
+    }, []);
+
     return (
-        <div className="min-h-screen bg-black text-white -mt-20 pt-32 pb-20 px-4 overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500">
+        <div className="min-h-dvh lg:min-h-screen max-h-[1080px] bg-black text-white -mt-20 pt-32 pb-20 lg:py-32 [@media(max-height:800px)]:pt-24 [@media(max-height:800px)]:pb-12 px-4 overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500">
             {/* GLOBAL BACKGROUND */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_70%,transparent_100%)] opacity-50" />
+
+                {/* 🔹 RESPONSIVE ORB */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 opacity-40">
+                    <AiEnergySphere size={orbSize} particleCount={800} baseRadius={orbSize * 0.25} hoverRadius={100} />
+                </div>
             </div>
 
             <div className="max-w-5xl mx-auto relative z-10">

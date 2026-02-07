@@ -1,11 +1,28 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useContactForm } from "@/features/contact-form/useContactForm";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
+import AiEnergySphere from "@/components/ui/AiEnergySphere";
 
 export default function ContactPage() {
+    // 🔹 RESPONSIVE ORB SIZING
+    const [orbSize, setOrbSize] = useState(1000);
+
+    useEffect(() => {
+        const updateSize = () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            let newSize = Math.min(1000, Math.max(600, width * 0.6));
+            if (height < 800) newSize = Math.min(newSize, 700);
+            setOrbSize(newSize);
+        };
+        updateSize();
+        window.addEventListener("resize", updateSize);
+        return () => window.removeEventListener("resize", updateSize);
+    }, []);
+
     const {
         values,
         errors,
@@ -16,25 +33,30 @@ export default function ContactPage() {
     } = useContactForm();
 
     return (
-        <div className="min-h-screen bg-black text-white -mt-20 pt-32 pb-20 px-4 overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500">
+        <div className="min-h-dvh lg:min-h-screen max-h-[1080px] bg-black text-white -mt-20 pt-32 pb-20 lg:py-32 [@media(max-height:800px)]:pt-24 [@media(max-height:800px)]:pb-12 px-4 overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500 flex flex-col justify-center">
             {/* GLOBAL BACKGROUND (Shared with Landing/About) */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_70%,transparent_100%)] opacity-50" />
+
+                {/* 🔹 RESPONSIVE ORB */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 opacity-40">
+                    <AiEnergySphere size={orbSize} particleCount={800} baseRadius={orbSize * 0.25} hoverRadius={100} />
+                </div>
             </div>
 
-            <div className="max-w-3xl mx-auto relative z-10">
+            <div className="max-w-3xl mx-auto relative z-10 w-full">
                 {/* HERO HEADER */}
-                <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-8">
+                <div className="text-center mb-12 lg:mb-16">
+                    <div className="inline-flex items-center gap-2 border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-6 lg:mb-8">
                         <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
                         <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">
                             SIGNAL: STABLE
                         </span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white">
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
                         Establish Uplink
                     </h1>
-                    <p className="text-xl text-gray-400 max-w-xl mx-auto leading-relaxed">
+                    <p className="text-lg lg:text-xl text-gray-400 max-w-xl mx-auto leading-relaxed px-4">
                         Initiate a secure transmission channel to our engineering team.
                         We are listening.
                     </p>
