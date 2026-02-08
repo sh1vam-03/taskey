@@ -45,9 +45,9 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-bold text-white mb-1">
                         {getGreeting()}, <span className="text-gray-400">User</span>
                     </h1>
-                    <p className="text-gray-500 text-sm">
+                    <div className="text-gray-500 text-sm">
                         {loading ? <SkeletonLoader className="h-4 w-48" /> : `You have ${pendingTasks.length} pending items for today.`}
-                    </p>
+                    </div>
                 </div>
                 <div className="text-right hidden md:block">
                     <div className="text-xs font-mono text-cyan-500 bg-cyan-950/20 px-3 py-1 rounded-full border border-cyan-900/50 inline-flex items-center gap-2">
@@ -70,18 +70,18 @@ export default function DashboardPage() {
                     <>
                         <StatCard
                             label="Total Tasks"
-                            value={data.stats.total}
+                            value={data?.stats?.total ?? 0}
                             icon={FaList}
                         />
                         <StatCard
                             label="Completed"
-                            value={data.stats.completed}
+                            value={data?.stats?.completed ?? 0}
                             icon={FaCheckCircle}
-                            subtext={`${Math.round((data.stats.completed / (data.stats.total || 1)) * 100)}% completion rate`}
+                            subtext={`${Math.round((data?.stats?.completed || 0) / (data?.stats?.total || 1) * 100)}% completion rate`}
                         />
                         <StatCard
                             label="Pending"
-                            value={data.stats.pending}
+                            value={data?.stats?.pending ?? 0}
                             icon={FaClock}
                         />
                         <StatCard

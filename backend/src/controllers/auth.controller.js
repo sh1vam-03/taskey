@@ -12,12 +12,17 @@ export const signup = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required");
     }
 
-    const result = await authService.signup(name, email, password);
+    try {
+        const result = await authService.signup(name, email, password);
 
-    res.status(201).json({
-        success: true,
-        message: result.message,
-    });
+        res.status(201).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        console.error("Signup Error:", error);
+        throw error;
+    }
 });
 
 /* =========================

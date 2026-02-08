@@ -20,8 +20,9 @@ export default function LoginForm() {
         e.preventDefault()
         setError("")
 
-        if (!email.includes("@")) {
-            return setError("Enter a valid email")
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email)) {
+            return setError("Please enter a valid email address")
         }
         if (!password) {
             return setError("Password is required")

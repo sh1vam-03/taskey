@@ -9,7 +9,7 @@ export default function SignupForm() {
     const [timer, setTimer] = useState(30)
     const [canResend, setCanResend] = useState(false)
 
-    const { requestOtp, verifyOtp } = useAuth()
+    const { requestOtp, verifyOtp, signup, login } = useAuth()
     const router = useRouter()
 
     const [step, setStep] = useState("form") // form | otp
@@ -31,18 +31,20 @@ export default function SignupForm() {
         setError("")
         setSuccess("")
 
-        if (!name) return setError("Name is required")
-        if (!email.includes("@")) return setError("Invalid email")
-        if (password.length < 6 || password.length > 8)
-            return setError("Password must be between 6 to 8 characters")
-        if (password !== confirmPassword)
-            return setError("Passwords do not match")
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!name.trim()) return setError("Name is required")
+        if (!emailRegex.test(email)) return setError("Please enter a valid email address")
+
+        if (password.length < 8) return setError("Password must be at least 8 characters long")
+        if (!/[A-Z]/.test(password) && !/[0-9]/.test(password)) return setError("Password should contain at least one uppercase letter or number")
+
+        if (password !== confirmPassword) return setError("Passwords do not match")
 
         try {
             setLoading(true)
-            await requestOtp(email)
+            await signup(name, email, password)
             setStep("otp")
-            setSuccess("OTP sent to your email")
+            setSuccess("Account initialization started. Enter authorization code sent to email.")
         } catch (err) {
             setError(err.message)
         } finally {
@@ -54,12 +56,16 @@ export default function SignupForm() {
         e.preventDefault()
         setError("")
 
-        if (!otp) return setError("OTP is required")
+        if (!otp) return setError("Authorization code is required")
 
         try {
             setLoading(true)
-            await verifyOtp({ name, email, password, otp })
-            // verifyOtp handles redirect
+            await verifyOtp(email, otp)
+            setSuccess("Identity verified. Initializing session...")
+
+            // Auto login
+            await login(email, password)
+            router.push("/dashboard")
         } catch (err) {
             setError(err.message)
             setLoading(false)

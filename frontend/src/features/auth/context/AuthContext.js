@@ -31,10 +31,11 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     const login = async (email, password) => {
-        const data = await authActions.loginUser(email, password)
-        localStorage.setItem("token", data.token)
-        setUser(data.user)
-        return data.user
+        const response = await authActions.loginUser(email, password)
+        const { accessToken, user } = response.data
+        localStorage.setItem("token", accessToken)
+        setUser(user)
+        return user
     }
 
     const logout = async () => {
@@ -47,19 +48,19 @@ export const AuthProvider = ({ children }) => {
         setUser(null)
     }
 
+    const signup = async (name, email, password) => {
+        await authActions.signupUser(name, email, password)
+        return true
+    }
+
     const requestOtp = async (email) => {
         await authActions.requestOtp(email)
         return true
     }
 
-    const verifyOtp = async (payload) => {
-        const data = await authActions.verifyOtp(payload)
-        if (data.token) {
-            localStorage.setItem("token", data.token)
-            setUser(data.user)
-            return data.user
-        }
-        return null
+    const verifyOtp = async (email, otp) => {
+        await authActions.verifyOtp({ email, otp })
+        return true
     }
 
     return (
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }) => {
                 loading,
                 login,
                 logout,
+                signup,
                 requestOtp,
                 verifyOtp,
             }}
