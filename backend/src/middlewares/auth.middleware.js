@@ -4,13 +4,10 @@ import { AccountStatus } from "@prisma/client";
 
 const authMiddleware = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
+        const token =
+            req.cookies?.accessToken ||
+            req.headers.authorization?.split(" ")[1];
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
-
-        const token = authHeader.split(" ")[1];
         if (!token) {
             return res.status(401).json({ message: "Unauthorized" });
         }

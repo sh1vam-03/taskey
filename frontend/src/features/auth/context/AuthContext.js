@@ -11,18 +11,10 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const checkAuth = async () => {
-            const token = Cookies.get("token") || localStorage.getItem("token")
-            if (!token) {
-                setLoading(false)
-                return
-            }
-
             try {
                 const data = await authActions.fetchCurrentUser()
                 setUser(data.user)
             } catch (error) {
-                Cookies.remove("token")
-                localStorage.removeItem("token")
                 setUser(null)
             } finally {
                 setLoading(false)
@@ -34,11 +26,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const response = await authActions.loginUser(email, password)
-        const { accessToken, user } = response.data
-
-        // Set Cookie
-        Cookies.set("token", accessToken, { expires: 7, secure: window.location.protocol === 'https:', sameSite: 'strict' })
-        localStorage.setItem("token", accessToken) // Keep for redundancy/legacy access if needed
+        const { user } = response.data.data
 
         setUser(user)
         return user
@@ -50,8 +38,6 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             // ignore
         }
-        Cookies.remove("token")
-        localStorage.removeItem("token")
         setUser(null)
     }
 

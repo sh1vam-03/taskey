@@ -60,9 +60,20 @@ export const login = asyncHandler(async (req, res) => {
         req.ip
     );
 
+    res.cookie("accessToken", result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(200).json({
         success: true,
-        data: result,
+        message: "Authentication successful",
+        data: {
+            user: result.user,
+            refreshToken: result.refreshToken // Keeping refresh token in body for now as per minimal change scope, unless user wants strict cookie-only. User instruction focused on accessToken.
+        },
     });
 });
 
@@ -70,7 +81,15 @@ export const login = asyncHandler(async (req, res) => {
    LOGOUT
 ========================= */
 export const logout = asyncHandler(async (req, res) => {
-    await authService.logout(req.sessionId);
+    if (req.sessionId) {
+        await authService.logout(req.sessionId);
+    }
+
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+    });
 
     res.status(200).json({
         success: true,
@@ -173,9 +192,18 @@ export const refreshToken = asyncHandler(async (req, res) => {
 
     const result = await authService.refreshToken(refreshToken);
 
+    res.cookie("accessToken", result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(200).json({
         success: true,
-        data: result,
+        data: {
+            refreshToken: result.refreshToken
+        },
     });
 });
 
@@ -184,6 +212,12 @@ export const refreshToken = asyncHandler(async (req, res) => {
 ========================= */
 export const logoutAll = asyncHandler(async (req, res) => {
     await authService.logoutAll(req.user.id);
+
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+    });
 
     res.status(200).json({
         success: true,
