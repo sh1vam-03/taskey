@@ -12,13 +12,7 @@ import PrivacyPolicy from './components/PrivacyPolicy'
 import TermsConditions from './components/TermsCondition'
 import Developers from './components/Developers'
 import Contact from './components/Contact'
-import DashboardLayout from './pages/dashboard/DashboardLayout'
-import Overview from './pages/dashboard/Overview'
-import Today from './pages/dashboard/today'
-import Weekly from './pages/dashboard/weekly'
-import Monthly from './pages/dashboard/monthly'
-import Streaks from './pages/dashboard/streaks'
-import Tasks from './pages/dashboard/Tasks'
+import Dashboard from './pages/dashboard/dashboard'
 
 
 const App = () => {
@@ -47,15 +41,7 @@ const App = () => {
   <Route path="/developers" element={<Developers />} />
   <Route path="/contact" element={<Contact />} />
   {/* <Route path="/Dashboard" element={<ProtectedRoute> <Dashboard /> </ProtectedRoute>} /> */}
-  <Route path="/dashboard" element={<DashboardLayout />}>
-  <Route index element={<Overview />} />
-  <Route path="today" element={<Today />} />
-  <Route path="weekly" element={<Weekly />} />
-  <Route path="monthly" element={<Monthly />} />
-  <Route path="streaks" element={<Streaks />} />
-  <Route path="tasks" element={<Tasks />} />
-
-</Route>
+<Route path="/dashboard" element={<Dashboard />} />
 
 </Routes>
 

@@ -1,52 +1,102 @@
 import { useState } from "react"
-import EditTaskModal from "./EditTask"
+import { useTasks } from "../../context/Taskscontext"
 
-const TaskItem = ({
-  task,
-  isSelected,
-  onSelect,
-  onDelete,
-  onToggle,
-  onUpdate,
-}) => {
-  const [isEditing, setIsEditing] = useState(false)
+const TaskItem = ({ task, isSelected }) => {
+  const {
+    deleteTask,
+    completeTask,
+    undoComplete,
+    updateTask,
+  } = useTasks()
+
+  const [editing, setEditing] = useState(false)
+  const [title, setTitle] = useState(task.title)
+
+  const saveEdit = () => {
+    if (!title.trim()) return
+    updateTask(task.id, { title })
+    setEditing(false)
+  }
 
   return (
-    <>
-      <div className="flex items-center justify-between border p-4 rounded-md">
-        <div className="flex items-center gap-3">
+    <div
+      className={`p-4 border rounded-xl flex justify-between items-center transition ${
+        isSelected ? "ring-2 ring-black" : ""
+      }`}
+      style={{
+        backgroundColor: "var(--card)",
+        borderColor: "var(--border)",
+        opacity: task.status === "COMPLETED" ? 0.6 : 1,
+      }}
+    >
+      {/* LEFT */}
+      <div className="flex-1">
+        {editing ? (
           <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => onSelect(e.target.checked)}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="border rounded px-3 py-2 w-full outline-none"
+            autoFocus
           />
-
+        ) : (
           <p
             className={`font-medium ${
-              task.completedToday ? "line-through opacity-40" : ""
+              task.status === "COMPLETED"
+                ? "line-through opacity-70"
+                : ""
             }`}
           >
             {task.title}
           </p>
-        </div>
+        )}
 
-        <div className="flex gap-3 ">
-          <button className=" bg-gray-700 text-white px-2 py-1 rounded-md task-btn cursor-pointer" onClick={() => setIsEditing(true)}>Edit</button>
-          <button className=" task-btn cursor-pointer" onClick={() => onToggle(task.id)}>
-            {task.completedToday ? "Undo" : "Complete"}
-          </button>
-          <button className="task-btn task-btn-danger cursor-pointer" onClick={() => onDelete(task.id)}>Delete</button>
-        </div>
+        {task.status === "COMPLETED" && (
+          <span className="text-sm opacity-60 ">Completed</span>
+        )}
       </div>
 
-      {isEditing && (
-        <EditTaskModal
-          task={task}
-          onClose={() => setIsEditing(false)}
-          onSave={onUpdate}
-        />
-      )}
-    </>
+      {/* ACTIONS */}
+      <div className="flex gap-3 ml-4 text-sm">
+        {editing ? (
+          <button
+            onClick={saveEdit}
+            className="hover:underline cursor-pointer"
+          >
+            Save
+          </button>
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="hover:underline cursor-pointer"
+          >
+            Edit
+          </button>
+        )}
+
+        {task.status === "COMPLETED" ? (
+          <button
+            onClick={() => undoComplete(task.id)}
+            className="hover:underline cursor-pointer"
+          >
+            Undo
+          </button>
+        ) : (
+          <button
+            onClick={() => completeTask(task.id)}
+            className="hover:underline cursor-pointer"
+          >
+            Complete
+          </button>
+        )}
+
+        <button
+          onClick={() => deleteTask(task.id)}
+          className="hover:underline text-red-600 cursor-pointer"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
   )
 }
 

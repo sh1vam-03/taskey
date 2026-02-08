@@ -1,33 +1,43 @@
-const MonthView = ({ days, selectedDate, setSelectedDate }) => {
-  return (
-    <div className="grid grid-cols-7 gap-2">
-        {days.map(date => (
-        <div
-          key={date}
-          onClick={() => onSelectDate(date)}
-          className="cursor-pointer"
-        >
-          {date}
-        </div>
-      ))}
-      {Object.entries(days).map(([date, tasks]) => (
-        <div
-          key={date}
-          className="min-h-[80px] p-2 border rounded"
-          style={{
-            borderColor: "var(--border)",
-            backgroundColor: "var(--card)",
-          }}
-        >
-          <p className="text-xs opacity-60">{date.split("-")[2]}</p>
+import dayjs from "dayjs"
 
-          {tasks.length > 0 && (
-            <span className="text-xs mt-1 inline-block opacity-80">
-              {tasks.length} task{tasks.length > 1 && "s"}
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
+const MonthView = ({ selectedDate, onSelect }) => {
+    const start = dayjs().startOf("month")
+    const days = Array.from(
+        { length: start.daysInMonth() },
+        (_, i) => start.add(i, "day")
+    )
+
+    const today = dayjs().format("YYYY-MM-DD")
+
+    return (
+        <div className="grid grid-cols-7 gap-2 text-sm">
+            {days.map((day) => {
+                const date = day.format("YYYY-MM-DD")
+
+                const isToday = date === today
+                const isSelected = date === selectedDate
+
+                return (
+                    <div
+                        key={date}
+                        onClick={() => onSelect(date)}
+                        className={`
+              p-2 rounded cursor-pointer text-center border transition
+              ${isSelected ? "bg-black text-white dark:bg-black dark:text-white" : ""}
+                ${isToday && !isSelected ? "ring-2 " : ""}
+                  style={{
+    ringColor: "var(--ring)",
+  }}
+
+              ${!isSelected ? "hover:bg-gray-700 dark:hover:bg-gray-500" : ""}
+            `}
+          >
+                { day.format("D") }
+          </div>
+    )
+})}
+    </div >
   )
 }
+
+export default MonthView
