@@ -47,7 +47,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
    LOGIN
 ========================= */
 export const login = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, remember } = req.body;
 
     if (!email || !password) {
         throw new ApiError(400, "Email and password are required");
@@ -60,19 +60,23 @@ export const login = asyncHandler(async (req, res) => {
         req.ip
     );
 
-    res.cookie("accessToken", result.accessToken, {
+    const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+        sameSite: "lax",
+    };
+
+    if (remember === true) {
+        cookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+    }
+
+    res.cookie("accessToken", result.accessToken, cookieOptions);
 
     res.status(200).json({
         success: true,
         message: "Authentication successful",
         data: {
-            user: result.user,
-            refreshToken: result.refreshToken // Keeping refresh token in body for now as per minimal change scope, unless user wants strict cookie-only. User instruction focused on accessToken.
+            user: result.user
         },
     });
 });
@@ -88,7 +92,7 @@ export const logout = asyncHandler(async (req, res) => {
     res.clearCookie("accessToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
     });
 
     res.status(200).json({
@@ -195,7 +199,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
     res.cookie("accessToken", result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -216,7 +220,7 @@ export const logoutAll = asyncHandler(async (req, res) => {
     res.clearCookie("accessToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
     });
 
     res.status(200).json({

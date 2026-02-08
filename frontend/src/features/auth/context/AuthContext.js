@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
         const checkAuth = async () => {
             try {
                 const data = await authActions.fetchCurrentUser()
-                setUser(data.user)
+                setUser(data.data)
             } catch (error) {
                 setUser(null)
             } finally {
@@ -24,9 +24,9 @@ export const AuthProvider = ({ children }) => {
         checkAuth()
     }, [])
 
-    const login = async (email, password) => {
-        const response = await authActions.loginUser(email, password)
-        const { user } = response.data.data
+    const login = async (email, password, remember) => {
+        const response = await authActions.loginUser(email, password, remember)
+        const { user } = response.data
 
         setUser(user)
         return user

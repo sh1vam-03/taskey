@@ -13,6 +13,7 @@ export default function LoginForm() {
     const [showPassword, setShowPassword] = useState(false)
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [remember, setRemember] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
 
@@ -30,7 +31,7 @@ export default function LoginForm() {
 
         try {
             setLoading(true)
-            await login(email, password)
+            await login(email, password, remember)
             router.push("/dashboard")
         } catch (err) {
             setError(err.message || "Login failed")
@@ -93,8 +94,13 @@ export default function LoginForm() {
 
                     {/* Remember + Forgot */}
                     <div className="flex justify-between items-center text-sm">
-                        <label className="flex items-center gap-2 cursor-pointer text-gray-400 font-mono text-xs">
-                            <input type="checkbox" className="accent-cyan-500 bg-zinc-950 border-white/10" />
+                        <label className="flex items-center gap-2 cursor-pointer text-gray-400 font-mono text-xs hover:text-white transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={remember}
+                                onChange={(e) => setRemember(e.target.checked)}
+                                className="accent-cyan-500 bg-zinc-950 border-white/10 w-4 h-4 cursor-pointer"
+                            />
                             REMEMBER_SESSION
                         </label>
                         <Link href="/forgot-password" className="hover:text-cyan-400 transition-colors font-mono text-xs uppercase tracking-wider">

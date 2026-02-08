@@ -138,11 +138,14 @@ model User {
   payments             Payment[]
 
   // AI
+  aiMessages   AiMessage[]
+  creditLedger AiCreditLedger[]
+
+  // Security
+  tokenVersion    Int              @default(1)
+  aiConversations AiConversation[]
   aiUsages        AiUsage[]
   aiTopUps        AiTopUp[]
-  aiConversations AiConversation[]
-  aiMessages      AiMessage[]
-  creditLedger    AiCreditLedger[]
 
   @@index([email])
   @@index([status])

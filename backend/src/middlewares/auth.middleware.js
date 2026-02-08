@@ -4,51 +4,36 @@ import { AccountStatus } from "@prisma/client";
 
 const authMiddleware = async (req, res, next) => {
     try {
-        const token =
-            req.cookies?.accessToken ||
-            req.headers.authorization?.split(" ")[1];
+        const token = req.cookies?.accessToken;
 
         if (!token) {
-            return res.status(401).json({ message: "Unauthorized" });
+            return res.status(401).json({ message: "Unauthorized access" });
         }
 
         // 1️⃣ Verify JWT
         const decoded = verifyAccessToken(token);
 
-        // 2️⃣ Validate session
-        const session = await prisma.session.findFirst({
-            where: {
-                accessTokenJti: decoded.jti,
-                revokedAt: null,
-                expiresAt: {
-                    gt: new Date(),
-                },
-            },
-            include: {
-                user: true,
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                status: true,
+                tokenVersion: true
             },
         });
 
-        if (!session) {
-            return res.status(401).json({ message: "Session expired" });
+        if (!user || user.status !== "ACTIVE") {
+            return res.status(403).json({ message: "Account disabled or not found" });
         }
 
-        // 3️⃣ Check account status
-        if (session.user.status !== AccountStatus.ACTIVE) {
-            return res.status(403).json({ message: "Account not active" });
+        if (decoded.tokenVersion !== user.tokenVersion) {
+            return res.status(401).json({ message: "Session expired (Logged out from another device)" });
         }
 
-        // 4️⃣ Attach safe user
-        req.user = {
-            id: session.user.id,
-            email: session.user.email,
-            role: session.user.role,
-            plan: session.user.plan,
-        };
-
-        // Needed for logout
-        req.sessionId = session.id;
-
+        req.user = user;
         next();
     } catch (error) {
         return res.status(401).json({ message: "Invalid or expired token" });

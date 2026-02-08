@@ -125,11 +125,13 @@ export const login = async (email, password, userAgent, ipAddress) => {
 
     const accessToken = signAccessToken({
         userId: user.id,
+        tokenVersion: user.tokenVersion,
         jti,
     });
 
     const refreshToken = signRefreshToken({
         userId: user.id,
+        tokenVersion: user.tokenVersion,
         jti,
     });
 
@@ -260,10 +262,14 @@ export const resetPassword = async (email, otp, password) => {
 
     const hashedPassword = await hashPassword(password);
 
+    // Bumps token version to invalidate all sessions on password reset (Security practice)
     await prisma.$transaction([
         prisma.user.update({
             where: { id: user.id },
-            data: { password: hashedPassword },
+            data: {
+                password: hashedPassword,
+                tokenVersion: { increment: 1 }
+            },
         }),
         prisma.otp.update({
             where: { id: otpRecord.id },
@@ -347,16 +353,23 @@ export const refreshToken = async (refreshToken) => {
         throw new ApiError(401, "Session expired");
     }
 
+    // Check token version
+    if (decoded.tokenVersion !== session.user.tokenVersion) {
+        throw new ApiError(401, "Token revoked");
+    }
+
     // Rotate session (VERY IMPORTANT)
     const newJti = generateJti();
 
     const newAccessToken = signAccessToken({
         userId: session.userId,
+        tokenVersion: session.user.tokenVersion,
         jti: newJti,
     });
 
     const newRefreshToken = signRefreshToken({
         userId: session.userId,
+        tokenVersion: session.user.tokenVersion,
         jti: newJti,
     });
 
@@ -393,6 +406,12 @@ export const refreshToken = async (refreshToken) => {
    LOGOUT ALL SESSIONS
 ========================= */
 export const logoutAll = async (userId) => {
+    // Increment token version to invalidate all JWTs
+    await prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } }
+    });
+
     await prisma.session.updateMany({
         where: {
             userId,
