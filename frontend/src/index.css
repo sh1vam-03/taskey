@@ -187,3 +187,23 @@ body {
   font-size: 0.75rem;
   color: var(--text);
 }
+
+/* Calendar view transitions */
+.view-transition {
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.view-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.view-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.view-exit {
+  opacity: 0;
+  transform: translateY(-6px);
+}
