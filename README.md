@@ -1,4 +1,4 @@
-# taskey
+# blacktime
 
 <div align="center">
   <h3>Personal Productivity, Task Scheduling & Behavior Tracking Platform</h3>
@@ -29,7 +29,7 @@
 
 ## 🎯 Overview
 
-**taskey** is a personal productivity and life-management platform that helps users:
+**blacktime** is a personal productivity and life-management platform that helps users:
 
 ### Key Capabilities
 
@@ -38,7 +38,7 @@
 - track habits and behavior patterns
 - reflect on productivity and well-being
 
-Unlike generic to-do apps, Taskey focuses on **time-based planning**, **routine repetition**, and **behavior tracking**,making it ideal for **students**, **self-learners**, and **professionals** who want to improve consistency and discipline.
+Unlike generic to-do apps, Blacktime focuses on **time-based planning**, **routine repetition**, and **behavior tracking**,making it ideal for **students**, **self-learners**, and **professionals** who want to improve consistency and discipline.
 
 This project is also built as a real-world backend-heavy portfolio project, following industry practices in authentication, database design, and API architecture.
 
@@ -66,7 +66,7 @@ For detailed technical specifications, please refer to our internal documentatio
 
 ## 👥 Team
 
-Tasky is a collaborative, real-world project developed by a small team of student developers. The focus is on **clean backend architecture, practical frontend development, API design, testing, and documentation**, aligned with internship and entry-level industry expectations.
+Blacktime is a collaborative, real-world project developed by a small team of student developers. The focus is on **clean backend architecture, practical frontend development, API design, testing, and documentation**, aligned with internship and entry-level industry expectations.
 
 ---
 
@@ -200,7 +200,7 @@ Feel free to reach out through GitHub or LinkedIn.
 
 ```
 
-taskey/
+blacktime/
 ├── frontend/ # Next.js frontend application
 │ ├── components/ # Reusable React components
 │ ├── pages/ # Next.js pages and routing
@@ -342,8 +342,8 @@ taskey/
 
 2. **Clone your fork**
 ```
-git clone https://github.com/sh1vam-03/taskey.git
-cd taskey
+git clone https://github.com/sh1vam-03/blacktime.git
+cd blacktime
 ```
 
 
@@ -384,7 +384,7 @@ git push origin feature/amazing-feature
 
 ### Reporting Issues
 
-Found a bug or have a suggestion? [Open an issue](https://github.com/sh1vam/taskey/issues) with:
+Found a bug or have a suggestion? [Open an issue](https://github.com/sh1vam/blacktime/issues) with:
 - Clear title and description
 - Steps to reproduce (for bugs)
 - Expected vs actual behavior
@@ -501,8 +501,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ### Getting Help
 
 - 📖 **Documentation:** Check the `/docs` folder for detailed guides
-- 🐛 **Bug Reports:** [Open an issue](https://github.com/sh1vam-03/taskey/issues)
-- 💡 **Feature Requests:** [Start a discussion](https://github.com/sh1vam-03/taskey/discussions)
+- 🐛 **Bug Reports:** [Open an issue](https://github.com/sh1vam-03/blacktime/issues)
+- 💡 **Feature Requests:** [Start a discussion](https://github.com/sh1vam-03/blacktime/discussions)
 - 👥 **Team Contact:** Reach out to any team member via their social links above
 
 ### Show Your Support
@@ -525,7 +525,7 @@ Special thanks to:
 ---
 
 <div align="center">
-<p><strong>Built with ❤️ by the taskey Team</strong></p>
+<p><strong>Built with ❤️ by the blacktime Team</strong></p>
 <p>Making productivity simple and accessible for everyone</p>
 
 <br>
