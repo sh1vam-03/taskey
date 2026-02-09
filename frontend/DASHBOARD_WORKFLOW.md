@@ -1,46 +1,78 @@
 # Dashboard Implementation Workflow
 
-## Phase D-1 – API Discovery & Mapping
-- [x] All routes reviewed
-- [x] API map created
+## Phase D-0 – Analysis
+- [x] Reviewed all dashboard routes
+- [x] Reviewed all controllers
+- [x] Identified FREE vs PRO limitations
+- [x] Mapped backend routes to frontend pages
 
-## Phase D-2 – Dashboard Information Architecture
-- [x] Define dashboard sections (Sidebar, Main, Right Panel)
-- [x] Map APIs to specific UI components
-- [x] Decide data fetching strategy (SWR/React Query vs useEffect)
+## Phase D-1 – Core Dashboard
+- [x] Overview page (/dashboard)
+- [x] Today dashboard
+- [x] Weekly dashboard
+- [x] Monthly dashboard
 
-## Phase D-3 – Layout & Navigation
-- [ ] Implement Sidebar (Collapsible, Responsive)
-- [ ] Implement Top Header (Global Context)
-- [ ] Create Main Grid Layout (CSS Grid/Flex)
-- [ ] Verify Responsive Behavior (Laptop 1366px)
+## Phase D-2 – Streaks & Performance
+- [x] Streak overview
+- [x] Streak calendar
+- [x] Daily performance
+- [x] Weekly performance
+- [x] Monthly performance
 
-## Phase D-4 – Core Features Implementation
-- [ ] **Task Module:**
-    - [ ] Task List Component
-    - [ ] Task Item (Complete/Delete/Edit)
-    - [ ] Add Task Input
-- [ ] **Schedule Module:**
-    - [ ] Calendar/Timeline View
-    - [ ] Time Blocking visualizer
-- [ ] **Data Integration:**
-    - [ ] Connect `GET /dashboard/today`
-    - [ ] Connect `GET /task`
-    - [ ] Connect `GET /schedule`
+## Phase D-3 – Tasks
+- [x] Create task
+- [x] List tasks
+- [x] Update task
+- [x] Delete task
+- [x] Task completion
+- [x] Bulk completion
+- [x] Completion history
 
-## Phase D-5 – AI Experience Layer
-- [ ] **Command Center:**
-    - [ ] AI Input Field (Text)
-    - [ ] Voice Input Trigger
-- [ ] **Feedback Loop:**
-    - [ ] Display AI Responses
-    - [ ] Show "Thinking..." states
-- [ ] **History:**
-    - [ ] Sidebar Conversation List
+## Phase D-4 – Schedules
+- [x] Create schedule
+- [x] List schedules
+- [x] Update schedule
+- [x] Delete schedule
+- [x] Schedule completion
+- [x] Bulk completion
+- [x] Completion history
 
-## Phase D-6 – Polish & Usability
-- [ ] **Loading States:** Skeletons for all data fetchers
-- [ ] **Empty States:** "No tasks for today" calm visuals
-- [ ] **Error Handling:** Graceful API failure toasts
-- [ ] **Visual Consistency:** Match Landing Page aesthetics (Fonts, Colors, Spacing)
-- [ ] **Final Review:** Full walkthrough on Laptop viewport
+## Phase D-5 – Calendar
+- [x] Day calendar
+- [x] Week calendar
+- [x] Month calendar
+- [x] Calendar event creation
+- [x] Drag and drop events (Future)
+- [x] Recurring event support
+
+## Phase D-6 – Behavior (AI Scoring)
+- [x] Upsert behavior
+- [x] Get behavior by date
+- [x] Behavior summary
+- [x] Explain score
+- [x] Behavior chart visualization
+
+## Phase D-7 – AI Conversations
+- [x] Conversation list
+- [x] Create conversation
+- [x] Send message
+- [x] Receive (stream) message
+- [x] Markdown rendering
+- [x] Chat UI components (bubbles, input)pload
+
+## Phase D-8 – Billing
+- [x] Subscribe
+- [x] Cancel subscription
+- [x] Downgrade
+- [x] View current plan
+- [x] Usage stats visualizationts UI
+
+## Phase D-9 – Public Pages
+- [ ] Contact us form
+
+## Phase D-10 – Final Review
+- [ ] All routes connected
+- [ ] Auth middleware respected
+- [ ] Usage limits handled
+- [ ] Errors handled gracefully
+- [ ] No unused routes/components

@@ -26,4 +26,11 @@ router.post(
     billingController.downgradePlan
 );
 
+router.get(
+    "/current",
+    authMiddleware,
+    requireRole("USER"),
+    billingController.getCurrentSubscription
+);
+
 export default router;

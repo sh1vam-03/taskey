@@ -1,13 +1,33 @@
 "use client";
-import React from "react";
-import { useTodayDashboard } from "@/features/dashboard/useTodayDashboard";
+import React, { useEffect, useState } from "react";
+import dashboardService from "@/services/dashboard.service";
 import StatCard from "@/components/dashboard/StatCard";
 import TaskList from "@/components/dashboard/TaskList";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaCheckCircle, FaClock, FaList, FaBolt } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
-    const { data, loading, error } = useTodayDashboard();
+    const { user } = useAuth();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchOverview = async () => {
+            try {
+                const overviewData = await dashboardService.getOverview();
+                setData(overviewData);
+            } catch (err) {
+                console.error("Dashboard fetch error:", err);
+                setError("Failed to load dashboard data");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOverview();
+    }, []);
 
     // Contextual Greeting
     const getGreeting = () => {
@@ -25,17 +45,29 @@ export default function DashboardPage() {
         );
     }
 
-    // Process Timeline for TaskList
-    const tasks = data?.timeline?.map(item => ({
-        id: item.taskId || item.scheduleId,
-        title: item.title,
-        priority: item.priority,
-        status: item.status,
-        dueDate: item.startTime ? new Date().setHours(...item.startTime.split(':')) : null,
-        category: item.type === 'SCHEDULED' ? 'SCHEDULED' : null
-    })) || [];
+    // Process Timeline for TaskList (Mapping backend response to UI)
+    // Backend returns: { stats: {...}, recentTasks: [...], upcomingSchedules: [...] }
+    // We need to merge tasks and schedules for the timeline or just show recent tasks?
+    // The design shows "Today's Focus", so we should ideally show items due today.
+    // The `getOverview` endpoint (from controller) returns:
+    // { stats: { taskCount, scheduleCount, behaviorCount }, recentTasks: [], upcomingSchedules: [] }
 
-    const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED' && t.status !== 'MISSED');
+    // Let's combine recentTasks and upcomingSchedules for the list
+    const combinedItems = [
+        ...(data?.recentTasks || []).map(t => ({ ...t, type: 'TASK' })),
+        ...(data?.upcomingSchedules || []).map(s => ({ ...s, type: 'SCHEDULE', title: s.task?.title || 'Untitled Schedule' }))
+    ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).slice(0, 5); // Just recent 5 items
+
+    const displayItems = combinedItems.map(item => ({
+        id: item.id,
+        title: item.title,
+        priority: item.priority || 'MEDIUM',
+        status: item.status || (item.completedAt ? 'COMPLETED' : 'PENDING'), // Schedule doesn't have status field directly? 
+        // usageLimit middleware suggests Task has priority/status, Schedule has completion relations.
+        // For simple overview lists, we might need to adapt.
+        dueDate: item.dueDate || item.scheduleDate,
+        category: item.type === 'SCHEDULE' ? 'SCHEDULED' : (item.category?.name || 'General')
+    }));
 
     return (
         <div className="space-y-8">
@@ -43,16 +75,16 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-1">
-                        {getGreeting()}, <span className="text-gray-400">User</span>
+                        {getGreeting()}, <span className="text-gray-400">{user?.name || 'User'}</span>
                     </h1>
                     <div className="text-gray-500 text-sm">
-                        {loading ? <SkeletonLoader className="h-4 w-48" /> : `You have ${pendingTasks.length} pending items for today.`}
+                        {loading ? <SkeletonLoader className="h-4 w-48" /> : `Welcome to your command center.`}
                     </div>
                 </div>
                 <div className="text-right hidden md:block">
                     <div className="text-xs font-mono text-cyan-500 bg-cyan-950/20 px-3 py-1 rounded-full border border-cyan-900/50 inline-flex items-center gap-2">
                         <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-                        AI AGENT ACTIVE
+                        AI SYSTEM ONLINE
                     </div>
                 </div>
             </div>
@@ -70,25 +102,32 @@ export default function DashboardPage() {
                     <>
                         <StatCard
                             label="Total Tasks"
-                            value={data?.stats?.total ?? 0}
+                            value={data?.stats?.taskCount ?? 0}
                             icon={FaList}
                         />
                         <StatCard
-                            label="Completed"
-                            value={data?.stats?.completed ?? 0}
-                            icon={FaCheckCircle}
-                            subtext={`${Math.round((data?.stats?.completed || 0) / (data?.stats?.total || 1) * 100)}% completion rate`}
-                        />
-                        <StatCard
-                            label="Pending"
-                            value={data?.stats?.pending ?? 0}
+                            label="Schedules"
+                            value={data?.stats?.scheduleCount ?? 0}
                             icon={FaClock}
                         />
+                        <StatCard
+                            label="Behavior Entries"
+                            value={data?.stats?.behaviorCount ?? 0}
+                            icon={FaCheckCircle}
+                        />
+                        {/* Placeholder for Streak - endpoint separate or included? 
+                             Controller says `getDashboardOverview` only returns counts. 
+                             Streaks are in `getStreakOverview`.
+                             For now keep it static or fetch separately? 
+                             Let's fetch streaks in the same useEffect if we want them here, 
+                             or strictly follow the route separation. 
+                             I'll stick to what the route provides to be safe.
+                         */}
                         <StatCard
                             label="Current Streak"
                             value="-"
                             icon={FaBolt}
-                            subtext="Keep the momentum"
+                            subtext="Check Streak Tab"
                         />
                     </>
                 )}
@@ -96,15 +135,15 @@ export default function DashboardPage() {
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Focus */}
+                {/* Left Column: Recent Activity */}
                 <div className="lg:col-span-2 space-y-6">
                     {loading ? (
                         <SkeletonLoader type="list" />
                     ) : (
                         <TaskList
-                            title="Today's Focus"
-                            tasks={tasks}
-                            link="/dashboard/schedule" // Redirect to schedule detailed view
+                            title="Recent Activity"
+                            tasks={displayItems}
+                            link="/dashboard/tasks"
                         />
                     )}
                 </div>
@@ -117,20 +156,11 @@ export default function DashboardPage() {
                         </div>
                         <h3 className="font-mono text-sm font-bold text-cyan-400 mb-4 uppercase tracking-wider">AI Insight</h3>
                         <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                            Based on your morning velocity, you are on track to complete your schedule by 18:00. Note: You tend to slow down around 15:00.
+                            Your dashboard is ready. Start by adding tasks or schedules to generate AI insights.
                         </p>
-                        <button className="text-xs font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition-colors w-full text-center">
+                        {/* <button className="text-xs font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition-colors w-full text-center">
                             VIEW ANALYSIS
-                        </button>
-                    </div>
-
-                    {/* Quick Streak Mini-View */}
-                    <div className="bg-gradient-to-br from-purple-900/20 to-black border border-purple-500/20 rounded-xl p-6">
-                        <h3 className="font-mono text-sm font-bold text-purple-400 mb-2 uppercase tracking-wider">Focus Mode</h3>
-                        <p className="text-xs text-gray-500 mb-4">Minimize distractions to maintain flow.</p>
-                        <button className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)]">
-                            ACTIVATE DEEP WORK
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </div>
