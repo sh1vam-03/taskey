@@ -54,7 +54,7 @@ export default function LoginForm() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     {/* Email */}
-                    <div>
+                    <div suppressHydrationWarning>
                         <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase">
                             User_ID / Email
                         </label>
@@ -68,7 +68,7 @@ export default function LoginForm() {
                     </div>
 
                     {/* Password */}
-                    <div>
+                    <div suppressHydrationWarning>
                         <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase">
                             Passcode
                         </label>
