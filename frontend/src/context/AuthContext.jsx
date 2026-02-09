@@ -17,8 +17,17 @@ export const AuthProvider = ({ children }) => {
 
     const checkSession = async () => {
         try {
+            // getMe uses api.get('/auth/me'); which sends cookies automatically
             const data = await authService.getMe();
-            setUser(data);
+            // Expected response: { success: true, user: {...} } or similar?
+            // backend/src/controllers/auth.controller.js: getMyProfile -> res.json({ success: true, data: profile })
+            // frontend/src/services/auth.service.js: getMe -> return response.data
+            // So data here is { success: true, data: profile }
+            if (data.success) {
+                setUser(data.data);
+            } else {
+                setUser(null);
+            }
         } catch (error) {
             setUser(null);
         } finally {

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
@@ -16,6 +16,13 @@ export default function LoginForm() {
     const [remember, setRemember] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
+
+    // Hydration fix: only render inputs after mount
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -54,17 +61,22 @@ export default function LoginForm() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     {/* Email */}
+                    {/* Email */}
                     <div className="group">
                         <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase group-focus-within:text-cyan-400 transition-colors">
                             User_ID / Email
                         </label>
-                        <div suppressHydrationWarning className="relative">
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
-                            />
+                        <div className="relative">
+                            {isMounted ? (
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
+                                />
+                            ) : (
+                                <div className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm rounded-sm h-[46px]" />
+                            )}
                         </div>
                     </div>
 
@@ -73,13 +85,17 @@ export default function LoginForm() {
                         <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase group-focus-within:text-cyan-400 transition-colors">
                             Passcode
                         </label>
-                        <div className="flex items-stretch gap-3" suppressHydrationWarning>
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="bg-zinc-950 border border-white/10 flex-grow px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
-                            />
+                        <div className="flex items-stretch gap-3">
+                            {isMounted ? (
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="bg-zinc-950 border border-white/10 grow px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
+                                />
+                            ) : (
+                                <div className="bg-zinc-950 border border-white/10 flex-grow px-4 py-3 text-sm rounded-sm h-[46px]" />
+                            )}
                             <Button
                                 type="button"
                                 variant="ghost"
