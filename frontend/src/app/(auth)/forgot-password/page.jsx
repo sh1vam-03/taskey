@@ -19,8 +19,8 @@ export default function ForgotPassword() {
 
         try {
             setLoading(true)
-            await authService.forgotPassword(email)
-            setMessage("If an account exists, a reset link has been sent.")
+            const data = await authService.forgotPassword(email)
+            setMessage(data.message)
         } catch (err) {
             setError(err.message || "Something went wrong")
         } finally {

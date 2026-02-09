@@ -53,7 +53,6 @@ export const sendOtpEmail = async ({ to, otp }) => {
  */
 export const sendPasswordResetEmail = async ({ to, resetLink }) => {
     try {
-        console.log("--> Sending Reset Email to:", to, "Link:", resetLink);
         const { data, error } = await resend.emails.send({
             from: emailFrom,
             to,
@@ -78,7 +77,6 @@ export const sendPasswordResetEmail = async ({ to, resetLink }) => {
             throw new ApiError(500, "Failed to send password reset email");
         }
 
-        console.log("--> Resend API Success:", data);
         return { success: true, data };
     } catch (error) {
         console.error("Email Service Error (sendPasswordResetEmail):", error);
