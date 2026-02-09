@@ -190,6 +190,8 @@ model Session {
   userAgent String?
   ipAddress String?
 
+  isPersistent Boolean @default(false)
+
   createdAt DateTime  @default(now())
   expiresAt DateTime
   revokedAt DateTime?

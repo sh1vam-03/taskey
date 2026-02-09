@@ -49,5 +49,27 @@
 3.  Fixed `refreshToken` endpoint to NOT expose token in response body.
 4.  Implemented missing auto-refresh interceptor in Frontend.
 
+## Final Hardening Fixes
+- [x] **Refresh Token Source**: Read from `req.cookies.refreshToken` ONLY (Body/Header ignored)
+- [x] **Session Persistence**: 
+    - `isPersistent` flag added to Session schema.
+    - Login sets flag based on "Remember Me".
+    - Refresh preserves flag from original session.
+    - MaxAge set dynamically: Session Cookie (if not persistent) vs 21 Days (if persistent).
+- [x] **Logout Security**:
+    - Clears `accessToken` cookie.
+    - Clears `refreshToken` cookie (root path + `/auth/refresh` path).
+- [x] **Frontend Security**:
+    - Verified axios interceptor does not store tokens.
+
+## Phase FA-10 – Environment & Cookie Configuration Lock
+
+- [x] **Token TTLs**: Controlled by `JWT_ACCESS_EXPIRES_IN` and `JWT_REFRESH_EXPIRES_IN`.
+- [x] **Cookie Lifetimes**: Controlled by `ACCESS_COOKIE_MAX_AGE` and `REFRESH_COOKIE_PERSISTENT_MAX_AGE`.
+- [x] **No Magic Numbers**: `auth.controller.js` uses constants derived from env.
+- [x] **Persistence Preserved**: `isPersistent` logic remains unchanged.
+- [x] **Cookie-Only Refresh**: Enforced.
+- [x] **Logout**: Clears all auth cookies.
+
 ## Status
-**PRODUCTION READY**
+**LOCKED & PRODUCTION READY**

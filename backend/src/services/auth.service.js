@@ -106,7 +106,7 @@ export const verifyOtp = async (email, otpCode) => {
 /* =========================
    LOGIN
 ========================= */
-export const login = async (email, password, userAgent, ipAddress) => {
+export const login = async (email, password, userAgent, ipAddress, remember = false) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
@@ -158,7 +158,8 @@ export const login = async (email, password, userAgent, ipAddress) => {
             refreshTokenHash,
             userAgent,
             ipAddress,
-            expiresAt: addDays(new Date(), 21), // Fixed 21 days to match Refresh Token Env
+            expiresAt: addDays(new Date(), 21), // Fixed 21 days
+            isPersistent: remember,
             userId: user.id,
         },
     });
@@ -431,7 +432,8 @@ export const refreshToken = async (refreshToken) => {
                 refreshTokenHash: newRefreshTokenHash,
                 userAgent: session.userAgent,
                 ipAddress: session.ipAddress,
-                expiresAt: addDays(new Date(), 21), // Fixed 21 days to match Refresh Token Env
+                expiresAt: addDays(new Date(), 21),
+                isPersistent: session.isPersistent, // Persist "Remember Me"
                 userId: session.userId,
             },
         }),
@@ -440,6 +442,7 @@ export const refreshToken = async (refreshToken) => {
     return {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
+        isPersistent: session.isPersistent,
     };
 };
 

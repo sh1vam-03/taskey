@@ -2,6 +2,15 @@ import * as authService from "../services/auth.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 
+// =========================
+// CONFIGURATION LIBRARIES
+// =========================
+const ACCESS_COOKIE_MAX_AGE = Number(process.env.ACCESS_COOKIE_MAX_AGE) || 15 * 60 * 1000; // 15m default
+const REFRESH_COOKIE_PERSISTENT_MAX_AGE = Number(process.env.REFRESH_COOKIE_PERSISTENT_MAX_AGE) || 21 * 24 * 60 * 60 * 1000; // 21d default
+
+const COOKIE_SECURE = process.env.NODE_ENV === "production"; // Default strict rule
+const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE || "strict"; // Default strict rule
+
 /* =========================
    SIGNUP
 ========================= */
@@ -57,34 +66,31 @@ export const login = asyncHandler(async (req, res) => {
         email,
         password,
         req.headers["user-agent"],
-        req.ip
+        req.ip,
+        remember // Pass remember flag
     );
 
-    // 1. Access Token Cookie (Always short-lived / session)
-    // We set it to 15 mins to match JWT expiry, or session (clears on close) if not remember? 
-    // User said: "Access token always short-lived (15m)". 
-    // User said: "Remember Me controls refresh cookie".
-    // So Access Token cookie should probably be session or fixed short time. 
-    // Let's set it to valid for 15m.
+    // 1. Access Token Cookie (Always short-lived)
     res.cookie("accessToken", result.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 15 * 60 * 1000, // 15 minutes
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+        maxAge: ACCESS_COOKIE_MAX_AGE,
     });
 
     // 2. Refresh Token Cookie (Controls Persistence)
     const refreshTokenOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/auth/refresh", // Optional: restrict to refresh endpoint if possible, but for now root is fine/safer against path confusion
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+        path: "/auth/refresh",
     };
 
-    if (remember) {
-        refreshTokenOptions.maxAge = 21 * 24 * 60 * 60 * 1000; // 21 Days
+    if (result.isPersistent) {
+        refreshTokenOptions.maxAge = REFRESH_COOKIE_PERSISTENT_MAX_AGE;
     }
-    // If not remember, no maxAge -> Session Cookie (clears on browser close)
+
+    // If not remember, no maxAge -> Session Cookie
 
     res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
 
@@ -105,11 +111,16 @@ export const logout = asyncHandler(async (req, res) => {
         await authService.logout(req.sessionId);
     }
 
-    res.clearCookie("accessToken", {
+    const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-    });
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/auth/refresh" });
+    // Also clear root path just in case
+    res.clearCookie("refreshToken", cookieOptions);
 
     res.status(200).json({
         success: true,
@@ -197,37 +208,41 @@ export const getMyProfile = asyncHandler(async (req, res) => {
 });
 
 
-/* =========================
-   REFRESH TOKEN
-========================= */
+// =========================
+// REFRESH TOKEN
+// =========================
 export const refreshToken = asyncHandler(async (req, res) => {
-    const { refreshToken } = req.body;
+    // 1. Read from Cookie ONLY
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-        throw new ApiError(400, "Refresh token is required");
+        throw new ApiError(401, "Refresh token required");
     }
 
     const result = await authService.refreshToken(refreshToken);
 
-    // 1. Set Access Token Cookie (15 min)
+    // 1. Set Access Token Cookie
     res.cookie("accessToken", result.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 15 * 60 * 1000, // 15 minutes
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+        maxAge: ACCESS_COOKIE_MAX_AGE,
     });
 
-    // 2. Set New Refresh Token Cookie (21 Days)
-    // We assume if they are refreshing, they want to stay logged in (persistence)
-    // Or we should check if the old session had a long expiry? 
-    // For now, let's stick to the 21 day env config for consistency in rotation.
-    res.cookie("refreshToken", result.refreshToken, {
+    // 2. Set New Refresh Token Cookie
+    const refreshTokenOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
         path: "/auth/refresh",
-        maxAge: 21 * 24 * 60 * 60 * 1000, // 21 Days
-    });
+    };
+
+    // If persistent, set maxAge. If not, session cookie.
+    if (result.isPersistent) {
+        refreshTokenOptions.maxAge = REFRESH_COOKIE_PERSISTENT_MAX_AGE;
+    }
+
+    res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
 
     res.status(200).json({
         success: true,
@@ -241,11 +256,16 @@ export const refreshToken = asyncHandler(async (req, res) => {
 export const logoutAll = asyncHandler(async (req, res) => {
     await authService.logoutAll(req.user.id);
 
-    res.clearCookie("accessToken", {
+    const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-    });
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/auth/refresh" });
+    // Also clear root path just in case
+    res.clearCookie("refreshToken", cookieOptions);
 
     res.status(200).json({
         success: true,
