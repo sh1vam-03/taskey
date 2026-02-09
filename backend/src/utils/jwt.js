@@ -9,7 +9,7 @@ export const generateJti = () => crypto.randomUUID();
 // =======================
 // ACCESS TOKEN
 // =======================
-export const signAccessToken = ({ userId, tokenVersion, jti, expiresIn }) => {
+export const signAccessToken = ({ userId, tokenVersion, jti }) => {
     if (!userId || !jti || !tokenVersion) {
         throw new Error("userId, tokenVersion, and jti are required to sign access token");
     }
@@ -18,7 +18,7 @@ export const signAccessToken = ({ userId, tokenVersion, jti, expiresIn }) => {
         { userId, tokenVersion, jti },
         process.env.JWT_ACCESS_SECRET,
         {
-            expiresIn: expiresIn || process.env.JWT_ACCESS_EXPIRES_IN,
+            expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
         }
     );
 };

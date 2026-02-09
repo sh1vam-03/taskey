@@ -54,30 +54,30 @@ export default function LoginForm() {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     {/* Email */}
-                    <div suppressHydrationWarning>
-                        <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase">
+                    <div className="group">
+                        <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase group-focus-within:text-cyan-400 transition-colors">
                             User_ID / Email
                         </label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            suppressHydrationWarning
-                            className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
-                        />
+                        <div suppressHydrationWarning className="relative">
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="bg-zinc-950 border border-white/10 w-full px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
+                            />
+                        </div>
                     </div>
 
                     {/* Password */}
-                    <div suppressHydrationWarning>
-                        <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase">
+                    <div className="group">
+                        <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase group-focus-within:text-cyan-400 transition-colors">
                             Passcode
                         </label>
-                        <div className="flex items-stretch gap-3">
+                        <div className="flex items-stretch gap-3" suppressHydrationWarning>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                suppressHydrationWarning
                                 className="bg-zinc-950 border border-white/10 flex-grow px-4 py-3 text-sm rounded-sm outline-none text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
                             />
                             <Button
