@@ -5,7 +5,8 @@ import {
     signRefreshToken,
     generateJti,
 } from "../utils/jwt.js";
-import { generateOtp } from "../utils/otp.js";
+import { generateOtp, hashOtp } from "../utils/otp.js";
+import { sendOtpEmail, sendPasswordResetEmail } from "./email.service.js"; // Import Email Service
 import { addMinutes, addDays } from "date-fns";
 import {
     OtpPurpose,
@@ -36,15 +37,23 @@ export const signup = async (name, email, password) => {
         },
     });
 
+    // Generate secure OTP
     const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
 
     await prisma.otp.create({
         data: {
-            code: otp,
+            code: hashedOtp, // Store Hashed OTP
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             expiresAt: addMinutes(new Date(), 10),
             userId: user.id,
         },
+    });
+
+    // Send via Email Service
+    await sendOtpEmail({
+        to: user.email,
+        otp: otp, // Send Plain OTP
     });
 
     return {
@@ -63,10 +72,13 @@ export const verifyOtp = async (email, otpCode) => {
 
     if (!user) throw new ApiError(404, "User not found");
 
+    // Hash the input OTP to compare with stored hash
+    const hashedInputOtp = hashOtp(otpCode);
+
     const otpRecord = await prisma.otp.findFirst({
         where: {
             userId: user.id,
-            code: otpCode,
+            code: hashedInputOtp, // Compare Hashed
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             isUsed: false,
             expiresAt: { gte: new Date() },
@@ -198,15 +210,21 @@ export const otpRequest = async (email) => {
         data: { isUsed: true },
     });
 
-    const otpCode = generateOtp();
+    const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
 
     await prisma.otp.create({
         data: {
-            code: otpCode,
+            code: hashedOtp, // Store Hashed
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             expiresAt: addMinutes(new Date(), 10),
             userId: user.id,
         },
+    });
+
+    await sendOtpEmail({
+        to: user.email,
+        otp: otp,
     });
 
     return { message: "OTP sent successfully" };
@@ -244,18 +262,14 @@ export const forgotPassword = async (email) => {
     });
 
     // Construct Reset URL (Frontend URL)
-    // In production, use env variable for frontend URL. Assuming localhost:3000 for verified env.
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Mock Email Sending (Log to console)
-    console.log(`
-    ============================================
-    PASSWORD RESET LINK (MOCK EMAIL SERVICE)
-    To: ${email}
-    Link: ${resetUrl}
-    ============================================
-    `);
+    // Send via Email Service
+    await sendPasswordResetEmail({
+        to: user.email,
+        resetLink,
+    });
 
     return { message: "If an account exists, a reset link has been sent." };
 };
