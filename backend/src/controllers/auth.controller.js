@@ -70,13 +70,19 @@ export const login = asyncHandler(async (req, res) => {
         remember // Pass remember flag
     );
 
-    // 1. Access Token Cookie (Always short-lived)
-    res.cookie("accessToken", result.accessToken, {
+    // 1. Access Token Cookie
+    const accessCookieOptions = {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
-        maxAge: ACCESS_COOKIE_MAX_AGE,
-    });
+    };
+
+    // Only set maxAge if persistent (Remember Me)
+    if (remember) {
+        accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
+    }
+
+    res.cookie("accessToken", result.accessToken, accessCookieOptions);
 
     // 2. Refresh Token Cookie (Controls Persistence)
     const refreshTokenOptions = {
@@ -222,12 +228,17 @@ export const refreshToken = asyncHandler(async (req, res) => {
     const result = await authService.refreshToken(refreshToken);
 
     // 1. Set Access Token Cookie
-    res.cookie("accessToken", result.accessToken, {
+    const accessCookieOptions = {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
-        maxAge: ACCESS_COOKIE_MAX_AGE,
-    });
+    };
+
+    if (result.isPersistent) {
+        accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
+    }
+
+    res.cookie("accessToken", result.accessToken, accessCookieOptions);
 
     // 2. Set New Refresh Token Cookie
     const refreshTokenOptions = {
