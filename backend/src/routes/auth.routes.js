@@ -8,7 +8,11 @@ router.post("/signup", authController.signup);
 router.post("/verify-otp", authController.verifyOtp);
 router.post("/login", authController.login);
 router.post("/otp-request", authController.otpRequest);
-router.post("/forgot-password", authController.forgotPasswordOtp);
+// ❌ Deprecated: OTP-based password reset (Replaced by email reset-link flow)
+// router.post("/forgot-password", authController.forgotPasswordOtp);
+// router.post("/reset-password", authController.resetPassword);
+
+router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 router.post("/logout", authMiddleware, authController.logout);
 router.delete("/me", authMiddleware, authController.deleteMyAccount);

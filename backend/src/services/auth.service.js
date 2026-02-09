@@ -213,69 +213,96 @@ export const otpRequest = async (email) => {
 };
 
 /* =========================
-   FORGOT PASSWORD OTP
+   FORGOT PASSWORD (LINK BASED)
 ========================= */
-export const forgotPasswordOtp = async (email) => {
+export const forgotPassword = async (email) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
 
-    if (!user) throw new ApiError(404, "User not found");
+    // Always return success to prevent email enumeration
+    if (!user) return { message: "If an account exists, a reset link has been sent." };
 
-    const otpCode = generateOtp();
+    // Generate random reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    await prisma.otp.create({
+    // Hash token for storage
+    const passwordResetToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    // Set expiry (15 minutes)
+    const passwordResetExpires = addMinutes(new Date(), 15);
+
+    await prisma.user.update({
+        where: { id: user.id },
         data: {
-            code: otpCode,
-            purpose: OtpPurpose.PASSWORD_RESET,
-            expiresAt: addMinutes(new Date(), 10),
-            userId: user.id,
+            passwordResetToken,
+            passwordResetExpires,
         },
     });
 
-    return { message: "OTP sent successfully" };
+    // Construct Reset URL (Frontend URL)
+    // In production, use env variable for frontend URL. Assuming localhost:3000 for verified env.
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    // Mock Email Sending (Log to console)
+    console.log(`
+    ============================================
+    PASSWORD RESET LINK (MOCK EMAIL SERVICE)
+    To: ${email}
+    Link: ${resetUrl}
+    ============================================
+    `);
+
+    return { message: "If an account exists, a reset link has been sent." };
 };
 
 /* =========================
    RESET PASSWORD
 ========================= */
-export const resetPassword = async (email, otp, password) => {
-    const user = await prisma.user.findUnique({
-        where: { email },
-    });
+/* =========================
+   RESET PASSWORD (LINK BASED)
+========================= */
+export const resetPassword = async (token, password) => {
+    // Hash the token from the URL to compare with DB
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
 
-    if (!user) throw new ApiError(404, "User not found");
-
-    const otpRecord = await prisma.otp.findFirst({
+    const user = await prisma.user.findFirst({
         where: {
-            userId: user.id,
-            code: otp,
-            purpose: OtpPurpose.PASSWORD_RESET,
-            isUsed: false,
-            expiresAt: { gte: new Date() },
+            passwordResetToken: hashedToken,
+            passwordResetExpires: { gt: new Date() }, // Check if not expired
         },
     });
 
-    if (!otpRecord) {
-        throw new ApiError(400, "Invalid or expired OTP");
+    if (!user) {
+        throw new ApiError(400, "Token is invalid or has expired");
     }
 
     const hashedPassword = await hashPassword(password);
 
     // Bumps token version to invalidate all sessions on password reset (Security practice)
-    await prisma.$transaction([
-        prisma.user.update({
-            where: { id: user.id },
-            data: {
-                password: hashedPassword,
-                tokenVersion: { increment: 1 }
-            },
-        }),
-        prisma.otp.update({
-            where: { id: otpRecord.id },
-            data: { isUsed: true },
-        }),
-    ]);
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            password: hashedPassword,
+            passwordResetToken: null, // Consume token (Single use)
+            passwordResetExpires: null,
+            tokenVersion: { increment: 1 } // Invalidate existing sessions
+        },
+    });
+
+    // Also revoke all active sessions explicitly if needed, but tokenVersion handles it for JWTs.
+    // For extra safety, we can revoke database sessions too.
+    await prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() }
+    });
 
     return { message: "Password reset successfully" };
 };

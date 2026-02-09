@@ -118,14 +118,14 @@ export const otpRequest = asyncHandler(async (req, res) => {
 });
 
 /* =========================
-   FORGOT PASSWORD
+   FORGOT PASSWORD (LINK)
 ========================= */
-export const forgotPasswordOtp = asyncHandler(async (req, res) => {
+export const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
     if (!email) throw new ApiError(400, "Email is required");
 
-    const result = await authService.forgotPasswordOtp(email);
+    const result = await authService.forgotPassword(email);
 
     res.status(200).json({
         success: true,
@@ -136,18 +136,17 @@ export const forgotPasswordOtp = asyncHandler(async (req, res) => {
 /* =========================
    RESET PASSWORD
 ========================= */
+/* =========================
+   RESET PASSWORD (LINK)
+========================= */
 export const resetPassword = asyncHandler(async (req, res) => {
-    const { email, otp, password } = req.body;
+    const { token, password } = req.body;
 
-    if (!email || !otp || !password) {
-        throw new ApiError(400, "All fields are required");
+    if (!token || !password) {
+        throw new ApiError(400, "Token and password are required");
     }
 
-    const result = await authService.resetPassword(
-        email,
-        otp,
-        password
-    );
+    const result = await authService.resetPassword(token, password);
 
     res.status(200).json({
         success: true,

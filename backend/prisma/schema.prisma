@@ -142,7 +142,11 @@ model User {
   creditLedger AiCreditLedger[]
 
   // Security
-  tokenVersion    Int              @default(1)
+  tokenVersion Int @default(1)
+
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+
   aiConversations AiConversation[]
   aiUsages        AiUsage[]
   aiTopUps        AiTopUp[]
