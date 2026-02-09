@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import dashboardService from "@/services/dashboard.service";
-import StatCard from "@/components/dashboard/StatCard";
+import { PageHeader } from "@/components/dashboard/PageHeader";
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import TaskList from "@/components/dashboard/TaskList";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaCheckCircle, FaClock, FaList, FaBolt } from "react-icons/fa";
@@ -70,26 +71,19 @@ export default function DashboardPage() {
     }));
 
     return (
-        <div className="space-y-8">
-            {/* Context Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-1">
-                        {getGreeting()}, <span className="text-gray-400">{user?.name || 'User'}</span>
-                    </h1>
-                    <div className="text-gray-500 text-sm">
-                        {loading ? <SkeletonLoader className="h-4 w-48" /> : `Welcome to your command center.`}
-                    </div>
-                </div>
-                <div className="text-right hidden md:block">
+        <div className="space-y-6">
+            <PageHeader
+                title={getGreeting()}
+                subtitle={`System Ready. ${user?.name || 'User'} detected.`}
+                action={
                     <div className="text-xs font-mono text-cyan-500 bg-cyan-950/20 px-3 py-1 rounded-full border border-cyan-900/50 inline-flex items-center gap-2">
-                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-                        AI SYSTEM ONLINE
+                        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                        AI_CORE_ONLINE
                     </div>
-                </div>
-            </div>
+                }
+            />
 
-            {/* Stats Row */}
+            {/* Bento Grid Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {loading ? (
                     <>
@@ -100,68 +94,80 @@ export default function DashboardPage() {
                     </>
                 ) : (
                     <>
-                        <StatCard
-                            label="Total Tasks"
+                        <DashboardCard
+                            title="Total Tasks"
                             value={data?.stats?.taskCount ?? 0}
                             icon={FaList}
+                            delay={1}
                         />
-                        <StatCard
-                            label="Schedules"
+                        <DashboardCard
+                            title="Scheduled"
                             value={data?.stats?.scheduleCount ?? 0}
                             icon={FaClock}
+                            delay={2}
                         />
-                        <StatCard
-                            label="Behavior Entries"
+                        <DashboardCard
+                            title="Focus Entries"
                             value={data?.stats?.behaviorCount ?? 0}
                             icon={FaCheckCircle}
+                            delay={3}
                         />
-                        {/* Placeholder for Streak - endpoint separate or included? 
-                             Controller says `getDashboardOverview` only returns counts. 
-                             Streaks are in `getStreakOverview`.
-                             For now keep it static or fetch separately? 
-                             Let's fetch streaks in the same useEffect if we want them here, 
-                             or strictly follow the route separation. 
-                             I'll stick to what the route provides to be safe.
-                         */}
-                        <StatCard
-                            label="Current Streak"
-                            value="-"
+                        <DashboardCard
+                            title="Streak"
+                            value={data?.streak ?? "0"}
+                            subtext="Days Active"
                             icon={FaBolt}
-                            subtext="Check Streak Tab"
+                            delay={4}
+                            className="border-cyan-500/30 bg-cyan-950/10"
                         />
                     </>
                 )}
             </div>
 
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Recent Activity */}
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Recent Activity Section */}
                 <div className="lg:col-span-2 space-y-6">
-                    {loading ? (
-                        <SkeletonLoader type="list" />
-                    ) : (
-                        <TaskList
-                            title="Recent Activity"
-                            tasks={displayItems}
-                            link="/dashboard/tasks"
-                        />
-                    )}
+                    <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6 min-h-[400px]">
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <FaList className="text-gray-500" /> Recent Activity
+                        </h3>
+                        {loading ? (
+                            <SkeletonLoader type="list" />
+                        ) : (
+                            <TaskList
+                                tasks={displayItems}
+                                link="/dashboard/tasks"
+                                compact={true}
+                            />
+                        )}
+                    </div>
                 </div>
 
-                {/* Right Column: AI / Insights */}
+                {/* AI / Quick Actions Column */}
                 <div className="space-y-6">
-                    <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-6 backdrop-blur-sm relative overflow-hidden group">
+                    {/* AI Insight Card */}
+                    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-zinc-900 to-black p-6 group">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <FaBolt className="w-24 h-24 text-cyan-400" />
+                            <FaBolt className="w-32 h-32 text-cyan-500 -rotate-12 translate-x-4 -translate-y-4" />
                         </div>
-                        <h3 className="font-mono text-sm font-bold text-cyan-400 mb-4 uppercase tracking-wider">AI Insight</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                            Your dashboard is ready. Start by adding tasks or schedules to generate AI insights.
-                        </p>
-                        {/* <button className="text-xs font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition-colors w-full text-center">
-                            VIEW ANALYSIS
-                        </button> */}
+
+                        <div className="relative z-10">
+                            <h3 className="font-mono text-xs font-bold text-cyan-400 mb-4 uppercase tracking-widest flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                                AI_Insight_Module
+                            </h3>
+                            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                                System awaiting more data to generate personalized optimization patterns. Complete tasks to train the neural engine.
+                            </p>
+                            <button className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-mono text-gray-300 transition-colors uppercase tracking-wider">
+                                // INITIALIZE_SCAN
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Quick Action - e.g. Add Task */}
+                    {/* This could be a separate component later */}
                 </div>
             </div>
         </div>

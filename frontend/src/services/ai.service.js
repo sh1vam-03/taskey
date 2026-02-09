@@ -6,7 +6,7 @@ const aiService = {
      */
     async getConversations() {
         const response = await api.get("/ai/conversations");
-        return response.data; // Assuming backend returns array or { data: [] }
+        return response.data.data || [];
     },
 
     /**
@@ -15,7 +15,7 @@ const aiService = {
      */
     async createConversation(title) {
         const response = await api.post("/ai/conversations", { title });
-        return response.data;
+        return response.data.data;
     },
 
     /**
@@ -24,7 +24,7 @@ const aiService = {
      */
     async getMessages(conversationId) {
         const response = await api.get(`/ai/conversations/${conversationId}/messages`);
-        return response.data;
+        return response.data.data || [];
     },
 
     /**
@@ -34,7 +34,7 @@ const aiService = {
      */
     async sendMessage(conversationId, message) {
         const response = await api.post(`/ai/conversations/${conversationId}/message`, { message });
-        return response.data; // Returns AI response
+        return response.data.data; // Returns AI message object
     },
 
     /**

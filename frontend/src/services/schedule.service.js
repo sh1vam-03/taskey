@@ -11,7 +11,7 @@ const scheduleService = {
     getSchedules: async (filters = {}) => {
         // filters: { date, from, to }
         const response = await api.get('/schedule', { params: filters });
-        return response.data;
+        return response.data.data;
     },
 
     // Update Schedule

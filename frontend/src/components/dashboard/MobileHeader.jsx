@@ -2,14 +2,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaBars, FaTimes, FaTerminal, FaTasks, FaCalendarAlt, FaRobot } from "react-icons/fa";
+import { FaBars, FaTimes, FaTerminal, FaTasks, FaClock, FaCalendarAlt, FaRobot, FaBrain, FaCreditCard } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
     { name: "Overview", icon: FaTerminal, path: "/dashboard" },
     { name: "My Tasks", icon: FaTasks, path: "/dashboard/tasks" },
-    { name: "Schedule", icon: FaCalendarAlt, path: "/dashboard/schedule" },
+    { name: "Schedule", icon: FaClock, path: "/dashboard/schedule" },
+    { name: "Calendar", icon: FaCalendarAlt, path: "/dashboard/calendar" },
+    { name: "Daily Focus", icon: FaBrain, path: "/dashboard/behavior" },
     { name: "AI Console", icon: FaRobot, path: "/dashboard/ai" },
+    { name: "Plan & Usage", icon: FaCreditCard, path: "/dashboard/billing" },
 ];
 
 export default function MobileHeader() {
@@ -50,8 +53,8 @@ export default function MobileHeader() {
                                         href={item.path}
                                         onClick={() => setIsOpen(false)}
                                         className={`flex items-center gap-3 px-4 py-4 rounded-lg text-sm font-medium border border-transparent ${isActive
-                                                ? "text-cyan-400 bg-cyan-950/20 border-cyan-900/50"
-                                                : "text-gray-400 hover:text-white hover:bg-white/5"
+                                            ? "text-cyan-400 bg-cyan-950/20 border-cyan-900/50"
+                                            : "text-gray-400 hover:text-white hover:bg-white/5"
                                             }`}
                                     >
                                         <item.icon className={isActive ? "text-cyan-400" : "text-gray-500"} />

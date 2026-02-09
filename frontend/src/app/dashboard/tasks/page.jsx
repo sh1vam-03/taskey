@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import taskService from "@/services/task.service";
+import { PageHeader } from "@/components/dashboard/PageHeader";
 import TaskModal from "@/components/dashboard/TaskModal";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaPlus, FaSearch, FaFilter, FaCheckCircle, FaTrash, FaEdit, FaFlag } from "react-icons/fa";
@@ -120,91 +121,116 @@ export default function TasksPage() {
 
     return (
         <div className="space-y-6">
-            {/* Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold text-white">Tasks</h1>
-
-                <div className="flex gap-2 w-full md:w-auto">
-                    {/* Filter Tabs */}
-                    <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-white/10 grow md:grow-0">
-                        {["ALL", "PENDING", "COMPLETED", "HIGH"].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors grow md:grow-0 ${filter === f ? "bg-cyan-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
-                                    }`}
-                            >
-                                {f}
-                            </button>
-                        ))}
-                    </div>
-
+            <PageHeader
+                title="Task Operations"
+                subtitle="Manage and execute your daily objectives."
+                action={
                     <button
                         onClick={handleCreateTask}
-                        className="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-cyan-900/20 transition-all text-sm whitespace-nowrap"
+                        className="group flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-bold shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_30px_rgba(8,145,178,0.5)] transition-all text-sm whitespace-nowrap"
                     >
-                        <FaPlus /> New Task
+                        <FaPlus className="group-hover:rotate-90 transition-transform" /> INITIALIZE_TASK
                     </button>
-                </div>
+                }
+            />
+
+            {/* Filter Toolbar */}
+            <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-white/10 w-full md:w-fit overflow-x-auto">
+                {["ALL", "PENDING", "COMPLETED", "HIGH"].map(f => (
+                    <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`px-4 py-2 text-xs font-mono font-bold rounded-md transition-all whitespace-nowrap ${filter === f
+                            ? "bg-cyan-950/40 text-cyan-400 border border-cyan-500/30 shadow-[0_0_10px_rgba(8,145,178,0.2)]"
+                            : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                            }`}
+                    >
+                        {f}
+                    </button>
+                ))}
             </div>
 
-            {/* Content */}
+            {/* Content Lists */}
             {loading ? (
                 <SkeletonLoader type="list" />
             ) : filteredTasks.length === 0 ? (
-                <div className="text-center py-20 bg-zinc-900/30 border border-white/5 rounded-xl border-dashed">
-                    <p className="text-gray-500 mb-4">No tasks found matching this filter.</p>
-                    <button onClick={handleCreateTask} className="text-cyan-400 hover:text-cyan-300 text-sm font-bold">
-                        Create a new task
+                <div className="text-center py-20 bg-zinc-900/20 border border-white/5 rounded-xl border-dashed">
+                    <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10 text-gray-600">
+                        <FaFlag size={24} />
+                    </div>
+                    <p className="text-gray-500 font-mono text-sm mb-4">NO_ACTIVE_TASKS_DETECTED</p>
+                    <button onClick={handleCreateTask} className="text-cyan-500 hover:text-cyan-400 text-xs font-bold uppercase tracking-wider">
+                        + Initialize New Protocol
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-3">
                     {filteredTasks.map(task => (
-                        <div key={task.id} className="group bg-zinc-900/50 border border-white/5 hover:border-cyan-500/30 rounded-xl p-4 transition-all flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                        <div
+                            key={task.id}
+                            className={`group relative overflow-hidden bg-zinc-900/40 border transition-all rounded-xl p-4 flex items-center justify-between
+                                ${task.isArchived
+                                    ? "border-white/5 opacity-60"
+                                    : "border-white/10 hover:border-cyan-500/30 hover:bg-zinc-900/60"
+                                }
+                            `}
+                        >
+                            {/* Scanning Line */}
+                            {!task.isArchived && (
+                                <div className="absolute inset-0 bg-linear-to-r from-transparent via-cyan-500/5 to-transparent -translate-x-full group-hover:animate-[scan-fast_1.5s_infinite] pointer-events-none" />
+                            )}
+
+                            <div className="flex items-center gap-4 relative z-10 w-full">
                                 <button
-                                    onClick={() => toggleCompletion(task)}
-                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.isArchived
-                                            ? "bg-green-500/20 border-green-500 text-green-500"
-                                            : "border-gray-500 hover:border-cyan-500 text-transparent hover:text-cyan-500"
-                                        }`}
+                                    onClick={(e) => { e.stopPropagation(); toggleCompletion(task); }}
+                                    className={`w-6 h-6 rounded border transition-all flex items-center justify-center
+                                        ${task.isArchived
+                                            ? "bg-cyan-900/20 border-cyan-500/50 text-cyan-500"
+                                            : "border-white/20 hover:border-cyan-400 text-transparent"
+                                        }
+                                    `}
                                 >
-                                    <FaCheckCircle className="w-3.5 h-3.5" />
+                                    <FaCheckCircle className={`w-3.5 h-3.5 ${task.isArchived ? "scale-100" : "scale-0"} transition-transform`} />
                                 </button>
 
-                                <div>
-                                    <h3 className={`font-medium text-base ${task.isArchived ? "text-gray-500 line-through" : "text-white"}`}>
-                                        {task.title}
-                                    </h3>
-                                    {task.description && (
-                                        <p className="text-xs text-gray-500 line-clamp-1">{task.description}</p>
-                                    )}
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono font-bold uppercase ${getPriorityColor(task.priority)}`}>
-                                            {task.priority || "MEDIUM"}
-                                        </span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className={`font-medium text-sm md:text-base truncate ${task.isArchived ? "text-gray-500 line-through decoration-white/20" : "text-gray-200"}`}>
+                                            {task.title}
+                                        </h3>
+                                        {task.priority === 'HIGH' && (
+                                            <span className="shrink-0 w-2 h-2 rounded-full bg-red-500 animate-pulse" title="High Priority" />
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-3 text-[10px] text-gray-500 font-mono uppercase tracking-wide">
+                                        {task.category && (
+                                            <span className="flex items-center gap-1">
+                                                <span className="w-1 h-1 bg-gray-500 rounded-full" />
+                                                {task.category.name}
+                                            </span>
+                                        )}
                                         {task.dueDate && (
-                                            <span className="text-[10px] text-gray-400 font-mono">
-                                                Due: {new Date(task.dueDate).toLocaleDateString()}
+                                            <span className={new Date(task.dueDate) < new Date() && !task.isArchived ? "text-red-400" : ""}>
+                                                DUE: {new Date(task.dueDate).toLocaleDateString()}
                                             </span>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 md:static md:bg-transparent bg-black/80 rounded-lg p-1 md:p-0">
                                 <button
-                                    onClick={() => handleEditTask(task)}
-                                    className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                                    className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-950/30 rounded transition-colors"
                                 >
-                                    <FaEdit />
+                                    <FaEdit size={12} />
                                 </button>
                                 <button
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                    className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-950/30 rounded transition-colors"
                                 >
-                                    <FaTrash />
+                                    <FaTrash size={12} />
                                 </button>
                             </div>
                         </div>

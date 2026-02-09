@@ -1,14 +1,17 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaTerminal, FaTasks, FaCalendarAlt, FaRobot, FaSignOutAlt } from "react-icons/fa";
+import { FaTerminal, FaTasks, FaClock, FaCalendarAlt, FaRobot, FaBrain, FaCreditCard, FaSignOutAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 
 const navItems = [
     { name: "Overview", icon: FaTerminal, path: "/dashboard" },
     { name: "My Tasks", icon: FaTasks, path: "/dashboard/tasks" },
-    { name: "Schedule", icon: FaCalendarAlt, path: "/dashboard/schedule" },
+    { name: "Schedule", icon: FaClock, path: "/dashboard/schedule" },
+    { name: "Calendar", icon: FaCalendarAlt, path: "/dashboard/calendar" },
+    { name: "Daily Focus", icon: FaBrain, path: "/dashboard/behavior" },
     { name: "AI Console", icon: FaRobot, path: "/dashboard/ai" },
+    { name: "Plan & Usage", icon: FaCreditCard, path: "/dashboard/billing" },
 ];
 
 import { useAuth } from "@/context/AuthContext";
