@@ -51,3 +51,17 @@ export const downgradePlan = asyncHandler(async (req, res) => {
         data: result,
     });
 });
+
+/**
+ * @route GET /api/billing/current
+ */
+export const getCurrentSubscription = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const subscription = await billingService.getSubscription(userId);
+
+    res.status(200).json({
+        success: true,
+        data: subscription || { plan: "FREE", isActive: true }
+    });
+});
+

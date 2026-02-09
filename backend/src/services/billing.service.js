@@ -111,3 +111,10 @@ export const downgradeSubscription = async (userId, newPlan) => {
         message: `Plan will be downgraded to ${newPlan} at next billing cycle`,
     };
 };
+
+export const getSubscription = async (userId) => {
+    const subscription = await prisma.subscription.findUnique({
+        where: { userId },
+    });
+    return subscription;
+};
