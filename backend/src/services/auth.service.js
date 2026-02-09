@@ -106,7 +106,7 @@ export const verifyOtp = async (email, otpCode) => {
 /* =========================
    LOGIN
 ========================= */
-export const login = async (email, password, userAgent, ipAddress) => {
+export const login = async (email, password, userAgent, ipAddress, remember = false) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
@@ -135,10 +135,16 @@ export const login = async (email, password, userAgent, ipAddress) => {
     // Generate session
     const jti = generateJti();
 
+    // Determine Token Expiry
+    // If Remember Me: 30 days
+    // If Session: 1 day (to avoid forced logout every 15m without silent refresh)
+    const expiresIn = remember ? "30d" : "1d";
+
     const accessToken = signAccessToken({
         userId: user.id,
         tokenVersion: user.tokenVersion,
         jti,
+        expiresIn,
     });
 
     const refreshToken = signRefreshToken({

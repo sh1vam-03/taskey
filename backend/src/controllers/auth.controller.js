@@ -57,7 +57,8 @@ export const login = asyncHandler(async (req, res) => {
         email,
         password,
         req.headers["user-agent"],
-        req.ip
+        req.ip,
+        remember
     );
 
     const cookieOptions = {
