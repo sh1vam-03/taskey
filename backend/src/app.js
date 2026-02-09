@@ -4,10 +4,12 @@ import routes from "./routes/index.js";
 
 
 import cookieParser from "cookie-parser";
+import morgan from "morgan";
 
 const app = express();
 
 // Middleware
+app.use(morgan("dev"));
 app.use(cors({
     origin: [
         "http://localhost:3000",

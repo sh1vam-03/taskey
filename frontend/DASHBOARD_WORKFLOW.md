@@ -68,11 +68,11 @@
 - [x] Usage stats visualizationts UI
 
 ## Phase D-9 – Public Pages
-- [ ] Contact us form
+- [x] Contact us form
 
 ## Phase D-10 – Final Review
-- [ ] All routes connected
-- [ ] Auth middleware respected
-- [ ] Usage limits handled
-- [ ] Errors handled gracefully
-- [ ] No unused routes/components
+- [x] All routes connected
+- [x] Auth middleware respected
+- [x] Usage limits handled
+- [x] Errors handled gracefully
+- [x] No unused routes/components

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import behaviorService from "@/services/behavior.service";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
+import BehaviorLogModal from "@/components/dashboard/BehaviorLogModal";
 import { FaBrain, FaChartLine, FaLightbulb } from "react-icons/fa";
 
 export default function BehaviorPage() {
@@ -10,27 +11,29 @@ export default function BehaviorPage() {
     const [explanation, setExplanation] = useState("");
     const [loading, setLoading] = useState(true);
 
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const [summaryData, logData, explainData] = await Promise.all([
+                behaviorService.getSummary(7),
+                behaviorService.getBehaviorByDate(today).catch(() => null),
+                behaviorService.explainScore(today).catch(() => ({ explanation: "Not enough data for explanation yet." }))
+            ]);
+
+            setSummary(summaryData);
+            setTodayLog(logData);
+            setExplanation(explainData?.explanation || "No explanation available.");
+        } catch (err) {
+            console.error("Behavior fetch error:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                const [summaryData, logData, explainData] = await Promise.all([
-                    behaviorService.getSummary(7),
-                    behaviorService.getBehaviorByDate(today).catch(() => null), // Might be 404 if no log yet
-                    behaviorService.explainScore(today).catch(() => ({ explanation: "Not enough data for explanation yet." }))
-                ]);
-
-                setSummary(summaryData);
-                setTodayLog(logData);
-                setExplanation(explainData?.explanation || "No explanation available.");
-            } catch (err) {
-                console.error("Behavior fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, []);
 
@@ -46,9 +49,17 @@ export default function BehaviorPage() {
 
     return (
         <div className="space-y-8">
-            <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                <FaBrain className="text-pink-500" /> AI Behavior Analysis
-            </h1>
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <FaBrain className="text-pink-500" /> AI Behavior Analysis
+                </h1>
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-4 py-2 bg-linear-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-pink-900/20 transition-all"
+                >
+                    + Log Today
+                </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Score Gauge */}
@@ -122,6 +133,13 @@ export default function BehaviorPage() {
                     </div>
                 </div>
             </div>
+
+            <BehaviorLogModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onLogSaved={fetchData}
+                currentLog={todayLog}
+            />
         </div>
     );
 }
