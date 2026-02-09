@@ -35,6 +35,18 @@ const authService = {
         const response = await api.post('/auth/reset-password', { token, password });
         return response.data;
     },
+
+    // Request OTP
+    requestOtp: async (email) => {
+        const response = await api.post('/auth/otp-request', { email });
+        return response.data;
+    },
+
+    // Verify OTP
+    verifyOtp: async (email, otp) => {
+        const response = await api.post('/auth/verify-otp', { email, otp });
+        return response.data;
+    },
 };
 
 export default authService;

@@ -50,8 +50,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const requestOtp = async (email) => {
+        // Implement OTP request logic here
+        // For now, assuming authService has this method or we need to add it
+        return await authService.requestOtp(email);
+    };
+
+    const verifyOtp = async (email, otp) => {
+        return await authService.verifyOtp(email, otp);
+    };
+
+    // Alias register as signup to match component expectation
+    const signup = register;
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, checkSession }}>
+        <AuthContext.Provider value={{ user, loading, login, signup, logout, checkSession, requestOtp, verifyOtp }}>
             {children}
         </AuthContext.Provider>
     );

@@ -47,8 +47,8 @@ export default function ResetPassword() {
 
     if (!token) {
         return (
-            <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
-                <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md text-center">
+            <div className="flex justify-center items-center w-full bg-(--bg) text-(--text)">
+                <div className="flex flex-col gap-6 p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md text-center">
                     <h1 className="text-xl font-bold text-red-500">Invalid Link</h1>
                     <p>This password reset link is invalid or has expired.</p>
                     <Link href="/forgot-password" className="text-cyan-500 hover:underline">Request a new one</Link>
@@ -58,9 +58,9 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
-            <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
-                <h1 className="text-2xl font-bold text-center text-[var(--heading)]">
+        <div className="flex justify-center items-center w-full bg-(--bg) text-(--text)">
+            <div className="flex flex-col gap-6 p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md">
+                <h1 className="text-2xl font-bold text-center text-(--heading)">
                     Set New Password
                 </h1>
 

@@ -1,5 +1,5 @@
 import './global.css'
-import { AuthProvider } from '@/features/auth/context/AuthContext'
+import { AuthProvider } from '@/context/AuthContext'
 
 export const metadata = {
     title: 'Taskey | Neural Task Orchestration',

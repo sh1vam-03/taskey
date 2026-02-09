@@ -29,9 +29,9 @@ export default function ForgotPassword() {
     }
 
     return (
-        <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
-            <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
-                <h1 className="text-2xl font-bold text-center text-[var(--heading)]">
+        <div className="flex justify-center items-center w-full bg-(--bg) text-(--text)">
+            <div className="flex flex-col gap-6 p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md">
+                <h1 className="text-2xl font-bold text-center text-(--heading)">
                     Reset Password
                 </h1>
 
