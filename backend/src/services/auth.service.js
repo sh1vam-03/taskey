@@ -239,8 +239,10 @@ export const forgotPassword = async (email) => {
         where: { email },
     });
 
-    // Always return success to prevent email enumeration
-    if (!user) return { message: "If an account exists, a reset link has been sent." };
+    // Explicitly check if user exists (User Requirement)
+    if (!user) {
+        throw new ApiError(404, "User with this email does not exist");
+    }
 
     // Generate random reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -272,7 +274,7 @@ export const forgotPassword = async (email) => {
         resetLink,
     });
 
-    return { message: "If an account exists, a reset link has been sent." };
+    return { message: "Reset link has been sent to your email." };
 };
 
 /* =========================
