@@ -24,8 +24,8 @@ const Overview = () => {
             </div>
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StreakMeter value={40} label="Consistency Score" />
-                <StreakMeter value={60} label="Weekly Performance" />
-                <StreakMeter value={100} label="Monthly Performance" />
+                <StreakMeter value={100} label="Weekly Performance" />
+                <StreakMeter value={70} label="Monthly Performance" />
             </div>
 
             <div className=" flex justify-center item-center gap-10 my-10 ">

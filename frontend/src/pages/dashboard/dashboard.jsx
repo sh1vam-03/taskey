@@ -1,5 +1,5 @@
 import { useState } from "react"
-import Sidebar from "../../components/layout/Sidebar"
+import Sidebar from "../../components/layout/sidebar"
 import Overview from "../../components/dashboard/Overview"
 import Calendar from "../../components/calendar/Calendar"
 import Tasks from "../../components/tasks/tasks"

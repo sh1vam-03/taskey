@@ -1,6 +1,13 @@
 import Item from "./Item"
+import { useAuth } from "../../context/Authcontext"
 
 const Sidebar = ({ open, onClose, active, onNavigate }) => {
+    const { logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    
+  }
   return (
     <aside
       className={`
@@ -42,6 +49,19 @@ const Sidebar = ({ open, onClose, active, onNavigate }) => {
           onClick={() => onNavigate("tasks")}
         />
       </nav>
+
+      <button
+          onClick={logout}
+          className="w-full px-4 py-3 my-3 rounded-lg text-left transition hover:opacity-80 cursor-pointer"
+          style={{
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+          }}
+        >
+           Logout
+        </button>
+
+     
     </aside>
   )
 }

@@ -12,7 +12,7 @@ const StreakMeter = ({ value = 0, label }) => {
   const strokeDashoffset =
     circumference - (value / 100) * circumference
 
-  // 🔥 Needle angle
+  //  Needle angle
   const angle = (value / 100) * 240 - 120
   const color = getMeterColor(value)
 

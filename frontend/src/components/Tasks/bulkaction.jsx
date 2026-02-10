@@ -31,7 +31,7 @@ const BulkActions = ({
         ) : (
           <button
             onClick={onClearAll}
-            className="px-3 py-2 border rounded-lg hover:opacity-80 cursor-pointer"
+            className="px-3 py-2  rounded-lg hover:opacity-80 cursor-pointer"
           >
             Clear All
           </button>
@@ -46,7 +46,7 @@ const BulkActions = ({
 
          <button
           onClick={onUndo}
-          className="px-4 py-2 bg-black text-white border rounded-lg hover:opacity-80 cursor-pointer"
+          className="px-4 py-2 bg-black text-white  rounded-lg hover:opacity-80 cursor-pointer"
         >
           Undo
         </button>
