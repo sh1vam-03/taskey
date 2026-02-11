@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { FaTimes, FaSave, FaTrash, FaTag, FaFlag, FaCalendar } from "react-icons/fa";
 import taskService from "@/services/task.service";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 
 export default function TaskModal({ isOpen, onClose, taskToEdit = null, onTaskSaved }) {
     const [title, setTitle] = useState("");
@@ -95,12 +97,11 @@ export default function TaskModal({ isOpen, onClose, taskToEdit = null, onTaskSa
                     {/* Title */}
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
-                        <input
+                        <Input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="What needs to be done?"
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-gray-600"
                             required
                         />
                     </div>
@@ -112,7 +113,7 @@ export default function TaskModal({ isOpen, onClose, taskToEdit = null, onTaskSa
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Add details..."
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-gray-600 min-h-[100px] resize-none"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-gray-600 min-h-[100px] resize-none font-mono text-sm"
                         />
                     </div>
 
@@ -125,7 +126,7 @@ export default function TaskModal({ isOpen, onClose, taskToEdit = null, onTaskSa
                             <select
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer font-mono text-sm"
                             >
                                 <option value="LOW">Low</option>
                                 <option value="MEDIUM">Medium</option>
@@ -138,36 +139,30 @@ export default function TaskModal({ isOpen, onClose, taskToEdit = null, onTaskSa
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                                 <FaCalendar size={10} /> Due Date
                             </label>
-                            <input
+                            <Input
                                 type="date"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-sm"
                             />
                         </div>
                     </div>
 
                     {/* Footer Actions */}
                     <div className="pt-4 mt-4 border-t border-white/5 flex justify-end gap-3">
-                        <button
+                        <Button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                            variant="ghost"
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
                             disabled={loading}
-                            className={`flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            variant="primary"
                         >
-                            {loading ? (
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <FaSave />
-                            )}
-                            {taskToEdit ? "Save Changes" : "Create Task"}
-                        </button>
+                            {loading ? "Saving..." : (taskToEdit ? "Save Changes" : "Create Task")}
+                        </Button>
                     </div>
                 </form>
             </div>

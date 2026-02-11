@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import authService from "@/services/auth.service"
 import Button from "@/components/ui/Button"
 
-export default function ResetPassword() {
+function ResetPasswordContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const token = searchParams.get('token')
@@ -105,5 +105,20 @@ export default function ResetPassword() {
                 </form>
             </div>
         </div>
+    )
+}
+
+export default function ResetPassword() {
+    return (
+        <Suspense fallback={
+            <div className="flex justify-center items-center h-screen w-full bg-black text-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-mono text-sm tracking-widest animate-pulse text-cyan-500">VERIFYING_TOKEN...</span>
+                </div>
+            </div>
+        }>
+            <ResetPasswordContent />
+        </Suspense>
     )
 }

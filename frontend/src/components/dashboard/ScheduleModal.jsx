@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { FaTimes, FaSave, FaClock, FaCalendarAlt, FaRedo, FaList } from "react-icons/fa";
 import scheduleService from "@/services/schedule.service";
 import taskService from "@/services/task.service";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 
 export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, onScheduleSaved }) {
     const [tasks, setTasks] = useState([]);
@@ -141,7 +143,7 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                                 <select
                                     value={selectedTaskId}
                                     onChange={(e) => setSelectedTaskId(e.target.value)}
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer font-mono text-sm"
                                     required={!isCreatingNewTask}
                                 >
                                     <option value="">Select a Task...</option>
@@ -149,32 +151,35 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                                         <option key={t.id} value={t.id}>{t.title}</option>
                                     ))}
                                 </select>
-                                <button
+                                <Button
                                     type="button"
                                     onClick={() => setIsCreatingNewTask(true)}
-                                    className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 text-cyan-400 text-xs font-bold whitespace-nowrap"
+                                    variant="scanline"
+                                    size="sm"
+                                    className="px-3"
                                 >
                                     + NEW
-                                </button>
+                                </Button>
                             </div>
                         ) : (
                             <div className="flex gap-2">
-                                <input
+                                <Input
                                     type="text"
                                     value={newTaskTitle}
                                     onChange={(e) => setNewTaskTitle(e.target.value)}
                                     placeholder="Enter new task title..."
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500"
                                     required={isCreatingNewTask}
                                     autoFocus
                                 />
-                                <button
+                                <Button
                                     type="button"
                                     onClick={() => setIsCreatingNewTask(false)}
-                                    className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 text-gray-400 text-xs font-bold whitespace-nowrap"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="px-3"
                                 >
                                     CANCEL
-                                </button>
+                                </Button>
                             </div>
                         )}
                     </div>
@@ -184,11 +189,10 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                             <FaCalendarAlt size={10} /> Schedule Date
                         </label>
-                        <input
+                        <Input
                             type="date"
                             value={scheduleDate}
                             onChange={(e) => setScheduleDate(e.target.value)}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-sm"
                             required
                         />
                     </div>
@@ -199,11 +203,10 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                                 <FaClock size={10} /> Start Time
                             </label>
-                            <input
+                            <Input
                                 type="time"
                                 value={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-sm"
                                 required
                             />
                         </div>
@@ -211,11 +214,10 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                                 <FaClock size={10} /> End Time
                             </label>
-                            <input
+                            <Input
                                 type="time"
                                 value={endTime}
                                 onChange={(e) => setEndTime(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-sm"
                                 required
                             />
                         </div>
@@ -229,7 +231,7 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                         <select
                             value={recurrence}
                             onChange={(e) => setRecurrence(e.target.value)}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer font-mono text-sm"
                         >
                             <option value="NONE">Does not repeat</option>
                             <option value="DAILY">Daily</option>
@@ -245,31 +247,26 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Specific details for this schedule..."
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-gray-600 min-h-[80px] resize-none"
+                            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder-gray-600 min-h-[80px] resize-none font-mono text-sm"
                         />
                     </div>
 
                     {/* Footer Actions */}
                     <div className="pt-4 mt-4 border-t border-white/5 flex justify-end gap-3 sticky bottom-0 bg-zinc-900 pb-2">
-                        <button
+                        <Button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                            variant="ghost"
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
                             disabled={loading}
-                            className={`flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            variant="primary"
                         >
-                            {loading ? (
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <FaSave />
-                            )}
-                            {scheduleToEdit ? "Save Changes" : "Add Schedule"}
-                        </button>
+                            {loading ? "Saving..." : (scheduleToEdit ? "Save Changes" : "Add Schedule")}
+                        </Button>
                     </div>
                 </form>
             </div>

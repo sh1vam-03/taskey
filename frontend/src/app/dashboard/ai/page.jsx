@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import aiService from "@/services/ai.service";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import { FaPlus, FaPaperPlane, FaTrash, FaRobot, FaUser, FaBars } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 
@@ -152,12 +154,13 @@ export default function AIChatPage() {
                 {/* Sidebar */}
                 <div className={`${sidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-0 md:translate-x-0'} absolute md:relative z-20 h-full bg-zinc-900/95 md:bg-zinc-900/50 border-r border-white/5 flex flex-col transition-all duration-300`}>
                     <div className="p-4 border-b border-white/5">
-                        <button
+                        <Button
                             onClick={handleNewChat}
-                            className="w-full flex items-center justify-center gap-2 bg-cyan-950/30 hover:bg-cyan-950/50 text-cyan-400 border border-cyan-900/50 hover:border-cyan-500/50 py-2.5 rounded-lg font-mono text-xs font-bold transition-all uppercase tracking-wider group"
+                            variant="scanline"
+                            className="w-full"
                         >
-                            <FaPlus className="group-hover:rotate-90 transition-transform" /> Initialize_Sequence
-                        </button>
+                            <FaPlus className="mr-2 group-hover:rotate-90 transition-transform" /> Initialize_Sequence
+                        </Button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
@@ -176,8 +179,8 @@ export default function AIChatPage() {
                                         if (window.innerWidth < 768) setSidebarOpen(false);
                                     }}
                                     className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border border-transparent ${currentConversationId === c.id
-                                            ? 'bg-cyan-950/20 border-cyan-500/30 text-cyan-100 shadow-[0_0_15px_rgba(8,145,178,0.1)]'
-                                            : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 hover:border-white/5'
+                                        ? 'bg-cyan-950/20 border-cyan-500/30 text-cyan-100 shadow-[0_0_15px_rgba(8,145,178,0.1)]'
+                                        : 'text-gray-400 hover:bg-white/5 hover:text-gray-200 hover:border-white/5'
                                         }`}
                                 >
                                     <div className="truncate text-xs font-mono pr-2 opacity-80 group-hover:opacity-100">
@@ -247,16 +250,16 @@ export default function AIChatPage() {
                                     className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start group`}
                                 >
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border shadow-lg ${msg.role === 'user'
-                                            ? 'bg-zinc-900 border-gray-700 text-gray-300'
-                                            : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400 shadow-cyan-900/10'
+                                        ? 'bg-zinc-900 border-gray-700 text-gray-300'
+                                        : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400 shadow-cyan-900/10'
                                         }`}>
                                         {msg.role === 'user' ? <FaUser size={12} /> : <FaRobot size={14} />}
                                     </div>
 
                                     <div className={`max-w-[85%] md:max-w-[75%]`}>
                                         <div className={`px-5 py-4 rounded-2xl text-sm leading-relaxed shadow-sm relative ${msg.role === 'user'
-                                                ? 'bg-zinc-800 text-gray-200 rounded-tr-sm border border-white/5'
-                                                : 'bg-black/40 text-gray-300 rounded-tl-sm border border-cyan-900/20 shadow-[0_0_15px_rgba(0,0,0,0.2)]'
+                                            ? 'bg-zinc-800 text-gray-200 rounded-tr-sm border border-white/5'
+                                            : 'bg-black/40 text-gray-300 rounded-tl-sm border border-cyan-900/20 shadow-[0_0_15px_rgba(0,0,0,0.2)]'
                                             }`}>
                                             {/* Technical Header for AI */}
                                             {msg.role === 'assistant' && (
@@ -297,22 +300,23 @@ export default function AIChatPage() {
 
                     {/* Input Area */}
                     <div className="p-4 bg-zinc-900/80 border-t border-white/5 backdrop-blur-md">
-                        <form onSubmit={handleSendMessage} className="relative max-w-4xl mx-auto">
-                            <input
+                        <form onSubmit={handleSendMessage} className="relative max-w-4xl mx-auto flex gap-2">
+                            <Input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder={currentConversationId ? "Enter command or query..." : "Initialize conversation first..."}
                                 disabled={!currentConversationId || sending}
-                                className="w-full bg-black/50 border border-white/10 rounded-xl pl-5 pr-14 py-4 text-white focus:outline-none focus:border-cyan-500/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all font-mono text-sm placeholder:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-12 rounded-lg pr-12"
                             />
-                            <button
+                            <Button
                                 type="submit"
                                 disabled={!currentConversationId || !input.trim() || sending}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors disabled:opacity-0 disabled:pointer-events-none shadow-lg shadow-cyan-900/20"
+                                variant="scanline"
+                                className="h-12 w-12 p-0 flex items-center justify-center rounded-lg"
                             >
                                 <FaPaperPlane size={14} />
-                            </button>
+                            </Button>
                         </form>
                         <div className="text-center mt-2">
                             <span className="text-[10px] text-gray-700 font-mono">AI_MODEL_V2.0 // SYSTEM_OPTIMIZED</span>

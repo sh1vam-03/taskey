@@ -4,10 +4,15 @@ import billingService from "@/services/billing.service";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaCheck, FaCrown, FaCreditCard } from "react-icons/fa";
+import Button from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 export default function BillingPage() {
+    const { user } = useAuth();
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isYearly, setIsYearly] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchSub = async () => {
@@ -80,72 +85,150 @@ export default function BillingPage() {
                 </div>
             </div>
 
+            {/* Tech Toggle */}
+            <div className="flex justify-center mb-8">
+                <div className="flex items-center gap-1 bg-black p-1 rounded-sm border border-white/20 relative">
+                    <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-white/30" />
+                    <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-white/30" />
+                    <button
+                        onClick={() => setIsYearly(false)}
+                        className={`px-6 py-2 text-xs font-mono font-bold transition-all ${!isYearly ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                    >
+                        MONTHLY
+                    </button>
+                    <button
+                        onClick={() => setIsYearly(true)}
+                        className={`px-6 py-2 text-xs font-mono font-bold transition-all ${isYearly ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                    >
+                        YEARLY
+                    </button>
+                </div>
+            </div>
+
             {/* Pricing Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* FREE */}
-                <div className={`relative p-1 rounded-2xl transition-all duration-300 ${currentPlan === 'FREE' ? 'bg-linear-to-b from-white/10 to-transparent' : 'bg-transparent'}`}>
-                    <div className="h-full bg-zinc-900/80 border border-white/5 rounded-xl p-6 flex flex-col backdrop-blur-md">
-                        <h3 className="text-lg font-bold text-gray-300 mb-2">Starter</h3>
-                        <div className="text-3xl font-bold text-white mb-6">$0<span className="text-sm font-normal text-gray-500">/mo</span></div>
-                        <ul className="space-y-4 mb-8 flex-1">
-                            <li className="flex items-center gap-3 text-sm text-gray-400"><FaCheck className="text-cyan-500 shrink-0" /> Basic Task Management</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-400"><FaCheck className="text-cyan-500 shrink-0" /> 10 Schedules/mo</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-400"><FaCheck className="text-cyan-500 shrink-0" /> Community Support</li>
-                        </ul>
-                        <button
-                            disabled={currentPlan === 'FREE'}
-                            className="w-full py-3 rounded-lg border border-white/10 text-gray-400 font-bold text-sm bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {currentPlan === 'FREE' ? "Current Plan" : "Downgrade"}
-                        </button>
+                <div className={`p-8 relative transition-all duration-300 group ${currentPlan === 'FREE' ? 'bg-zinc-900/50 border-white/10' : 'bg-black border border-white/10 hover:border-white/30'}`}>
+                    <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-white/20 group-hover:border-white/60 transition-colors" />
+                    <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-white/20 group-hover:border-white/60 transition-colors" />
+                    <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-white/20 group-hover:border-white/60 transition-colors" />
+                    <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-white/20 group-hover:border-white/60 transition-colors" />
+
+                    <div className="flex justify-between items-start mb-8">
+                        <div>
+                            <div className="font-mono text-[10px] text-gray-500 mb-1">[TIER.01]</div>
+                            <h3 className="text-xl font-bold text-gray-300 mb-1">Starter</h3>
+                            <div className="text-[10px] font-mono text-cyan-600 border border-cyan-900/30 px-2 py-0.5 inline-block rounded-sm bg-cyan-950/20">
+                                10 CREDITS
+                            </div>
+                        </div>
                     </div>
+
+                    <div className="mb-8 border-b border-white/5 pb-8">
+                        <span className="text-4xl font-bold text-white tracking-tighter">$0</span>
+                    </div>
+
+                    <ul className="space-y-4 mb-8">
+                        {["10 Tasks/mo", "30 Schedules/mo", "Basic Chat"].map((feat, i) => (
+                            <li key={i} className="flex items-center gap-3 text-sm text-gray-400 font-mono">
+                                <span className="w-1 h-1 bg-gray-600" />
+                                {feat}
+                            </li>
+                        ))}
+                    </ul>
+
+                    <Button
+                        disabled={currentPlan === 'FREE'}
+                        variant="ghost"
+                        className="w-full"
+                    >
+                        {currentPlan === 'FREE' ? "Current System" : "Downgrade"}
+                    </Button>
                 </div>
 
                 {/* PRO */}
-                <div className={`relative p-1 rounded-2xl transition-all duration-300 bg-linear-to-b from-purple-500 to-cyan-500 shadow-[0_0_40px_rgba(168,85,247,0.15)] transform md:-translate-y-4`}>
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-linear-to-r from-purple-500 to-cyan-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-lg whitespace-nowrap">
-                        Most Popular
-                    </div>
-                    <div className="h-full bg-zinc-900 border border-white/10 rounded-xl p-6 flex flex-col relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className={`p-8 relative transition-all duration-300 group ${currentPlan === 'PRO' ? 'bg-cyan-950/10 border-cyan-500/50' : 'bg-black border border-white/10 hover:border-cyan-500/30'}`}>
+                    <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-500 transition-colors" />
+                    <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-500 transition-colors" />
+                    <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-cyan-500 transition-colors" />
+                    <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-500 transition-colors" />
 
-                        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">Pro System <FaCrown className="text-purple-400 text-xs" /></h3>
-                        <div className="text-4xl font-black text-white mb-6">$9<span className="text-sm font-normal text-gray-500">/mo</span></div>
-                        <ul className="space-y-4 mb-8 flex-1 z-10">
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-purple-400 shrink-0" /> Unlimited Tasks</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-purple-400 shrink-0" /> Unlimited Schedules</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-purple-400 shrink-0" /> AI Neural Insights</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-purple-400 shrink-0" /> 500 AI Credits/mo</li>
-                        </ul>
-                        <button
-                            onClick={() => handleUpgrade("PRO")}
-                            disabled={currentPlan === 'PRO'}
-                            className="w-full py-3 rounded-lg bg-linear-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold text-sm transition-all shadow-lg shadow-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                        >
-                            {currentPlan === 'PRO' ? "Current Plan" : "Upgrade to Pro"}
-                        </button>
+                    <div className="flex justify-between items-start mb-8">
+                        <div>
+                            <div className="font-mono text-[10px] text-gray-500 mb-1">[TIER.02]</div>
+                            <h3 className="text-xl font-bold text-cyan-400 mb-1">Pro</h3>
+                            <div className="text-[10px] font-mono text-cyan-600 border border-cyan-900/30 px-2 py-0.5 inline-block rounded-sm bg-cyan-950/20">
+                                {isYearly ? "600 CREDITS" : "50 CREDITS"}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                            <span className="text-[10px] font-mono text-cyan-500">ONLINE</span>
+                        </div>
                     </div>
+
+                    <div className="mb-8 border-b border-white/5 pb-8">
+                        <span className="text-4xl font-bold text-white tracking-tighter">{isYearly ? "$99" : "$9"}</span>
+                        <span className="text-gray-500 text-sm ml-2 font-mono">{isYearly ? "/yr" : "/mo"}</span>
+                    </div>
+
+                    <ul className="space-y-4 mb-8">
+                        {["Unlimited Tasks", "Voice Mode", "Calendar Sync", "Priority Support"].map((feat, i) => (
+                            <li key={i} className="flex items-center gap-3 text-sm text-gray-400 font-mono">
+                                <span className="w-1 h-1 bg-cyan-500" />
+                                {feat}
+                            </li>
+                        ))}
+                    </ul>
+
+                    <Button
+                        onClick={() => handleUpgrade("PRO")}
+                        disabled={currentPlan === 'PRO'}
+                        variant="scanline"
+                        className="w-full"
+                    >
+                        {currentPlan === 'PRO' ? "System Active" : "Initialize Pro"}
+                    </Button>
                 </div>
 
                 {/* PRO PLUS */}
-                <div className={`relative p-1 rounded-2xl transition-all duration-300 ${currentPlan === 'PRO_PLUS' ? 'bg-linear-to-b from-pink-500 to-purple-500' : 'bg-transparent'}`}>
-                    <div className="h-full bg-zinc-900/80 border border-white/5 rounded-xl p-6 flex flex-col backdrop-blur-md">
-                        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">Pro+</h3>
-                        <div className="text-3xl font-bold text-white mb-6">$19<span className="text-sm font-normal text-gray-500">/mo</span></div>
-                        <ul className="space-y-4 mb-8 flex-1">
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-pink-400 shrink-0" /> Everything in Pro</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-pink-400 shrink-0" /> Priority Support</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-pink-400 shrink-0" /> 2000 AI Credits/mo</li>
-                            <li className="flex items-center gap-3 text-sm text-gray-300"><FaCheck className="text-pink-400 shrink-0" /> Beta Features Access</li>
-                        </ul>
-                        <button
-                            onClick={() => handleUpgrade("PRO_PLUS")}
-                            disabled={currentPlan === 'PRO_PLUS'}
-                            className="w-full py-3 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {currentPlan === 'PRO_PLUS' ? "Current Plan" : "Upgrade to Pro+"}
-                        </button>
+                <div className={`p-8 relative transition-all duration-300 group ${currentPlan === 'PRO_PLUS' ? 'bg-purple-950/10 border-purple-500/50' : 'bg-black border border-white/10 hover:border-purple-500/30'}`}>
+                    <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-purple-500 transition-colors" />
+                    <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-purple-500 transition-colors" />
+                    <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-purple-500 transition-colors" />
+                    <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-purple-500 transition-colors" />
+
+                    <div className="flex justify-between items-start mb-8">
+                        <div>
+                            <div className="font-mono text-[10px] text-gray-500 mb-1">[TIER.03]</div>
+                            <h3 className="text-xl font-bold text-purple-400 mb-1">Plus</h3>
+                            <div className="text-[10px] font-mono text-purple-400 border border-purple-900/30 px-2 py-0.5 inline-block rounded-sm bg-purple-950/20">
+                                {isYearly ? "1080 CREDITS" : "90 CREDITS"}
+                            </div>
+                        </div>
                     </div>
+
+                    <div className="mb-8 border-b border-white/5 pb-8">
+                        <span className="text-4xl font-bold text-white tracking-tighter">{isYearly ? "$199" : "$19"}</span>
+                        <span className="text-gray-500 text-sm ml-2 font-mono">{isYearly ? "/yr" : "/mo"}</span>
+                    </div>
+
+                    <ul className="space-y-4 mb-8">
+                        {["Deep Research", "Custom Workflows", "Team features", "API Access"].map((feat, i) => (
+                            <li key={i} className="flex items-center gap-3 text-sm text-gray-400 font-mono">
+                                <span className="w-1 h-1 bg-purple-500" />
+                                {feat}
+                            </li>
+                        ))}
+                    </ul>
+
+                    <Button
+                        onClick={() => handleUpgrade("PRO_PLUS")}
+                        disabled={currentPlan === 'PRO_PLUS'}
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white border-0"
+                    >
+                        {currentPlan === 'PRO_PLUS' ? "System Active" : "Initialize Plus"}
+                    </Button>
                 </div>
             </div>
         </div>

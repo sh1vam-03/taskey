@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import taskService from "@/services/task.service";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import TaskModal from "@/components/dashboard/TaskModal";
+import Button from "@/components/ui/Button";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaPlus, FaSearch, FaFilter, FaCheckCircle, FaTrash, FaEdit, FaFlag } from "react-icons/fa";
 
@@ -125,28 +126,28 @@ export default function TasksPage() {
                 title="Task Operations"
                 subtitle="Manage and execute your daily objectives."
                 action={
-                    <button
+                    <Button
                         onClick={handleCreateTask}
-                        className="group flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-bold shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_30px_rgba(8,145,178,0.5)] transition-all text-sm whitespace-nowrap"
+                        variant="scanline"
+                        className="w-full sm:w-auto"
                     >
-                        <FaPlus className="group-hover:rotate-90 transition-transform" /> INITIALIZE_TASK
-                    </button>
+                        <FaPlus className="mr-2 group-hover:rotate-90 transition-transform" /> INITIALIZE_TASK
+                    </Button>
                 }
             />
 
             {/* Filter Toolbar */}
-            <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-white/10 w-full md:w-fit overflow-x-auto">
+            <div className="flex bg-zinc-900/50 p-1 rounded-sm border border-white/10 w-full md:w-fit overflow-x-auto gap-1">
                 {["ALL", "PENDING", "COMPLETED", "HIGH"].map(f => (
-                    <button
+                    <Button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`px-4 py-2 text-xs font-mono font-bold rounded-md transition-all whitespace-nowrap ${filter === f
-                            ? "bg-cyan-950/40 text-cyan-400 border border-cyan-500/30 shadow-[0_0_10px_rgba(8,145,178,0.2)]"
-                            : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
-                            }`}
+                        size="sm"
+                        variant={filter === f ? "secondary" : "ghost"}
+                        className={filter === f ? "bg-cyan-950/40 text-cyan-400 border-cyan-500/30" : "text-gray-500 hover:text-white"}
                     >
                         {f}
-                    </button>
+                    </Button>
                 ))}
             </div>
 

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import scheduleService from "@/services/schedule.service";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import ScheduleModal from "@/components/dashboard/ScheduleModal";
+import Button from "@/components/ui/Button";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaPlus, FaClock, FaCalendarDay, FaTrash, FaEdit, FaRedo } from "react-icons/fa";
 
@@ -64,12 +65,13 @@ export default function SchedulePage() {
                 title="Temporal Architecture"
                 subtitle="Design and optimize your daily time allocation."
                 action={
-                    <button
+                    <Button
                         onClick={handleCreateSchedule}
-                        className="group flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-bold shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_30px_rgba(8,145,178,0.5)] transition-all text-sm whitespace-nowrap"
+                        variant="scanline"
+                        className="w-full sm:w-auto"
                     >
-                        <FaPlus className="group-hover:rotate-90 transition-transform" /> ALLOCATE_BLOCK
-                    </button>
+                        <FaPlus className="mr-2 group-hover:rotate-90 transition-transform" /> ALLOCATE_BLOCK
+                    </Button>
                 }
             />
 
