@@ -13,8 +13,8 @@ app.use(morgan("dev"));
 app.use(cors({
     origin: [
         "http://localhost:3000",
-        "https://blacktime.app",
-        "https://blacktime.onrender.com"
+        "https://tasktime.in",
+        "https://tasktime-cqta.onrender.com"
     ],
     credentials: true
 }));
