@@ -1,3 +1,4 @@
+
 # 📚 API Documentation Hub
 
 **Base Server URL:** `http://localhost:5000/api`  
@@ -51,3 +52,48 @@ Errors are returned with appropriate HTTP codes (4xx, 5xx) and a helpful message
 
 > **Developer Note:**
 > Ensure you have your `.env` file configured correctly before making requests.
+
+
+
+
+
+# 📚 API Documentation Hub
+
+**Base Server URL:** `http://localhost:5000/api`  
+**Standard Response:** JSON  
+**Auth Strategy:** HttpOnly Cookies (Access + Refresh)
+
+---
+
+## 📑 Core Modules
+
+| Module | Description | Docs |
+|--------|-------------|------|
+| **🔐 Authentication** | Login, Signup, OTP, Token Rotation, Session Mgmt. | [View Auth API](./api/auth_api.md) |
+| **💳 Billing & Plans** | Subscriptions (Razorpay), Webhooks, Credits. | [View Billing API](./api/billing_api.md) |
+| **📝 Task Management** | CRUD, Priorities, Completion. | [View Task API](./api/task_api.md) |
+| **🕒 Schedule** | Time-blocking, Recurring events. | [View Schedule API](./api/schedule_api.md) |
+| **🤖 AI Assistant** | Chat, Voice, RAG Context. | [View AI API](./api/ai_api.md) |
+| **🧠 Behavior** | Mood & Habit tracking. | [View Behavior API](./api/behavior_api.md) |
+| **📊 Dashboard** | Analytics & Performance. | [View Dashboard API](./api/dashboard_api.md) |
+| **🌐 Public/System** | Health Check, Contact Forms. | [View Public API](./api/public_api.md) |
+
+---
+
+## ⚠️ Global Error Format
+All endpoints return standard error responses:
+```json
+{
+  "success": false,
+  "message": "Specific error description",
+  "statusCode": 400
+}
+```
+*(Stack trace included in Development mode)*
+
+---
+
+## 🔐 Auth Model Summary
+- **Access Token:** 15 min expiry, httpOnly Cookie.
+- **Refresh Token:** 21 days (Persistent) or Session-based.
+- **Auto-Rotation:** New Access+Refresh tokens issued on every refresh.

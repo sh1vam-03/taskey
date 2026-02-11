@@ -1,57 +1,98 @@
 # 🕒 Schedule API
 
-Base URL: `/api/schedules`
+Manage time-blocking and recurring schedules.
 
-## Middleware
-- `authMiddleware`
-- `usageLimit("SCHEDULE")`: Applied only to CREATE endpoint for FREE users.
+**Base URL:** `/api/schedules`
 
 ---
 
 ## 1. Create Schedule
 Time-block a task.
-- **URL:** `/`
-- **Method:** `POST`
 - **Limit:** Free users max 30 schedules/month.
-- **Body:**
-  ```json
-  {
-    "taskId": "uuid",
-    "scheduleDate": "2024-05-21",
-    "startTime": "09:00",
-    "endTime": "10:30",
-    "recurrence": "NONE", // NONE, DAILY, WEEKLY, MONTHLY
-    "repeatUntil": "2024-06-21", // Required if recurrence != NONE
-    "repeatOnDays": [] // [1, 3, 5] (Mon, Wed, Fri) - Required if recurrence == WEEKLY
-  }
-  ```
 
-## 2. Get Schedules
+- **Method:** `POST`
 - **URL:** `/`
-- **Method:** `GET`
-- **Query Params:** `from` (date), `to` (date)
+- **Auth Required:** Yes
 
-## 3. Update Schedule
-- **URL:** `/:id`
-- **Method:** `PUT`
+### Request Body
+```json
+{
+  "taskId": "uuid",
+  "scheduleDate": "2024-05-21",
+  "startTime": "09:00",
+  "endTime": "10:30",
+  "recurrence": "NONE", // NONE, DAILY, WEEKLY, MONTHLY
+  "repeatUntil": "2024-06-21", // Required if recurrence != NONE
+  "repeatOnDays": [1, 3, 5] // Required if recurrence == WEEKLY (1=Mon)
+}
+```
 
-## 4. Delete Schedule
-- **URL:** `/:id`
-- **Method:** `DELETE`
+### Success Response (201)
+```json
+{
+  "success": true,
+  "message": "Schedule created successfully",
+  "data": {
+    "id": 1,
+    "date": "2024-05-21",
+    "startTime": "09:00",
+    "endTime": "10:30"
+  }
+}
+```
 
 ---
 
-## 🏁 Schedule Completion
+## 2. Get Schedules
+Retrieve schedules within a date range.
 
-### 1. Complete Schedule
-- **URL:** `/:id/complete`
-- **Method:** `POST`
+- **Method:** `GET`
+- **URL:** `/`
+- **Auth Required:** Yes
 
-### 2. Undo Complete
-- **URL:** `/:id/complete`
+### Query Parameters
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from` | Date | No | Start date (YYYY-MM-DD) |
+| `to` | Date | No | End date (YYYY-MM-DD) |
+| `taskId` | UUID | No | Filter by specific task |
+
+---
+
+## 3. Update Schedule
+- **Method:** `PUT`
+- **URL:** `/:id`
+- **Auth Required:** Yes
+
+### Request Body (Partial)
+Updates times, dates, or recurrence settings.
+
+---
+
+## 4. Delete Schedule
 - **Method:** `DELETE`
+- **URL:** `/:id`
+- **Auth Required:** Yes
 
-### 3. Bulk Complete
-- **URL:** `/complete-bulk`
+---
+
+# ✅ Schedule Completion API
+
+**Base URL:** `/api/schedule-completion`
+
+## 1. Complete Schedule
 - **Method:** `POST`
-- **Body:** `{ "scheduleIds": ["..."] }`
+- **URL:** `/:id/complete`
+
+## 2. Undo Completion
+- **Method:** `DELETE`
+- **URL:** `/:id/complete`
+
+## 3. Bulk Complete
+- **Method:** `POST`
+- **URL:** `/complete-bulk`
+- **Body:** `{ "scheduleIds": [1, 2, 3] }`
+
+## 4. History
+- **Method:** `GET`
+- **URL:** `/history`

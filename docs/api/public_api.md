@@ -1,25 +1,17 @@
-# 🌐 Public & System API Documentation
+# 🌐 Public & System API
 
-This module details the public-facing endpoints of the Taskey application. These routes are accessible without authentication tokens and are primarily used for system monitoring and public inquiries.
+Routes accessible without authentication.
 
-**Base URL:** `http://localhost:5000/api`
+**Base URL:** `/api` (and `/api/publicPages`)
 
 ---
 
 ## 1. System Health Check
-**Endpoint:** `GET /health`
-
-**Access:** Private (Admin Only)
-
-Used by internal monitoring tools.
-
-### Usage
-```bash
-curl -X GET http://localhost:5000/api/health -H "Authorization: Bearer <token>"
-```
+- **Endpoint:** `/health`
+- **Method:** `GET`
+- **Auth:** Private (Admin Token Required)
 
 ### Response
-**Status:** `200 OK`
 ```json
 {
   "message": "Api is working..."
@@ -29,52 +21,24 @@ curl -X GET http://localhost:5000/api/health -H "Authorization: Bearer <token>"
 ---
 
 ## 2. Contact Support
-**Endpoint:** `POST /publicPages/contact-us`
+- **Endpoint:** `/publicPages/contact-us`
+- **Method:** `POST`
+- **Auth:** Public
 
-Allows visitors (unauthenticated users) to submit support inquiries or messages directly from the landing page.
-
-### Request Headers
-| Header | Value | Description |
-|--------|-------|-------------|
-| `Content-Type` | `application/json` | Required |
-
-### Request Body Schema
-| Field | Type | Required | Description | Constraints |
-|-------|------|----------|-------------|-------------|
-| `name` | string | **Yes** | Sender's full name | Min 2 chars |
-| `email` | string | **Yes** | Sender's contact email | Valid email format |
-| `subject` | string | **Yes** | Purpose of the message | Max 100 chars |
-| `message` | string | **Yes** | Detailed inquiry | Max 1000 chars |
-
-### Example Request
+### Request Body
 ```json
 {
   "name": "Jane Doe",
-  "email": "jane.doe@example.com",
-  "subject": "Enterprise Pricing Inquiry",
-  "message": "Hello, I would like to know more about the team subscription plans."
+  "email": "jane@example.com",
+  "subject": "Help",
+  "message": "I need help with..."
 }
 ```
 
-### Success Response
-**Status:** `201 Created`
+### Success Response (200/201)
 ```json
 {
   "success": true,
-  "message": "Your contact us message has been sent successfully",
-  "data": {
-    "name": "Jane Doe",
-    "subject": "Enterprise Pricing Inquiry"
-  }
-}
-```
-
-### Error Responses
-**Status:** `400 Bad Request`
-- Missing required fields.
-```json
-{
-  "success": false,
-  "message": "All fields are required"
+  "message": "Your contact us message has been sent successfully"
 }
 ```

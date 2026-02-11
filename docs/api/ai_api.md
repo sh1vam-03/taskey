@@ -1,113 +1,136 @@
 # 🤖 AI Assistant API
 
-Base URL: `/api/ai`
+Interact with the Gemini-powered Assistant.
 
-## Middleware
-- `authMiddleware`
-- `usageLimit` (Internal checks may apply)
+**Base URL:** `/api/ai`
 
 ---
 
-## 1. Create Conversation (Start Chat)
-Start a new conversation context or simply start tracking a new thread.
-- **URL:** `/conversations`
+## ⚡ AI Credit Usage
+Requesting these endpoints consumes AI Credits from the user's plan.
+- **Chat:** 1 Credit
+- **Voice:** 3 Credits
+
+If credits are insufficient (`User.aiTokenBalance < Cost`), the API returns `403 Forbidden`.
+
+---
+
+## 1. Create Conversation
+Start a new chat thread.
+
 - **Method:** `POST`
-- **Body:**
-  ```json
-  {
-    "message": "Help me plan my day" // Optional: If provided, sends first message immediately
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "conversation": {
-        "id": "uuid",
-        "title": "Help me plan my day...",
-        "createdAt": "..."
-      },
-      "message": { // Only if message was provided in body
-        "role": "assistant",
-        "content": "Sure! Here is your plan..."
-      }
-    }
-  }
-  ```
-
-## 2. Get All Conversations
-Retrieve list of past conversations (history).
 - **URL:** `/conversations`
-- **Method:** `GET`
-- **Response:**
-  ```json
-  {
-    "success": true,
-    "data": [
-      { "id": "uuid", "title": "...", "updatedAt": "..." }
-    ]
+- **Auth Required:** Yes
+
+### Request Body
+```json
+{
+  "message": "Help me plan my week" // Optional initial message
+}
+```
+
+### Success Response (201)
+```json
+{
+  "success": true,
+  "data": {
+    "conversation": {
+      "id": "uuid",
+      "title": "Help me plan my week...",
+      "updatedAt": "..."
+    },
+    "message": { ... } // If message was sent
   }
-  ```
+}
+```
 
-## 3. Get Single Conversation
-- **URL:** `/conversations/:id`
+---
+
+## 2. Get Conversations
+List all chat history.
+
 - **Method:** `GET`
+- **URL:** `/conversations`
+- **Auth Required:** Yes
 
-## 4. Get Messages
-Retrieve chat history for a specific conversation.
+### Success Response (200)
+```json
+{
+  "success": true,
+  "data": [
+    { "id": "uuid", "title": "...", "createdAt": "..." }
+  ]
+}
+```
+
+---
+
+## 3. Get Conversation Messages
+Retrieve full chat history for a thread.
+
+- **Method:** `GET`
 - **URL:** `/conversations/:id/messages`
-- **Method:** `GET`
-- **Response:**
-  ```json
-  {
-    "success": true,
-    "data": [
-      { "role": "user", "content": "Hi" },
-      { "role": "assistant", "content": "Hello!" }
-    ]
-  }
-  ```
+- **Auth Required:** Yes
 
-## 5. Send Message
-Continue an existing conversation.
+### Success Response (200)
+```json
+{
+  "success": true,
+  "data": [
+    { "role": "user", "content": "Hi" },
+    { "role": "assistant", "content": "Hello! How can I help?" }
+  ]
+}
+```
+
+---
+
+## 4. Send Message (Chat)
+Continue a conversation.
+
+- **Method:** `POST`
 - **URL:** `/conversations/:id/message`
+- **Auth Required:** Yes
+
+### Request Body
+```json
+{
+  "message": "Add a task for 2PM"
+}
+```
+
+### Success Response (200)
+```json
+{
+  "success": true,
+  "data": {
+    "role": "assistant",
+    "content": "I've added the task to your schedule."
+  }
+}
+```
+
+---
+
+## 5. Voice Assistant
+Upload audio for transcription and AI response.
+
 - **Method:** `POST`
-- **Body:**
-  ```json
-  {
-    "message": "Add a task to buy milk"
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "role": "assistant",
-      "content": "I have added 'Buy Milk' to your tasks."
-    }
-  }
-  ```
-
-## 6. Delete Conversation
-- **URL:** `/conversations/:id`
-- **Method:** `DELETE`
-
-## 7. Voice Assistant
-Process voice audio blob for a conversation.
 - **URL:** `/conversations/:id/voice`
-- **Method:** `POST`
+- **Auth Required:** Yes
 - **Headers:** `Content-Type: multipart/form-data`
-- **Body:** `audio` (File)
-- **Response:**
-  ```json
-  {
-    "success": true,
-    "data": {
-       "transcription": "What is on my calendar?",
-       "reply": "You have a meeting at 2 PM.",
-       "audioUrl": "http://.../response.mp3" // Logic for TTS response
-    }
+
+### Request Body
+- `audio`: File (mp3/wav/webm)
+
+### Success Response (200)
+```json
+{
+  "success": true,
+  "data": {
+    "transcription": "What is on my calendar?",
+    "reply": "You have a meeting at 2 PM.",
+    "audioUrl": "http://.../response.mp3"
   }
-  ```
+}
+```

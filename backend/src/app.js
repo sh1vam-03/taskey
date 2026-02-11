@@ -24,7 +24,12 @@ app.use(cookieParser());
 
 
 // Routes
+// Routes
 app.use(routes);
+
+// Error Handler
+import errorHandler from "./middlewares/error.middleware.js";
+app.use(errorHandler);
 
 
 export default app;

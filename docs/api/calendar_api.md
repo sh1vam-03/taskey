@@ -1,148 +1,22 @@
-# 📅 Calendar API Documentation
+# 📅 Calendar API
 
-This module provides endpoints to retrieve task schedules and completion status in various calendar views (Day, Week, Month). It aggregates data from the Schedule and TaskCompletion models.
+Aggregated view of tasks and schedules.
 
-**Base URL:** `http://localhost:5000/api/calendar`
-
----
-
-## 1. Get Day View
-**Endpoint:** `GET /day`
-
-Retrieves the schedule and task status for a specific day.
-
-### Headers
-| Key | Value | Required | Description |
-|-----|-------|----------|-------------|
-| `Authorization` | `Bearer <token>` | **Yes** | JWT access token |
-
-### Query Parameters
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `date` | string | No | ISO Date string (e.g. `2023-12-25`). Defaults to today. |
-
-### Success Response (200 OK)
-```json
-{
-  "success": true,
-  "message": "Calendar day data fetched successfully",
-  "data": {
-  "data": {
-    "date": "2023-12-25",
-    "items": [
-      {
-        "type": "SCHEDULED",
-        "scheduleId": 1,
-        "taskId": "uuid-1",
-        "title": "Morning Standup",
-        "priority": "HIGH",
-        "startTime": "09:00",
-        "endTime": "09:30",
-        "status": "COMPLETED"
-      },
-      {
-        "type": "UNSCHEDULED",
-        "taskId": "uuid-3",
-        "title": "Daily Journal",
-        "priority": "LOW",
-        "startTime": null,
-        "endTime": null,
-        "status": "PENDING"
-      }
-    ]
-  }
-}
-```
-*Status values*: `PENDING`, `COMPLETED`, `MISSED`
-*Type values*: `SCHEDULED`, `UNSCHEDULED`
+**Base URL:** `/api/calendar`
 
 ---
 
-## 2. Get Week View
-**Endpoint:** `GET /week`
+## 1. Day View
+- **Method:** `GET`
+- **URL:** `/day`
+- **Query:** `date=YYYY-MM-DD`
 
-Retrieves the schedule for a full week surrounding the given date.
+## 2. Week View
+- **Method:** `GET`
+- **URL:** `/week`
+- **Query:** `date=YYYY-MM-DD`
 
-### Headers
-| Key | Value | Required | Description |
-|-----|-------|----------|-------------|
-| `Authorization` | `Bearer <token>` | **Yes** | JWT access token |
-
-### Query Parameters
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `date` | string | No | Reference date to determine the week. Defaults to today. |
-
-### Success Response (200 OK)
-```json
-{
-  "success": true,
-  "message": "Calendar week data fetched successfully",
-  "data": {
-    "weekStart": "2023-12-25",
-    "weekEnd": "2023-12-31",
-    "days": {
-      "2023-12-25": [
-        {
-          "type": "SCHEDULED",
-          "scheduleId": 1,
-          "title": "Task 1",
-          "startTime": "09:00",
-          "endTime": "10:00",
-          "status": "COMPLETED"
-        },
-        {
-           "type": "UNSCHEDULED",
-           "taskId": "uuid-5",
-           "title": "Quick Note",
-           "status": "PENDING"
-        }
-      ],
-      "2023-12-26": []
-      // ... rest of the week
-    }
-  }
-}
-```
-
----
-
-## 3. Get Month View
-**Endpoint:** `GET /month`
-
-Retrieves the schedule for a specific month.
-
-### Headers
-| Key | Value | Required | Description |
-|-----|-------|----------|-------------|
-| `Authorization` | `Bearer <token>` | **Yes** | JWT access token |
-
-### Query Parameters
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `year` | number | No | Year (e.g. 2023). Defaults to current year. |
-| `month` | number | No | Month (1-12). Defaults to current month. |
-
-### Success Response (200 OK)
-```json
-{
-  "success": true,
-  "message": "Calendar month data fetched successfully",
-  "data": {
-    "month": "2023-12",
-    "days": {
-      "2023-12-01": [
-         {
-           "scheduleId": 10,
-           "title": "Monthly Review",
-           "startTime": "10:00",
-           "endTime": "11:00",
-           "status": "PENDING",
-           "notes": null
-         }
-      ],
-      // ... rest of the month
-    }
-  }
-}
-```
+## 3. Month View
+- **Method:** `GET`
+- **URL:** `/month`
+- **Query:** `year=2024&month=5`
