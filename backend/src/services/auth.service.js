@@ -348,6 +348,7 @@ export const getMyProfile = async (userId) => {
             plan: true,
             isEmailVerified: true,
             createdAt: true,
+            aiCreditBalance: true,
         },
     });
 

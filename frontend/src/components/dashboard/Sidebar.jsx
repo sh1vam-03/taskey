@@ -1,78 +1,123 @@
-"use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FaTerminal, FaTasks, FaClock, FaCalendarAlt, FaRobot, FaBrain, FaCreditCard, FaSignOutAlt } from "react-icons/fa";
-import { motion } from "framer-motion";
+'use client';
 
-const navItems = [
-    { name: "Overview", icon: FaTerminal, path: "/dashboard" },
-    { name: "My Tasks", icon: FaTasks, path: "/dashboard/tasks" },
-    { name: "Schedule", icon: FaClock, path: "/dashboard/schedule" },
-    { name: "Calendar", icon: FaCalendarAlt, path: "/dashboard/calendar" },
-    { name: "Daily Focus", icon: FaBrain, path: "/dashboard/behavior" },
-    { name: "AI Console", icon: FaRobot, path: "/dashboard/ai" },
-    { name: "Plan & Usage", icon: FaCreditCard, path: "/dashboard/billing" },
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+    LayoutDashboard,
+    CheckSquare,
+    Calendar,
+    BrainCircuit,
+    Bot,
+    CreditCard,
+    LogOut,
+    Menu,
+    X
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useState } from 'react';
+
+const menuItems = [
+    { name: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'Tasks', icon: CheckSquare, href: '/dashboard/tasks' },
+    { name: 'Schedule', icon: Calendar, href: '/dashboard/schedule' },
+    { name: 'Behavior', icon: BrainCircuit, href: '/dashboard/behavior' },
+    { name: 'AI Assistant', icon: Bot, href: '/dashboard/ai' },
+    { name: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
 ];
-
-import { useAuth } from "@/context/AuthContext";
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+    const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-64 bg-black border-r border-white/10 hidden md:flex flex-col z-50">
-            {/* Logo Area */}
-            <div className="h-16 flex items-center px-6 border-b border-white/5">
-                <div className="flex items-center gap-2 text-cyan-400">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                    <span className="font-mono font-bold tracking-wider text-lg">TASKEY_OS</span>
+        <>
+            {/* Mobile Toggle */}
+            <button
+                onClick={toggleMobile}
+                className="md:hidden fixed top-4 right-4 z-60 p-2 bg-black border border-white/10 rounded-md text-white"
+            >
+                {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
+            <aside className={`
+                fixed inset-y-0 left-0 z-50 w-64 bg-black border-r border-white/10 flex flex-col
+                transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-screen
+                ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                {/* Logo */}
+                <div className="h-20 flex items-center px-8 border-b border-white/5">
+                    <Link href="/dashboard" className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600 animate-pulse" />
+                        <span className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-white/60">
+                            Taskey
+                        </span>
+                    </Link>
                 </div>
-            </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 py-6 px-3 space-y-1">
-                {navItems.map((item) => {
-                    const isActive = pathname === item.path;
-                    return (
-                        <Link
-                            key={item.path}
-                            href={item.path}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative ${isActive
-                                ? "text-cyan-400 bg-cyan-950/20"
-                                : "text-gray-400 hover:text-white hover:bg-white/5"
-                                }`}
-                        >
-                            <item.icon className={`w-4 h-4 ${isActive ? "text-cyan-400" : "text-gray-500 group-hover:text-white"}`} />
-                            {item.name}
+                {/* Nav */}
+                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                    {menuItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href;
 
-                            {/* Active Indicator */}
-                            {isActive && (
-                                <motion.div
-                                    layoutId="activeNav"
-                                    className="absolute left-0 w-1 h-6 bg-cyan-400 rounded-r-full"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                />
-                            )}
-                        </Link>
-                    );
-                })}
-            </nav>
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={`
+                                    relative group flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
+                                    ${isActive
+                                        ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }
+                                `}
+                            >
+                                <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400'}`} />
+                                <span className="font-sans tracking-wide">{item.name}</span>
 
-            {/* User / Footer */}
-            <div className="mt-auto p-4 border-t border-white/5">
-                <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-all duration-200 group cursor-pointer"
-                >
-                    <FaSignOutAlt className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    <span className="text-sm font-medium font-mono">TERMINATE_SESSION</span>
-                </button>
-                <div className="mt-4 px-4 text-[10px] text-gray-600 font-mono text-center opacity-50">
-                    Output: v0.9.2-beta
+                                {isActive && (
+                                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_#06b6d4]" />
+                                )}
+                            </Link>
+                        );
+                    })}
                 </div>
-            </div>
-        </aside>
+
+                {/* User Info */}
+                <div className="border-t border-white/5 p-4 m-4 bg-white/5 rounded-xl">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-xs font-mono text-white">
+                            {user?.name?.[0] || 'U'}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="text-sm font-medium text-white truncate">{user?.name}</span>
+                            <span className="text-[10px] text-cyan-500 font-mono uppercase tracking-wider">
+                                {user?.plan === 'pro' ? 'PRO_ACCESS' : 'FREE_TIER'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={logout}
+                        className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
+                    >
+                        <LogOut className="h-3.5 w-3.5" />
+                        Disconnect
+                    </button>
+                </div>
+            </aside>
+
+            {/* Backdrop for mobile */}
+            {isMobileOpen && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+                    onClick={() => setIsMobileOpen(false)}
+                />
+            )}
+        </>
     );
 }

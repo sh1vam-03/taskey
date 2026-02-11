@@ -32,8 +32,26 @@ const taskService = {
         return response.data;
     },
 
-    // Mark Daily Completion (if needed via specific route, though usually handled via update or specific completion route)
-    // Checking backend... headers say /api/taskCompletion is separate
+    // Complete Task
+    completeTask: async (id, date) => {
+        const response = await api.post(`/taskCompletion/${id}/complete`, { date });
+        return response.data;
+    },
+
+    // Undo Completion
+    undoCompleteTask: async (id, date) => {
+        // DELETE request with body is tricky in some clients, but axios supports it via 'data' config
+        // However, standard DELETE usually implies resource. RESTful design often puts params in URL.
+        // Let's check backend implementation. Pass date in body if required.
+        const response = await api.delete(`/taskCompletion/${id}/completed`, { data: { date } });
+        return response.data;
+    },
+
+    // Bulk Complete
+    completeBulk: async (taskIds, date) => {
+        const response = await api.post('/taskCompletion/complete-bulk', { taskIds, date });
+        return response.data;
+    }
 };
 
 export default taskService;

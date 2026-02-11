@@ -9,7 +9,7 @@ const ACCESS_COOKIE_MAX_AGE = Number(process.env.ACCESS_COOKIE_MAX_AGE) || 15 * 
 const REFRESH_COOKIE_PERSISTENT_MAX_AGE = Number(process.env.REFRESH_COOKIE_PERSISTENT_MAX_AGE) || 21 * 24 * 60 * 60 * 1000; // 21d default
 
 const COOKIE_SECURE = process.env.NODE_ENV === "production"; // Default strict rule
-const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE || "strict"; // Default strict rule
+const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE || "lax"; // Default lax rule for easier dev/redirects
 
 /* =========================
    SIGNUP
@@ -89,7 +89,7 @@ export const login = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
-        path: "/auth/refresh",
+        path: "/",
     };
 
     if (result.isPersistent) {
@@ -124,7 +124,7 @@ export const logout = asyncHandler(async (req, res) => {
     };
 
     res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", { ...cookieOptions, path: "/auth/refresh" });
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/" });
     // Also clear root path just in case
     res.clearCookie("refreshToken", cookieOptions);
 
@@ -245,7 +245,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
-        path: "/auth/refresh",
+        path: "/",
     };
 
     // If persistent, set maxAge. If not, session cookie.
@@ -274,7 +274,7 @@ export const logoutAll = asyncHandler(async (req, res) => {
     };
 
     res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", { ...cookieOptions, path: "/auth/refresh" });
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/" });
     // Also clear root path just in case
     res.clearCookie("refreshToken", cookieOptions);
 

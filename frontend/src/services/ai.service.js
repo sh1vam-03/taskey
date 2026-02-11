@@ -44,6 +44,23 @@ const aiService = {
     async deleteConversation(conversationId) {
         const response = await api.delete(`/ai/conversations/${conversationId}`);
         return response.data;
+    },
+
+    /**
+     * Send voice audio to conversation
+     * @param {string} conversationId 
+     * @param {Blob} audioBlob 
+     */
+    async sendVoiceMessage(conversationId, audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'voice.webm');
+
+        const response = await api.post(`/ai/conversations/${conversationId}/voice`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data.data;
     }
 };
 

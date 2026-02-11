@@ -1,7 +1,9 @@
 "use client";
-import React, { useState } from "react";
-import { FaTimes, FaSave, FaSmile, FaMeh, FaFrown, FaBrain, FaCheck } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { Smile, Meh, Frown, Sparkles, Check, Clock, ListTodo } from "lucide-react";
 import behaviorService from "@/services/behavior.service";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
 
 export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentLog = null }) {
     const [mood, setMood] = useState("NEUTRAL");
@@ -11,24 +13,22 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Populate if existing log (for update) - though upsert handles it
-    React.useEffect(() => {
-        if (isOpen && currentLog) {
-            setMood(currentLog.mood || "NEUTRAL");
-            setFocusHours(currentLog.focusHours || 0);
-            setTasksCompleted(currentLog.tasksCompleted || 0);
-            setNotes(currentLog.notes || "");
-        } else if (isOpen) {
-            // Reset
-            setMood("NEUTRAL");
-            setFocusHours(0);
-            setTasksCompleted(0);
-            setNotes("");
+    useEffect(() => {
+        if (isOpen) {
+            if (currentLog) {
+                setMood(currentLog.mood || "NEUTRAL");
+                setFocusHours(currentLog.focusHours || 0);
+                setTasksCompleted(currentLog.tasksCompleted || 0);
+                setNotes(currentLog.notes || "");
+            } else {
+                setMood("NEUTRAL");
+                setFocusHours(0);
+                setTasksCompleted(0);
+                setNotes("");
+            }
+            setError(null);
         }
-        setError(null);
     }, [isOpen, currentLog]);
-
-    if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -57,52 +57,58 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
     };
 
     const moodOptions = [
-        { value: "GOOD", icon: FaSmile, color: "text-green-400", label: "Good" },
-        { value: "NEUTRAL", icon: FaMeh, color: "text-yellow-400", label: "Neutral" },
-        { value: "BAD", icon: FaFrown, color: "text-red-400", label: "Bad" }
+        { value: "GOOD", icon: Smile, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/50", label: "OPTIMAL" },
+        { value: "NEUTRAL", icon: Meh, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/50", label: "NOMINAL" },
+        { value: "BAD", icon: Frown, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/50", label: "CRITICAL" }
     ];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b border-white/5">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <FaBrain className="text-pink-500" /> Log Today's Vibe
-                    </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-                        <FaTimes size={20} />
-                    </button>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="LOG NEURAL STATE"
+            className="border-purple-500/20 bg-black/90 backdrop-blur-xl"
+        >
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                    <div className="p-3 bg-red-900/20 border border-red-500/30 text-red-200 text-sm rounded-lg font-mono">
+                        {error}
+                    </div>
+                )}
+
+                {/* Mood Selector */}
+                <div className="space-y-3">
+                    <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <Sparkles className="h-3 w-3 text-purple-400" /> Current Sentiment
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                        {moodOptions.map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setMood(option.value)}
+                                className={`
+                                    flex flex-col items-center gap-2 p-3 rounded-lg border transition-all duration-200
+                                    ${mood === option.value
+                                        ? `${option.bg} ${option.border} ring-1 ring-white/10`
+                                        : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10 opacity-70 hover:opacity-100'
+                                    }
+                                `}
+                            >
+                                <option.icon className={`h-6 w-6 ${option.color}`} />
+                                <span className={`text-[10px] font-bold font-mono uppercase ${option.color}`}>{option.label}</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {error && (
-                        <div className="p-3 bg-red-900/20 border border-red-500/30 text-red-200 text-sm rounded-lg">
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Mood Selector */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-3">How are you feeling?</label>
-                        <div className="flex justify-between gap-4">
-                            {moodOptions.map((option) => (
-                                <button
-                                    key={option.value}
-                                    type="button"
-                                    onClick={() => setMood(option.value)}
-                                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${mood === option.value ? 'bg-white/10 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-black/40 border-white/10 hover:bg-white/5'}`}
-                                >
-                                    <option.icon className={`text-2xl ${option.color}`} />
-                                    <span className="text-xs font-bold text-gray-300">{option.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Focus Hours */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Focus Hours</label>
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Focus Hours */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Clock className="h-3 w-3" /> Focus Duration
+                        </label>
+                        <div className="relative">
                             <input
                                 type="number"
                                 min="0"
@@ -110,46 +116,58 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                                 step="0.5"
                                 value={focusHours}
                                 onChange={(e) => setFocusHours(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-sm text-center font-mono"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all text-sm font-mono text-center"
                             />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-mono">HRS</span>
                         </div>
-                        {/* Tasks Completed (Manual Override or Auto-filled) */}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tasks Done</label>
+                    </div>
+                    {/* Tasks Completed */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <ListTodo className="h-3 w-3" /> Tasks Executed
+                        </label>
+                        <div className="relative">
                             <input
                                 type="number"
                                 min="0"
                                 value={tasksCompleted}
                                 onChange={(e) => setTasksCompleted(e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-sm text-center font-mono"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm font-mono text-center"
                             />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-mono">Ut.</span>
                         </div>
                     </div>
+                </div>
 
-                    {/* Notes */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Daily Notes</label>
-                        <textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            placeholder="What went well? What didn't?"
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-all placeholder-gray-600 min-h-[80px] resize-none text-sm"
-                        />
-                    </div>
+                {/* Notes */}
+                <div className="space-y-2">
+                    <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Observation Log</label>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Record behavioral observations..."
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white/20 transition-all placeholder-gray-600 min-h-[100px] resize-none text-sm font-mono"
+                    />
+                </div>
 
-                    <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-cyan-900/20 disabled:opacity-50 ${loading ? 'cursor-not-allowed' : ''}`}
-                        >
-                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FaCheck />}
-                            Save Log
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onClose}
+                        disabled={loading}
+                    >
+                        DISCARD
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={loading}
+                        className="min-w-[140px]"
+                    >
+                        {loading ? 'SAVING...' : 'COMMIT LOG'}
+                    </Button>
+                </div>
+            </form>
+        </Modal>
     );
 }

@@ -1,5 +1,6 @@
 import './global.css'
 import { AuthProvider } from '@/context/AuthContext'
+import { ToastProvider } from '@/context/ToastContext'
 
 export const metadata = {
     title: 'Taskey | Neural Task Orchestration',
@@ -13,7 +14,9 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body suppressHydrationWarning>
                 <AuthProvider>
-                    {children}
+                    <ToastProvider>
+                        {children}
+                    </ToastProvider>
                 </AuthProvider>
             </body>
         </html>

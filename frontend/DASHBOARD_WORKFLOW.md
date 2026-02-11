@@ -1,78 +1,50 @@
-# Dashboard Implementation Workflow
+# 🚀 Frontend Dashboard Workflow
 
-## Phase D-0 – Analysis
-- [x] Reviewed all dashboard routes
-- [x] Reviewed all controllers
-- [x] Identified FREE vs PRO limitations
-- [x] Mapped backend routes to frontend pages
+## Phase FD-1 – API Client Architecture
+- [ ] Setup Axios instance with `withCredentials: true`
+- [ ] Implement Response Interceptor for Global Error Handling
+- [ ] Implement Silent Refresh Logic (401 -> /refresh-token -> retry)
+- [ ] Ensure No LocalStorage for Tokens
 
-## Phase D-1 – Core Dashboard
-- [x] Overview page (/dashboard)
-- [x] Today dashboard
-- [x] Weekly dashboard
-- [x] Monthly dashboard
+## Phase FD-2 – Dashboard Layout & Structure
+- [ ] Create `src/app/(dashboard)/layout.jsx`
+- [ ] Implement Sidebar Component (Responsive)
+- [ ] Implement Topbar Component (User Profile, Credits)
+- [ ] Define Navigation Links (Overview, Tasks, Schedule, Behavior, AI, Billing)
 
-## Phase D-2 – Streaks & Performance
-- [x] Streak overview
-- [x] Streak calendar
-- [x] Daily performance
-- [x] Weekly performance
-- [x] Monthly performance
+## Phase FD-3 – Dashboard Overview (`/dashboard`)
+- [ ] Integrate `GET /api/dashboard/overview`
+- [ ] Integrate `GET /api/usage/me`
+- [ ] Integrate `GET /api/auth/me` (Profile)
+- [ ] Display Stats Cards (Tasks, Schedules, Behavior)
+- [ ] Display Credit Balance & Plan Badge
 
-## Phase D-3 – Tasks
-- [x] Create task
-- [x] List tasks
-- [x] Update task
-- [x] Delete task
-- [x] Task completion
-- [x] Bulk completion
-- [x] Completion history
+## Phase FD-4 – Task Management (`/dashboard/tasks`)
+- [x] Task List View (Pagination, Filtering)
+- [x] Create Task Modal (Limit check for Free Plan)
+- [x] Edit/Delete Task Actions
+- [x] Task Completion Toggle
+- [x] Integrate `GET`, `POST`, `PUT`, `DELETE` /api/tasks
 
-## Phase D-4 – Schedules
-- [x] Create schedule
-- [x] List schedules
-- [x] Update schedule
-- [x] Delete schedule
-- [x] Schedule completion
-- [x] Bulk completion
-- [x] Completion history
+## Phase FD-5 – Schedule Management (`/dashboard/schedule`)
+- [x] Calendar View Integration
+- [x] Create Schedule Modal (Recurrence support)
+- [x] Schedule Completion/Undo
+- [x] Integrate Schedule APIs
 
-## Phase D-5 – Calendar
-- [x] Day calendar
-- [x] Week calendar
-- [x] Month calendar
-- [x] Calendar event creation
-- [x] Drag and drop events (Future)
-- [x] Recurring event support
+## Phase FD-6 – AI Assistant (`/dashboard/ai`)
+- [x] Chat Interface (WebSocket/Polling or Revalidation)
+- [x] Voice Input Component (Recorder)
+- [x] Credit Cost Display (Pre-action check)
+- [x] Integrate `POST /api/ai/conversations` & Messages
 
-## Phase D-6 – Behavior (AI Scoring)
-- [x] Upsert behavior
-- [x] Get behavior by date
-- [x] Behavior summary
-- [x] Explain score
-- [x] Behavior chart visualization
+## Phase FD-7 – Billing & Plans (`/dashboard/billing`)
+- [x] Pricing Table (Free vs Pro vs Pro Plus)
+- [x] Upgrade Flow (Razorpay Integration)
+- [x] Usage Progress Bars
+- [x] Helper: Credit Cost Table
 
-## Phase D-7 – AI Conversations
-- [x] Conversation list
-- [x] Create conversation
-- [x] Send message
-- [x] Receive (stream) message
-- [x] Markdown rendering
-- [x] Chat UI components (bubbles, input)pload
-
-## Phase D-8 – Billing
-- [x] Subscribe
-- [x] Cancel subscription
-- [x] Downgrade
-- [x] View current plan
-- [x] Usage stats visualizationts UI
-
-## Phase D-9 – Public Pages
-- [x] Contact us form
-
-## Phase D-10 – Final Review
-- [x] All routes connected
-- [x] Auth middleware respected
-- [x] Usage limits handled
-- [x] Errors handled gracefully
-- [x] No unused routes/components
+## Phase FD-8 – Global Error Handling & UX
+- [ ] Toast Notification System
+- [ ] Skeletons & Loading States
+- [ ] 403 Permission Denied Screens
