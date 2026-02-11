@@ -25,6 +25,12 @@ const scheduleService = {
         const response = await api.delete(`/schedule/${id}`);
         return response.data;
     },
+
+    // Complete Schedule
+    completeSchedule: async (id) => {
+        const response = await api.post(`/scheduleCompletion/${id}/complete`);
+        return response.data;
+    },
 };
 
 export default scheduleService;
