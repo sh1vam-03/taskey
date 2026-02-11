@@ -9,11 +9,13 @@ This module details the public-facing endpoints of the Taskey application. These
 ## 1. System Health Check
 **Endpoint:** `GET /health`
 
-Used by load balancers, uptime monitors (like UptimeRobot), and container orchestrators (Kubernetes/Docker) to verify the application's operational status.
+**Access:** Private (Admin Only)
+
+Used by internal monitoring tools.
 
 ### Usage
 ```bash
-curl -X GET http://localhost:5000/api/health
+curl -X GET http://localhost:5000/api/health -H "Authorization: Bearer <token>"
 ```
 
 ### Response
@@ -27,7 +29,7 @@ curl -X GET http://localhost:5000/api/health
 ---
 
 ## 2. Contact Support
-**Endpoint:** `POST /public-pages/contact-us`
+**Endpoint:** `POST /publicPages/contact-us`
 
 Allows visitors (unauthenticated users) to submit support inquiries or messages directly from the landing page.
 

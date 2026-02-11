@@ -36,7 +36,31 @@ Stops auto-renewal. Access continues until the cycle end.
 - **URL:** `/cancel`
 - **Method:** `POST`
 
-## 3. Webhooks (Razorpay)
-**URL:** `/api/webhook/razorpay`
-- Handles `subscription.activated`, `invoice.payment_paid`, `subscription.cancelled`, `invoice.payment_failed`.
-- Updates `User.plan` and `User.aiTokenBalance`.
+## 3. Downgrade Plan
+Downgrade to a lower tier (effective at end of cycle).
+- **URL:** `/downgrade`
+- **Method:** `POST`
+- **Body:** `{"newPlan": "PRO"}`
+
+## 4. Get Current Subscription
+- **URL:** `/current`
+- **Method:** `GET`
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "plan": "PRO",
+      "isActive": true,
+      "billingCycle": "MONTHLY"
+    }
+  }
+  ```
+
+---
+
+## 5. Webhooks (Razorpay)
+**Endpoint:** `POST /api/webhook/razorpay`
+- **Access:** Public (Signature Verified)
+- Handles `subscription.charged`, `subscription.cancelled`, `payment.captured`.
+- Updates `User.plan` and subscription status automatically.

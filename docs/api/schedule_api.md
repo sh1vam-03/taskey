@@ -20,7 +20,9 @@ Time-block a task.
     "scheduleDate": "2024-05-21",
     "startTime": "09:00",
     "endTime": "10:30",
-    "recurrence": "NONE" // DAILY, WEEKLY, MONTHLY
+    "recurrence": "NONE", // NONE, DAILY, WEEKLY, MONTHLY
+    "repeatUntil": "2024-06-21", // Required if recurrence != NONE
+    "repeatOnDays": [] // [1, 3, 5] (Mon, Wed, Fri) - Required if recurrence == WEEKLY
   }
   ```
 

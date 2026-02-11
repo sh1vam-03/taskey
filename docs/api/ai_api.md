@@ -4,36 +4,110 @@ Base URL: `/api/ai`
 
 ## Middleware
 - `authMiddleware`
-- `requireAiTokens(type)`: checks if the user has enough tokens BEFORE processing.
+- `usageLimit` (Internal checks may apply)
 
 ---
 
-## 1. Chat with Assistant
-Ask questions or get advice. Context (Tasks/Schedule) is automatically injected.
-- **URL:** `/chat`
+## 1. Create Conversation (Start Chat)
+Start a new conversation context or simply start tracking a new thread.
+- **URL:** `/conversations`
 - **Method:** `POST`
-- **Headers:** `Authorization: Bearer <token>`
 - **Body:**
   ```json
   {
-    "prompt": "What should I focus on today?"
+    "message": "Help me plan my day" // Optional: If provided, sends first message immediately
   }
   ```
-- **Estimate Cost:** ~10-100 tokens depending on usage.
 - **Response:**
   ```json
   {
     "success": true,
     "data": {
-      "reply": "Based on your schedule, you have a meeting at 2PM...",
-      "tokensUsed": 45
+      "conversation": {
+        "id": "uuid",
+        "title": "Help me plan my day...",
+        "createdAt": "..."
+      },
+      "message": { // Only if message was provided in body
+        "role": "assistant",
+        "content": "Sure! Here is your plan..."
+      }
     }
   }
   ```
 
-## 2. Voice Assistant (Simulated)
-Process voice duration (future capability).
-- **URL:** `/voice`
+## 2. Get All Conversations
+Retrieve list of past conversations (history).
+- **URL:** `/conversations`
+- **Method:** `GET`
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "data": [
+      { "id": "uuid", "title": "...", "updatedAt": "..." }
+    ]
+  }
+  ```
+
+## 3. Get Single Conversation
+- **URL:** `/conversations/:id`
+- **Method:** `GET`
+
+## 4. Get Messages
+Retrieve chat history for a specific conversation.
+- **URL:** `/conversations/:id/messages`
+- **Method:** `GET`
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "data": [
+      { "role": "user", "content": "Hi" },
+      { "role": "assistant", "content": "Hello!" }
+    ]
+  }
+  ```
+
+## 5. Send Message
+Continue an existing conversation.
+- **URL:** `/conversations/:id/message`
 - **Method:** `POST`
-- **Body:** `{"durationSeconds": 10}`
-- **Cost:** 5 tokens per second.
+- **Body:**
+  ```json
+  {
+    "message": "Add a task to buy milk"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "role": "assistant",
+      "content": "I have added 'Buy Milk' to your tasks."
+    }
+  }
+  ```
+
+## 6. Delete Conversation
+- **URL:** `/conversations/:id`
+- **Method:** `DELETE`
+
+## 7. Voice Assistant
+Process voice audio blob for a conversation.
+- **URL:** `/conversations/:id/voice`
+- **Method:** `POST`
+- **Headers:** `Content-Type: multipart/form-data`
+- **Body:** `audio` (File)
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "data": {
+       "transcription": "What is on my calendar?",
+       "reply": "You have a meeting at 2 PM.",
+       "audioUrl": "http://.../response.mp3" // Logic for TTS response
+    }
+  }
+  ```

@@ -26,16 +26,43 @@ Base URL: `/api/tasks`
 ## 2. Get Tasks
 - **URL:** `/`
 - **Method:** `GET`
-- **Query Params:** `categoryId`, `priority`, `isArchived`, `search`
+- **Query Params:**
+  - `categoryId`: Filter by category UUID
+  - `priority`: `LOW`, `MEDIUM`, `HIGH`
+  - `isArchived`: `true` or `false`
+  - `search`: Search term for title
+  - `page`: Page number (default 1)
+  - `limit`: Items per page (default 10)
+  - `sortBy`: Field to sort by (default `createdAt`)
+  - `sortOrder`: `asc` or `desc` (default `desc`)
+
 - **Response:**
   ```json
   {
-    "success": true,
-    "data": [ { "id": "...", "title": "..." } ]
+    "tasks": [
+      {
+        "id": "...",
+        "title": "...",
+        "priority": "HIGH",
+        "category": { ... }
+      }
+    ],
+    "meta": {
+      "total": 50,
+      "page": 1,
+      "limit": 10,
+      "totalPages": 5
+    }
   }
   ```
 
-## 3. Update Task
+
+## 3. Get Single Task
+- **URL:** `/:id`
+- **Method:** `GET`
+- **Response:** Single task object.
+
+## 4. Update Task
 - **URL:** `/:id`
 - **Method:** `PUT`
 - **Body:** Partial task object.
