@@ -1,12 +1,8 @@
-import express from "express";
-import { razorpayWebhook } from "../controllers/webhook.controller.js";
+import { Router } from "express";
+import { handleRazorpayWebhook } from "../controllers/webhook.controller.js";
 
-const router = express.Router();
+const router = Router();
 
-router.post(
-    "/razorpay",
-    express.raw({ type: "application/json" }),
-    razorpayWebhook
-);
+router.post("/razorpay", handleRazorpayWebhook);
 
 export default router;
