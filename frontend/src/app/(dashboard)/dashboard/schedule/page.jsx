@@ -7,8 +7,11 @@ import ScheduleModal from './ScheduleModal';
 import { startOfWeek, endOfWeek, addDays, format, subWeeks, addWeeks, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
+import { useToast } from '@/context/ToastContext';
 
 export default function SchedulePage() {
+    const { success } = useToast();
     const [view, setView] = useState('WEEK');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState([]);
@@ -180,19 +183,17 @@ export default function SchedulePage() {
             </div>
 
             {loading && events.length === 0 ? (
-                <div className="h-[600px] flex items-center justify-center rounded-xl border border-white/10 bg-black/50">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-                        <p className="text-gray-500 font-mono text-sm animate-pulse">SYNCING TEMPORAL DATA...</p>
-                    </div>
-                </div>
+                <SkeletonLoader type="calendar-grid" className="min-h-[600px]" />
             ) : renderWeekView()}
 
             <ScheduleModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 selectedDate={selectedDate}
-                onScheduleSaved={fetchEvents}
+                onScheduleSaved={() => {
+                    fetchEvents();
+                    success("Temporal block allocated");
+                }}
             />
         </div>
     );

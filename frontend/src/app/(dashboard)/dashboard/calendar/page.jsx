@@ -4,8 +4,10 @@ import calendarService from "@/services/calendar.service";
 import ScheduleModal from "@/components/dashboard/ScheduleModal";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaChevronLeft, FaChevronRight, FaPlus } from "react-icons/fa";
+import { useToast } from "@/context/ToastContext";
 
 export default function CalendarPage() {
+    const { success } = useToast();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState([]); // [{ date: '2023-10-01', title: '...', type: '...' }]
     const [loading, setLoading] = useState(true);
@@ -121,14 +123,14 @@ export default function CalendarPage() {
 
                                 <div className="mt-1 space-y-1 overflow-y-auto max-h-[70px] no-scrollbar">
                                     {loading ? (
-                                        <div className="h-2 w-12 bg-white/5 rounded animate-pulse" />
+                                        <SkeletonLoader className="h-2 w-12" />
                                     ) : (
                                         dayEvents.map(event => (
                                             <div
                                                 key={event.id}
                                                 className={`text-[10px] px-1.5 py-0.5 rounded truncate border ${event.type === 'SCHEDULE'
-                                                        ? 'bg-cyan-900/30 text-cyan-200 border-cyan-500/20'
-                                                        : 'bg-red-900/30 text-red-200 border-red-500/20'
+                                                    ? 'bg-cyan-900/30 text-cyan-200 border-cyan-500/20'
+                                                    : 'bg-red-900/30 text-red-200 border-red-500/20'
                                                     }`}
                                                 title={event.title}
                                             >
@@ -156,6 +158,7 @@ export default function CalendarPage() {
                 scheduleToEdit={{ scheduleDate: selectedDateForModal }} // Pre-fill date
                 onScheduleSaved={() => {
                     fetchEvents(); // Refresh calendar
+                    success("Event scheduled successfully");
                 }}
             />
         </div>

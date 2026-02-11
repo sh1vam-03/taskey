@@ -5,8 +5,11 @@ import BehaviorLogModal from "@/components/dashboard/BehaviorLogModal";
 import { BrainCircuit, TrendingUp, Lightbulb, Activity, CheckCircle2, Clock } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import PerformanceChart from "@/components/dashboard/charts/PerformanceChart";
+import { useToast } from "@/context/ToastContext";
 
 export default function BehaviorPage() {
+    const { success } = useToast();
     const [summary, setSummary] = useState(null);
     const [todayLog, setTodayLog] = useState(null);
     const [explanation, setExplanation] = useState("");
@@ -122,42 +125,24 @@ export default function BehaviorPage() {
                 <div className="space-y-6">
                     {/* Trend Chart */}
                     <Card title="7-Day Trend Analysis" icon={TrendingUp}>
-                        {loading ? (
-                            <div className="h-48 flex items-end justify-between gap-2 px-2 opacity-50">
-                                {[1, 2, 3, 4, 5, 6, 7].map(i => (
-                                    <div key={i} className="w-full bg-white/5 rounded-t animate-pulse" style={{ height: `${Math.random() * 80 + 20}%` }} />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="h-64 flex items-end justify-between gap-3 px-2 pt-8 pb-2">
-                                {(summary?.history || []).length > 0 ? (
-                                    (summary?.history || []).map((day, idx) => (
-                                        <div key={idx} className="flex flex-col items-center gap-3 group w-full h-full justify-end">
-                                            <div
-                                                className={`
-                                                    w-full rounded-t transition-all duration-500 hover:opacity-80 relative group-hover:scale-110 origin-bottom
-                                                    ${getScoreColor(day.score || 0).replace('text-', 'bg-').split(' ')[0]}
-                                                `}
-                                                style={{ height: `${Math.max(day.score || 5, 5)}%` }}
-                                            >
-                                                {/* Tooltip */}
-                                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black border border-white/20 px-2 py-1 rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                                                    Score: {day.score}
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] text-gray-500 font-mono border-t border-white/10 pt-2 w-full text-center">
-                                                {new Date(day.date).getDate()}
-                                            </span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 border border-dashed border-white/10 rounded-lg">
-                                        <TrendingUp className="h-8 w-8 mb-2 opacity-20" />
-                                        <p className="text-xs">Insufficient trend data</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <div className="h-64 mt-4">
+                            {loading ? (
+                                <div className="h-full flex items-end justify-between gap-2 px-2 opacity-50 animate-pulse">
+                                    {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                                        <div key={i} className="w-full bg-white/5 rounded-t" style={{ height: `${Math.random() * 80 + 20}%` }} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <PerformanceChart
+                                    data={summary?.history || []}
+                                    type="area"
+                                    dataKey="score"
+                                    xAxisKey="date"
+                                    height={250}
+                                    color="#06b6d4"
+                                />
+                            )}
+                        </div>
                     </Card>
 
                     {/* Stats Grid */}
@@ -189,7 +174,10 @@ export default function BehaviorPage() {
             <BehaviorLogModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onLogSaved={fetchData}
+                onLogSaved={() => {
+                    fetchData();
+                    success("Behavioral log committed");
+                }}
                 currentLog={todayLog}
             />
         </div>

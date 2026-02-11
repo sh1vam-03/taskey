@@ -19,14 +19,19 @@ import TaskModal from './TaskModal';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import { useToast } from '@/context/ToastContext';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
 export default function TasksPage() {
+    const { success, error } = useToast();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState(null);
     const [usage, setUsage] = useState(null);
     const [filter, setFilter] = useState('ALL');
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, taskId: null });
 
     const fetchTasks = useCallback(async () => {
         setLoading(true);
@@ -58,21 +63,36 @@ export default function TasksPage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm("Delete this task?")) return;
+    const confirmDelete = (task) => {
+        setDeleteModal({ isOpen: true, taskId: task.id });
+    };
+
+    const handleDelete = async () => {
         try {
-            await taskService.deleteTask(id);
+            await taskService.deleteTask(deleteModal.taskId);
+            setDeleteModal({ isOpen: false, taskId: null });
             fetchTasks();
+            success("Objective deleted successfully");
         } catch (err) {
             console.error("Delete failed", err);
+            error("Failed to delete objective");
         }
     };
+
+    // Correcting the logic above in the actual implementation block below:
+
+    /* 
+       Actually, I need to use the toast object returned from useToast().
+       My ToastContext returns: { addToast, success, error, ... }
+       So: const toast = useToast();
+       toast.success("Task deleted");
+    */
 
     const handleToggleComplete = async (task) => {
         const today = new Date().toISOString().split('T')[0];
         try {
             await taskService.completeTask(task.id, today);
-            fetchTasks(); // Refresh to get updated state
+            fetchTasks();
         } catch (err) {
             console.error("Completion toggle error", err);
         }
@@ -133,9 +153,7 @@ export default function TasksPage() {
                 {/* Task List */}
                 <div className="space-y-1 mt-6">
                     {loading ? (
-                        [1, 2, 3].map(i => (
-                            <div key={i} className="h-20 rounded bg-white/5 animate-pulse border border-white/5" />
-                        ))
+                        <SkeletonLoader type="list" />
                     ) : filteredTasks.length > 0 ? (
                         filteredTasks.map(task => (
                             <div
@@ -180,7 +198,7 @@ export default function TasksPage() {
                                         <Edit2 className="h-4 w-4" />
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(task.id)}
+                                        onClick={() => confirmDelete(task)}
                                         className="p-2 hover:bg-red-500/10 rounded-md text-gray-500 hover:text-red-400 transition-colors"
                                         title="Delete Task"
                                     >
@@ -210,8 +228,21 @@ export default function TasksPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 taskToEdit={taskToEdit}
-                onTaskSaved={fetchTasks}
+                onTaskSaved={() => {
+                    fetchTasks();
+                    success(taskToEdit ? "Objective updated" : "Objective initialized");
+                }}
                 categories={[]}
+            />
+
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, taskId: null })}
+                onConfirm={handleDelete}
+                title="Delete Objective"
+                message="Are you sure you want to delete this task? This action cannot be undone."
+                confirmText="Delete Task"
+                variant="danger"
             />
         </div>
     );

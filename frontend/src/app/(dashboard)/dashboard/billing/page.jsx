@@ -7,6 +7,10 @@ import { Check, CreditCard, Shield, Zap, Sparkles, TrendingUp } from 'lucide-rea
 import usageService from '@/services/usage.service';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { useToast } from '@/context/ToastContext';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
+import RazorpayScript from '@/components/RazorpayScript';
 
 const PLANS = [
     {
@@ -54,11 +58,13 @@ const PLANS = [
 ];
 
 export default function BillingPage() {
+    const { toast, success, error, info } = useToast();
     const { user, loading: authLoading } = useAuth();
     const [currentSub, setCurrentSub] = useState(null);
     const [usage, setUsage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [cancelModal, setCancelModal] = useState(false);
 
     useEffect(() => {
         const loadData = async () => {
@@ -91,40 +97,46 @@ export default function BillingPage() {
                 name: "Taskey AI",
                 description: `${planId.replace('_', ' ')} Subscription`,
                 handler: async function (response) {
-                    alert("Payment Successful! System upgrading...");
-                    window.location.reload();
+                    success("Payment Successful! System upgrading...");
+                    setTimeout(() => window.location.reload(), 2000);
                 },
                 modal: {
                     ondismiss: function () {
                         setProcessing(false);
                     }
                 },
-                theme: { color: "#000000" }
+                theme: { color: "#06b6d4" }
             };
 
             const rzp = new window.Razorpay(options);
             rzp.open();
         } catch (err) {
             console.error(err);
-            alert("Subscription initialization failed.");
+            error("Subscription initialization failed. Check console.");
             setProcessing(false);
         }
     };
 
     const handleCancel = async () => {
-        if (!confirm("Confirm cancellation? Pro capabilities will be terminated at cycle end.")) return;
         try {
             await billingService.cancelSubscription();
-            window.location.reload();
+            setCancelModal(false);
+            success("Cancellation scheduled. Access remains until cycle end.");
+            setTimeout(() => window.location.reload(), 2000);
         } catch (err) {
             console.error(err);
-            alert("Cancellation failed.");
+            error("Cancellation failed. Please try again.");
         }
     };
 
     if (loading || authLoading) return (
-        <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+        <div className="space-y-6">
+            <SkeletonLoader type="card" className="h-48" />
+            <div className="grid gap-6 lg:grid-cols-3">
+                <SkeletonLoader type="card" className="h-96" />
+                <SkeletonLoader type="card" className="h-96" />
+                <SkeletonLoader type="card" className="h-96" />
+            </div>
         </div>
     );
 
@@ -132,6 +144,7 @@ export default function BillingPage() {
 
     return (
         <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <RazorpayScript />
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
                     <CreditCard className="h-8 w-8 text-cyan-500" />
@@ -172,7 +185,7 @@ export default function BillingPage() {
                         <Button
                             variant="scanline"
                             size="sm"
-                            onClick={handleCancel}
+                            onClick={() => setCancelModal(true)}
                             className="text-red-400 hover:text-red-300 border-red-500/30 hover:bg-red-500/10"
                         >
                             TERMINATE SUBSCRIPTION
@@ -240,6 +253,16 @@ export default function BillingPage() {
                     );
                 })}
             </div>
+
+            <ConfirmationModal
+                isOpen={cancelModal}
+                onClose={() => setCancelModal(false)}
+                onConfirm={handleCancel}
+                title="Terminate Subscription"
+                message="Are you sure you want to cancel your Pro capabilities? Your access will remain active until the end of the current billing cycle."
+                confirmText="Confirm Cancellation"
+                variant="danger"
+            />
         </div>
     );
 }

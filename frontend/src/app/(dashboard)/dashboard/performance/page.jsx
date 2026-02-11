@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import dashboardService from "@/services/dashboard.service";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaChartBar, FaChartLine, FaChartPie } from "react-icons/fa";
+import PerformanceChart from "@/components/dashboard/charts/PerformanceChart";
 
 export default function PerformancePage() {
     const [view, setView] = useState("daily"); // daily, weekly, monthly
@@ -116,18 +117,32 @@ export default function PerformancePage() {
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
                             </div>
                         ) : (
-                            <div className="text-center">
-                                <FaChartBar className="mx-auto text-6xl text-gray-700/50 mb-4" />
-                                <p className="text-gray-500">
-                                    Visual charts will be rendered here based on
-                                    <span className="font-mono text-cyan-500 mx-2">
-                                        {view.toUpperCase()}
-                                    </span>
-                                    data.
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2 max-w-md mx-auto">
-                                    (Chart library integration required for rich visualization. Displaying raw metrics above.)
-                                </p>
+                            <div className="w-full h-full min-h-[400px]">
+                                {view === 'daily' && (
+                                    <PerformanceChart
+                                        data={data?.hourly || []}
+                                        type="bar"
+                                        xAxisKey="time"
+                                        height={400}
+                                    />
+                                )}
+                                {view === 'weekly' && (
+                                    <PerformanceChart
+                                        data={data?.daily || []}
+                                        type="bar"
+                                        xAxisKey="day"
+                                        height={400}
+                                    />
+                                )}
+                                {view === 'monthly' && (
+                                    <PerformanceChart
+                                        data={data?.history || []}
+                                        type="area"
+                                        dataKey="completionRate"
+                                        xAxisKey="date"
+                                        height={400}
+                                    />
+                                )}
                             </div>
                         )}
                     </div>

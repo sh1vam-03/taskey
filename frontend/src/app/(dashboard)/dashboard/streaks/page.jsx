@@ -118,25 +118,42 @@ export default function StreaksPage() {
                             {(!calendarData || calendarData.length === 0) ? (
                                 <p className="text-center text-gray-500 py-8">No activity data available yet.</p>
                             ) : (
-                                <div className="grid grid-rows-7 grid-flow-col gap-2 w-max">
-                                    {/* Flatten days for mapping or verify structure. 
-                                        If 'calendarData' is just a list of active dates, we map last 365 days.
-                                        For this MVP, let's assume we render the last 3 months.
-                                    */}
-                                    {/* Placeholder visualization for now as we don't have the exact data shape documented.
-                                        We will list recent activity instead if visual graph is too complex without libs.
-                                        Actually, let's list the recent active dates directly for clarity.
-                                    */}
-                                    <div className="text-gray-400 text-sm">
-                                        Visual heatmap requires a dedicated library (e.g., react-calendar-heatmap).
-                                        For now, here represent your recent active days:
-                                        <div className="flex flex-wrap gap-2 mt-4">
-                                            {calendarData.map((day, idx) => (
-                                                <div key={idx} className="bg-cyan-900/30 border border-cyan-500/30 text-cyan-200 px-3 py-1 rounded text-xs font-mono">
-                                                    {day.date || day} {/* Adjust based on actual API response */}
-                                                </div>
-                                            ))}
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex flex-wrap gap-1 max-w-4xl">
+                                        {/* 
+                                           Assuming calendarData is array of { date: 'YYYY-MM-DD', count: 5 } 
+                                           We render a simple grid of squares.
+                                        */}
+                                        {calendarData.map((day, idx) => {
+                                            const intensity = Math.min(day.count || 0, 4); // 0-4 scale
+                                            const colors = [
+                                                'bg-white/5',           // 0
+                                                'bg-cyan-900/40',       // 1
+                                                'bg-cyan-700/60',       // 2
+                                                'bg-cyan-500/80',       // 3
+                                                'bg-cyan-400'           // 4
+                                            ];
+
+                                            // Tooltip logic would be nice, but simple title attribute works for now
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`w-4 h-4 rounded-sm ${colors[intensity]} hover:ring-1 ring-white/50 transition-all`}
+                                                    title={`${day.date}: ${day.count} tasks`}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-500 font-mono">
+                                        <span>LESS</span>
+                                        <div className="flex gap-1">
+                                            <div className="w-3 h-3 rounded-sm bg-white/5" />
+                                            <div className="w-3 h-3 rounded-sm bg-cyan-900/40" />
+                                            <div className="w-3 h-3 rounded-sm bg-cyan-700/60" />
+                                            <div className="w-3 h-3 rounded-sm bg-cyan-500/80" />
+                                            <div className="w-3 h-3 rounded-sm bg-cyan-400" />
                                         </div>
+                                        <span>MORE</span>
                                     </div>
                                 </div>
                             )}

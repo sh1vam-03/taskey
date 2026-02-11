@@ -7,8 +7,12 @@ import { Bot, Mic, Send, Plus, MessageSquare, Trash2, StopCircle, Sparkles, Brai
 import ReactMarkdown from 'react-markdown';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { useToast } from '@/context/ToastContext';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
 export default function AIPage() {
+    const { toast, success, error, info } = useToast();
     const { user, refreshProfile } = useAuth();
     const [conversations, setConversations] = useState([]);
     const [currentConv, setCurrentConv] = useState(null);
@@ -19,6 +23,7 @@ export default function AIPage() {
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const messagesEndRef = useRef(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
     useEffect(() => {
         loadConversations();
@@ -72,18 +77,24 @@ export default function AIPage() {
         }
     };
 
-    const handleDeleteChat = async (e, id) => {
+    const confirmDeleteChat = (e, id) => {
         e.stopPropagation();
-        if (!confirm("Delete this chat?")) return;
+        setDeleteModal({ isOpen: true, id });
+    };
+
+    const handleDeleteChat = async () => {
         try {
-            await aiService.deleteConversation(id);
-            const updated = conversations.filter(c => c.id !== id);
+            await aiService.deleteConversation(deleteModal.id);
+            const updated = conversations.filter(c => c.id !== deleteModal.id);
             setConversations(updated);
-            if (currentConv?.id === id) {
+            if (currentConv?.id === deleteModal.id) {
                 setCurrentConv(updated[0] || null);
             }
+            setDeleteModal({ isOpen: false, id: null });
+            success("Conversation deleted");
         } catch (err) {
             console.error(err);
+            error("Failed to delete conversation");
         }
     };
 
@@ -101,7 +112,7 @@ export default function AIPage() {
             if (refreshProfile) refreshProfile();
         } catch (err) {
             console.error(err);
-            alert("Failed to send message. Check credits.");
+            error("Failed to send message. Check credits.");
         } finally {
             setLoading(false);
         }
@@ -126,7 +137,7 @@ export default function AIPage() {
             setIsRecording(true);
         } catch (err) {
             console.error("Mic error", err);
-            alert("Microphone access denied");
+            error("Microphone access denied");
         }
     };
 
@@ -157,7 +168,7 @@ export default function AIPage() {
             if (refreshProfile) refreshProfile();
         } catch (err) {
             console.error(err);
-            alert("Voice processing failed. Check credits.");
+            error("Voice processing failed. Check credits.");
         } finally {
             setLoading(false);
         }
@@ -172,28 +183,34 @@ export default function AIPage() {
                         <Plus className="h-4 w-4" /> INITIALIZE_NEW_SESSION
                     </Button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                    {conversations.map(c => (
-                        <div
-                            key={c.id}
-                            onClick={() => setCurrentConv(c)}
-                            className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer text-sm mb-1 transition-all border border-transparent ${currentConv?.id === c.id
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 scroller">
+                    {conversations.length === 0 && loading ? (
+                        <div className="space-y-2">
+                            <SkeletonLoader type="list" />
+                        </div>
+                    ) : (
+                        conversations.map(c => (
+                            <div
+                                key={c.id}
+                                onClick={() => setCurrentConv(c)}
+                                className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer text-sm mb-1 transition-all border border-transparent ${currentConv?.id === c.id
                                     ? 'bg-white/10 text-white border-white/10 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
                                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                }`}
-                        >
-                            <div className="flex items-center gap-3 truncate">
-                                <MessageSquare className={`h-4 w-4 min-w-4 transition-colors ${currentConv?.id === c.id ? 'text-cyan-400' : 'text-gray-600'}`} />
-                                <span className="truncate font-mono text-xs tracking-wide">{c.title || "UNTITLED_SESSION"}</span>
-                            </div>
-                            <button
-                                onClick={(e) => handleDeleteChat(e, c.id)}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-500/20 hover:text-red-400 transition-all text-gray-500"
+                                    }`}
                             >
-                                <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                    ))}
+                                <div className="flex items-center gap-3 truncate">
+                                    <MessageSquare className={`h-4 w-4 min-w-4 transition-colors ${currentConv?.id === c.id ? 'text-cyan-400' : 'text-gray-600'}`} />
+                                    <span className="truncate font-mono text-xs tracking-wide">{c.title || "UNTITLED_SESSION"}</span>
+                                </div>
+                                <button
+                                    onClick={(e) => confirmDeleteChat(e, c.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-red-500/20 hover:text-red-400 transition-all text-gray-500"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        ))
+                    )}
                 </div>
             </Card>
 
@@ -271,8 +288,8 @@ export default function AIPage() {
                                 <button
                                     onClick={isRecording ? stopRecording : startRecording}
                                     className={`p-3 rounded-xl transition-all duration-300 border ${isRecording
-                                            ? 'bg-red-500/20 text-red-500 border-red-500/50 animate-pulse'
-                                            : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+                                        ? 'bg-red-500/20 text-red-500 border-red-500/50 animate-pulse'
+                                        : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
                                         }`}
                                     title={isRecording ? "Stop Recording" : "Start Voice (3 Credits)"}
                                 >
@@ -305,6 +322,16 @@ export default function AIPage() {
                     </>
                 )}
             </Card>
+
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, id: null })}
+                onConfirm={handleDeleteChat}
+                title="Delete Conversation"
+                message="Are you sure you want to delete this conversation history? This action cannot be undone."
+                confirmText="Delete Chat"
+                variant="danger"
+            />
         </div>
     );
 }
