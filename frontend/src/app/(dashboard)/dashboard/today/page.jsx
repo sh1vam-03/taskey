@@ -1,31 +1,108 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import dashboardService from "@/services/dashboard.service";
+import scheduleService from "@/services/schedule.service";
+import taskService from "@/services/task.service";
 import StatCard from "@/components/dashboard/StatCard";
 import TaskList from "@/components/dashboard/TaskList";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
-import { FaCheckCircle, FaClock, FaList } from "react-icons/fa";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import { FaCheckCircle, FaClock, FaList, FaPlus, FaCalendarDay } from "react-icons/fa";
 
 export default function TodayDashboardPage() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [isAddingTask, setIsAddingTask] = useState(false);
+
+    const fetchData = async () => {
+        try {
+            const result = await dashboardService.getToday();
+            setData(result);
+        } catch (err) {
+            console.error("Today fetch error:", err);
+            setError("Failed to load daily dashboard");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const result = await dashboardService.getToday();
-                setData(result);
-            } catch (err) {
-                console.error("Today fetch error:", err);
-                setError("Failed to load daily dashboard");
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, []);
+
+    const handleToggleSchedule = async (id, isCompleted) => {
+        try {
+            // Optimistic update
+            const updatedTimeline = data.timeline.map(item => {
+                if ((item.id === id || item.scheduleId === id) && item.type === 'SCHEDULED') {
+                    return { ...item, status: isCompleted ? 'COMPLETED' : 'PENDING' };
+                }
+                return item;
+            });
+            setData({ ...data, timeline: updatedTimeline });
+
+            if (isCompleted) {
+                await scheduleService.completeSchedule(id);
+            } else {
+                await scheduleService.undoCompleteSchedule(id);
+            }
+            // Refetch to ensure sync
+            fetchData();
+        } catch (err) {
+            console.error("Schedule toggle error:", err);
+            // Revert on error would be ideal, but for now just refetch
+            fetchData();
+        }
+    };
+
+    const handleToggleTask = async (id, isCompleted) => {
+        try {
+            // Optimistic update
+            const updatedTimeline = data.timeline.map(item => {
+                if ((item.id === id || item.taskId === id) && item.type === 'TASK') {
+                    return { ...item, status: isCompleted ? 'COMPLETED' : 'PENDING' };
+                }
+                return item;
+            });
+            setData({ ...data, timeline: updatedTimeline });
+
+            if (isCompleted) {
+                await taskService.completeTask(id);
+            } else {
+                await taskService.undoCompleteTask(id);
+            }
+            // Refetch to ensure sync
+            fetchData();
+        } catch (err) {
+            console.error("Task toggle error:", err);
+            // Revert on error
+            fetchData();
+        }
+    };
+
+    const handleQuickAdd = async (e) => {
+        e.preventDefault();
+        if (!newTaskTitle.trim()) return;
+
+        try {
+            setIsAddingTask(true);
+            await taskService.createTask({
+                title: newTaskTitle,
+                priority: "MEDIUM",
+                // Due date today
+                dueDate: new Date().toISOString()
+            });
+            setNewTaskTitle("");
+            fetchData();
+        } catch (err) {
+            console.error("Quick add error:", err);
+        } finally {
+            setIsAddingTask(false);
+        }
+    };
 
     if (error) {
         return (
@@ -47,9 +124,39 @@ export default function TodayDashboardPage() {
         category: item.type === 'SCHEDULED' ? 'SCHEDULED' : 'TASK'
     }));
 
+    const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
     return (
-        <div className="space-y-8">
-            <h1 className="text-2xl font-bold text-white mb-6">Today's Focus</h1>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Today's Focus</h1>
+                    <div className="flex items-center gap-2 text-gray-400 font-mono text-sm">
+                        <FaCalendarDay className="text-cyan-500" />
+                        <span>{todayDate}</span>
+                    </div>
+                </div>
+                {/* Quick Add */}
+                <form onSubmit={handleQuickAdd} className="flex items-center gap-2 w-full md:w-auto">
+                    <Input
+                        placeholder="Quick add task..."
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        className="w-full md:w-64 bg-white/5 border-white/10 text-white placeholder:text-gray-500 rounded-lg focus:ring-cyan-500/50"
+                        disabled={isAddingTask}
+                    />
+                    <Button
+                        type="submit"
+                        disabled={isAddingTask || !newTaskTitle.trim()}
+                        variant="primary"
+                        size="sm"
+                        className="shrink-0"
+                    >
+                        {isAddingTask ? <span className="animate-pulse">...</span> : <FaPlus />}
+                    </Button>
+                </form>
+            </div>
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -106,15 +213,32 @@ export default function TodayDashboardPage() {
                                             </span>
                                             {item.status && (
                                                 <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${item.status === 'COMPLETED' ? 'text-green-500/70 border-green-900/30' :
-                                                        item.status === 'MISSED' ? 'text-red-500/70 border-red-900/30' :
-                                                            'text-yellow-500/70 border-yellow-900/30'
+                                                    item.status === 'MISSED' ? 'text-red-500/70 border-red-900/30' :
+                                                        'text-yellow-500/70 border-yellow-900/30'
                                                     }`}>
                                                     {item.status}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
-                                    {/* Action Buttons could go here */}
+                                    <div className="flex items-center gap-2">
+                                        {/* Action Button */}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (item.type === 'SCHEDULED') {
+                                                    handleToggleSchedule(item.id, item.status !== 'COMPLETED');
+                                                } else {
+                                                    handleToggleTask(item.id, item.status !== 'COMPLETED');
+                                                }
+                                            }}
+                                            className={`transition-all ${item.status === 'COMPLETED' ? 'text-green-500 hover:text-red-400' : 'text-gray-500 hover:text-green-400'}`}
+                                            title={item.status === 'COMPLETED' ? "Undo Completion" : "Complete"}
+                                        >
+                                            <FaCheckCircle className={`h-5 w-5 ${item.status === 'COMPLETED' ? 'opacity-100' : 'opacity-20 hover:opacity-100'}`} />
+                                        </Button>
+                                    </div>
                                 </div>
                             ))
                         )}

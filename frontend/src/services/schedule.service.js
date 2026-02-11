@@ -31,6 +31,12 @@ const scheduleService = {
         const response = await api.post(`/scheduleCompletion/${id}/complete`);
         return response.data;
     },
+
+    // Undo Complete Schedule
+    undoCompleteSchedule: async (id) => {
+        const response = await api.delete(`/scheduleCompletion/${id}/complete`);
+        return response.data;
+    },
 };
 
 export default scheduleService;
