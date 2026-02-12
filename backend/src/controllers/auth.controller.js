@@ -258,6 +258,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
     res.status(200).json({
         success: true,
         message: "Session refreshed",
+        accessToken: result.accessToken,
     });
 });
 
