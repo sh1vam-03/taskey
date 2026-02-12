@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import behaviorService from "@/services/behavior.service";
 import BehaviorLogModal from "@/components/dashboard/BehaviorLogModal";
-import { BrainCircuit, TrendingUp, Lightbulb, Activity, CheckCircle2, Clock } from "lucide-react";
+import { BrainCircuit, TrendingUp, Lightbulb, Activity, CheckCircle2, Clock, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, subDays, addDays, isSameDay, parseISO } from 'date-fns';
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import PerformanceChart from "@/components/dashboard/charts/PerformanceChart";
@@ -11,23 +12,29 @@ import { useToast } from "@/context/ToastContext";
 export default function BehaviorPage() {
     const { success } = useToast();
     const [summary, setSummary] = useState(null);
-    const [todayLog, setTodayLog] = useState(null);
+    const [todayLog, setTodayLog] = useState(null); // Keeps track of today specifically for logging
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dayDetails, setDayDetails] = useState(null); // Data for the selected date
     const [explanation, setExplanation] = useState("");
     const [loading, setLoading] = useState(true);
+    const [detailsLoading, setDetailsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [chartPeriod, setChartPeriod] = useState(7);
 
-    const fetchData = async () => {
+    // Initial Load: Summary + Default Date (Today)
+    const loadInitialData = async () => {
         setLoading(true);
         try {
             const today = new Date().toISOString().split('T')[0];
             const [summaryData, logData, explainData] = await Promise.all([
-                behaviorService.getSummary(7),
+                behaviorService.getSummary(chartPeriod),
                 behaviorService.getBehaviorByDate(today).catch(() => null),
                 behaviorService.explainScore(today).catch(() => ({ explanation: "Not enough data for explanation yet." }))
             ]);
 
             setSummary(summaryData);
-            setTodayLog(logData);
+            setTodayLog(logData); // Cache today's log for the "Log" button
+            setDayDetails(logData); // Initially showing today
             setExplanation(explainData?.explanation || "No explanation available.");
         } catch (err) {
             console.error("Behavior fetch error:", err);
@@ -36,9 +43,55 @@ export default function BehaviorPage() {
         }
     };
 
+    // Date Selection Load: Details + Explanation only
+    const loadDayDetails = async (date) => {
+        setDetailsLoading(true);
+        try {
+            const [logData, explainData] = await Promise.all([
+                behaviorService.getBehaviorByDate(date).catch(() => null),
+                behaviorService.explainScore(date).catch(() => ({ explanation: "No data available for this date." }))
+            ]);
+            setDayDetails(logData);
+            setExplanation(explainData?.explanation || "No explanation available for this date.");
+        } catch (err) {
+            console.error("Day fetch error:", err);
+            setDayDetails(null);
+            setExplanation("Failed to load data.");
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        fetchData();
+        loadInitialData();
     }, []);
+
+    // Re-fetch summary when chart period changes
+    useEffect(() => {
+        if (!summary) return; // Don't run on first mount (handled by loadInitialData)
+        const updateSummary = async () => {
+            try {
+                const data = await behaviorService.getSummary(chartPeriod);
+                setSummary(data);
+            } catch (e) { console.error(e); }
+        };
+        updateSummary();
+    }, [chartPeriod]);
+
+    const handleDateSelect = (date) => {
+        setSelectedDate(date);
+        loadDayDetails(date);
+    };
+
+    const handleNextDay = () => {
+        const next = addDays(parseISO(selectedDate), 1);
+        if (next <= new Date()) handleDateSelect(format(next, 'yyyy-MM-dd'));
+    };
+
+    const handlePrevDay = () => {
+        const prev = subDays(parseISO(selectedDate), 1);
+        handleDateSelect(format(prev, 'yyyy-MM-dd'));
+    };
 
     // Helper to get color based on score
     const getScoreColor = (score) => {
@@ -48,7 +101,7 @@ export default function BehaviorPage() {
         return "text-red-500 border-red-500/50 shadow-red-900/50";
     };
 
-    const currentScore = todayLog?.score || 0;
+    const currentScore = dayDetails?.score || 0;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -97,10 +150,14 @@ export default function BehaviorPage() {
                             `}>
                                 <div className="text-center z-10">
                                     <span className={`text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
-                                        {currentScore}
+                                        {detailsLoading ? (
+                                            <span className="text-4xl animate-pulse">...</span>
+                                        ) : (
+                                            currentScore || 0
+                                        )}
                                     </span>
                                     <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
-                                        MAX CAPACITY
+                                        {selectedDate === new Date().toISOString().split('T')[0] ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
                                     </div>
                                 </div>
                             </div>
@@ -115,7 +172,7 @@ export default function BehaviorPage() {
                         <div className="flex items-start justify-center gap-3 text-gray-300 text-sm">
                             <Lightbulb className="text-yellow-500 shrink-0 mt-0.5 h-4 w-4" />
                             <p className="font-mono text-xs leading-relaxed">
-                                {loading ? "ANALYZING NEURAL PATTERNS..." : explanation}
+                                {loading || detailsLoading ? "ANALYZING NEURAL PATTERNS..." : explanation}
                             </p>
                         </div>
                     </div>
@@ -124,7 +181,26 @@ export default function BehaviorPage() {
                 {/* Trends & Stats */}
                 <div className="space-y-6">
                     {/* Trend Chart */}
-                    <Card title="7-Day Trend Analysis" icon={TrendingUp}>
+                    <Card
+                        title={`${chartPeriod}-Day Trend Analysis`}
+                        icon={TrendingUp}
+                        className="relative"
+                    >
+                        <div className="absolute top-4 right-4 flex bg-white/5 rounded-lg p-1 border border-white/5">
+                            <button
+                                onClick={() => setChartPeriod(7)}
+                                className={`px-3 py-1 text-xs rounded-md transition-all ${chartPeriod === 7 ? 'bg-cyan-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                7D
+                            </button>
+                            <button
+                                onClick={() => setChartPeriod(30)}
+                                className={`px-3 py-1 text-xs rounded-md transition-all ${chartPeriod === 30 ? 'bg-purple-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                30D
+                            </button>
+                        </div>
+
                         <div className="h-64 mt-4">
                             {loading ? (
                                 <div className="h-full flex items-end justify-between gap-2 px-2 opacity-50 animate-pulse">
@@ -139,9 +215,59 @@ export default function BehaviorPage() {
                                     dataKey="score"
                                     xAxisKey="date"
                                     height={250}
-                                    color="#06b6d4"
+                                    color={chartPeriod === 7 ? "#06b6d4" : "#a855f7"}
                                 />
                             )}
+                        </div>
+                    </Card>
+
+                    {/* Day Explorer / Date Picker */}
+                    <Card className="border-t-4 border-t-blue-500/50">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                <CalendarIcon className="h-5 w-5 text-blue-400" />
+                                Day Explorer
+                            </h2>
+                            <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1 border border-white/5">
+                                <button onClick={handlePrevDay} className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white">
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <span className="text-sm font-mono px-2 min-w-[100px] text-center">
+                                    {format(parseISO(selectedDate), 'MMM d, yyyy')}
+                                </span>
+                                <button
+                                    onClick={handleNextDay}
+                                    disabled={selectedDate >= new Date().toISOString().split('T')[0]}
+                                    className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-5 gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
+                            {Array.from({ length: 5 }).map((_, i) => {
+                                const date = subDays(new Date(), 4 - i);
+                                const dateStr = format(date, 'yyyy-MM-dd');
+                                const isSelected = selectedDate === dateStr;
+                                const isToday = isSameDay(date, new Date());
+
+                                return (
+                                    <button
+                                        key={dateStr}
+                                        onClick={() => handleDateSelect(dateStr)}
+                                        className={`
+                                            flex flex-col items-center p-2 rounded-lg border transition-all min-w-[60px]
+                                            ${isSelected
+                                                ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                                                : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'}
+                                        `}
+                                    >
+                                        <span className="text-[10px] uppercase font-bold">{isToday ? 'TDY' : format(date, 'EEE')}</span>
+                                        <span className={`text-lg font-mono ${isSelected ? 'text-blue-400' : ''}`}>{format(date, 'd')}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </Card>
 
@@ -153,7 +279,7 @@ export default function BehaviorPage() {
                                 <Clock className="h-4 w-4 text-purple-500" />
                             </div>
                             <div className="text-3xl font-bold text-white tracking-tight">
-                                {loading ? "-" : (todayLog?.focusHours || 0)}
+                                {detailsLoading ? <span className="text-lg animate-pulse">...</span> : (dayDetails?.focusHours || 0)}
                                 <span className="text-sm font-normal text-gray-500 ml-1">hrs</span>
                             </div>
                         </Card>
@@ -164,7 +290,7 @@ export default function BehaviorPage() {
                                 <CheckCircle2 className="h-4 w-4 text-cyan-500" />
                             </div>
                             <div className="text-3xl font-bold text-white tracking-tight">
-                                {loading ? "-" : (todayLog?.tasksCompleted || 0)}
+                                {detailsLoading ? <span className="text-lg animate-pulse">...</span> : (dayDetails?.tasksCompleted || 0)}
                             </div>
                         </Card>
                     </div>

@@ -64,7 +64,11 @@ export const getWeeklyDashboard = asyncHandler(async (req, res) => {
  */
 export const getMonthlyDashboard = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const { year, month } = req.query;
+    let { year, month } = req.query;
+
+    const today = new Date();
+    if (!year) year = today.getFullYear();
+    if (!month) month = today.getMonth() + 1; // 0-indexed in JS, 1-indexed in API
 
     const data = await dashboardService.getMonthlyDashboard(
         userId,
@@ -163,7 +167,11 @@ export const getWeeklyPerformance = asyncHandler(async (req, res) => {
  */
 export const getMonthlyPerformance = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const { year, month } = req.query;
+    let { year, month } = req.query;
+
+    const today = new Date();
+    if (!year) year = today.getFullYear();
+    if (!month) month = today.getMonth() + 1; // 0-indexed in JS, 1-indexed in API
 
     const data = await dashboardService.getMonthlyPerformance(
         userId,
