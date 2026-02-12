@@ -3,6 +3,7 @@ import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 import {
     signAccessToken,
     signRefreshToken,
+    verifyRefreshToken,
     generateJti,
 } from "../utils/jwt.js";
 import { generateOtp, hashOtp } from "../utils/otp.js";
@@ -152,13 +153,30 @@ export const login = async (email, password, userAgent, ipAddress, remember = fa
         .update(refreshToken)
         .digest("hex");
 
+    // 4. Create Session in DB
+    const sessionTokenVersion = generateJti(); // Unique session ID
+    // 4a. Update User tokenVersion to invalidate old sessions (Optional - strict single device)
+    // For multi-device, we just track sessions.
+
+    // We want to support multi-device, but let's stick to the plan. 
+    // Actually, usually we don't invalidate all sessions on login unless critical.
+    // But `tokenVersion` on User model implies single validity?
+    // middleware checks: `if (decoded.tokenVersion !== user.tokenVersion)`
+    // So currently it IS single device/session enforced by user logic.
+    // If we want to allow re-login without kicking out, we should increment only if we want to kick others.
+    // But let's follow the existing pattern if it works, or just fix the session expiry.
+
+    // Fix: Session expiry based on remember me
+    // Fix: Session expiry based on remember me
     await prisma.session.create({
         data: {
             accessTokenJti: jti,
             refreshTokenHash,
             userAgent,
             ipAddress,
-            expiresAt: addDays(new Date(), 21), // Fixed 21 days
+            expiresAt: remember
+                ? addDays(new Date(), 21)
+                : addMinutes(new Date(), 30), // Shorter session if not persistent
             isPersistent: remember,
             userId: user.id,
         },
@@ -435,7 +453,9 @@ export const refreshToken = async (refreshToken) => {
                 refreshTokenHash: newRefreshTokenHash,
                 userAgent: session.userAgent,
                 ipAddress: session.ipAddress,
-                expiresAt: addDays(new Date(), 21),
+                expiresAt: session.isPersistent
+                    ? addDays(new Date(), 21)
+                    : addMinutes(new Date(), 30),
                 isPersistent: session.isPersistent, // Persist "Remember Me"
                 userId: session.userId,
             },

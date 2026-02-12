@@ -77,28 +77,23 @@ export const login = asyncHandler(async (req, res) => {
         sameSite: COOKIE_SAMESITE,
     };
 
-    // Only set maxAge if persistent (Remember Me)
-    if (remember) {
-        accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
-    }
+    // Only set maxAge if persistent (Remember Me) -> NO, Access Token should ALWAYS expire
+    accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
 
     res.cookie("accessToken", result.accessToken, accessCookieOptions);
 
     // 2. Refresh Token Cookie (Controls Persistence)
-    const refreshTokenOptions = {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAMESITE,
-        path: "/",
-    };
-
-    if (result.isPersistent) {
-        refreshTokenOptions.maxAge = REFRESH_COOKIE_PERSISTENT_MAX_AGE;
+    // Fix: Only set refresh token if remember is true (Strict security)
+    if (remember) {
+        const refreshTokenOptions = {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+            maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
+        };
+        res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
     }
-
-    // If not remember, no maxAge -> Session Cookie
-
-    res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
 
     res.status(200).json({
         success: true,
@@ -232,28 +227,24 @@ export const refreshToken = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
+        maxAge: ACCESS_COOKIE_MAX_AGE, // Always set maxAge
     };
-
-    if (result.isPersistent) {
-        accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
-    }
 
     res.cookie("accessToken", result.accessToken, accessCookieOptions);
 
     // 2. Set New Refresh Token Cookie
-    const refreshTokenOptions = {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAMESITE,
-        path: "/",
-    };
-
-    // If persistent, set maxAge. If not, session cookie.
+    // If not persistent, we do NOT set a refresh token, but since we are in refresh flow, 
+    // it implies it was persistent. We respect the session state.
     if (result.isPersistent) {
-        refreshTokenOptions.maxAge = REFRESH_COOKIE_PERSISTENT_MAX_AGE;
+        const refreshTokenOptions = {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+            maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
+        };
+        res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
     }
-
-    res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
 
     res.status(200).json({
         success: true,
