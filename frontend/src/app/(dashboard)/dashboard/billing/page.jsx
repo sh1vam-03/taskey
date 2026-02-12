@@ -129,6 +129,19 @@ export default function BillingPage() {
         }
     };
 
+    const handleDowngrade = async (newPlanId) => {
+        setProcessing(true);
+        try {
+            await billingService.downgradePlan(newPlanId);
+            success(`Plan downgraded to ${newPlanId.replace('_', ' ')}. Effective next cycle.`);
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (err) {
+            console.error(err);
+            error("Downgrade failed. Please try again.");
+            setProcessing(false);
+        }
+    };
+
     if (loading || authLoading) return (
         <div className="space-y-6">
             <SkeletonLoader type="card" className="h-48" />
@@ -199,12 +212,29 @@ export default function BillingPage() {
                     <UsageBar label="Temporal Blocks" current={usage?.scheduleCount} max={usage?.limits?.schedule} color="indigo" />
                     <UsageBar label="Neural Actions" current={usage?.behaviorCount} max={usage?.limits?.behavior} color="purple" />
                 </div>
+
+                {/* Renewal Info */}
+                {currentSub?.nextBillingAt && (
+                    <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between text-xs font-mono text-gray-500">
+                        <span>BILLING CYCLE: {currentSub.billingCycle || 'MONTHLY'}</span>
+                        <span>RENEWAL: {new Date(currentSub.nextBillingAt).toLocaleDateString()}</span>
+                    </div>
+                )}
             </Card>
 
             {/* Pricing Section */}
             <div className="grid gap-6 lg:grid-cols-3">
                 {PLANS.map(plan => {
                     const isCurrent = currentPlanId === plan.id;
+
+                    // Determine Plan Rank for Logic
+                    const planRank = { 'FREE': 0, 'PRO': 1, 'PRO_PLUS': 2 };
+                    const currentRank = planRank[currentPlanId] || 0;
+                    const thisRank = planRank[plan.id];
+
+                    const isUpgrade = thisRank > currentRank;
+                    const isDowngrade = thisRank < currentRank;
+
                     const Icon = plan.icon;
                     return (
                         <Card
@@ -241,12 +271,17 @@ export default function BillingPage() {
 
                             <div className="p-6 pt-0 mt-auto">
                                 <Button
-                                    onClick={() => handleSubscribe(plan.id)}
-                                    disabled={isCurrent || processing || plan.id === 'FREE'}
+                                    onClick={() => {
+                                        if (isCurrent) return;
+                                        if (plan.id === 'FREE') setCancelModal(true); // Downgrade to Free = Cancel
+                                        else if (isDowngrade) handleDowngrade(plan.id);
+                                        else handleSubscribe(plan.id);
+                                    }}
+                                    disabled={isCurrent || processing}
                                     variant={isCurrent ? "ghost" : (plan.recommended ? "scanline" : "primary")}
                                     className={`w-full ${isCurrent ? 'opacity-50' : ''}`}
                                 >
-                                    {isCurrent ? 'SYSTEM ACTIVE' : (plan.id === 'FREE' ? 'DOWNGRADE' : (processing ? 'INITIALIZING...' : 'INITIALIZE UPGRADE'))}
+                                    {isCurrent ? 'SYSTEM ACTIVE' : (plan.id === 'FREE' ? 'DOWNGRADE TO FREE' : (isDowngrade ? 'DOWNGRADE' : (processing ? 'INITIALIZING...' : 'UPGRADE')))}
                                 </Button>
                             </div>
                         </Card>

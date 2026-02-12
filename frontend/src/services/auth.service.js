@@ -47,6 +47,11 @@ const authService = {
         const response = await api.post('/auth/verify-otp', { email, otp });
         return response.data;
     },
+
+    // Delete Account
+    deleteAccount: async () => {
+        await api.delete('/auth/me');
+    },
 };
 
 export default authService;
