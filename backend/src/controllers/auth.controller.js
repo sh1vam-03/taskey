@@ -93,6 +93,15 @@ export const login = asyncHandler(async (req, res) => {
             maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
         };
         res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
+    } else {
+        // Fix: Explicitly clear old refresh cookie if remember is false
+        // This prevents legacy persistent sessions from surviving a non-persistent login
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+        });
     }
 
     res.status(200).json({
@@ -244,6 +253,15 @@ export const refreshToken = asyncHandler(async (req, res) => {
             maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
         };
         res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
+    } else {
+        // Fix: Explicitly clear old refresh cookie if session is not persistent
+        // This handles edge cases where a session might have been persistent but logic changed
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+        });
     }
 
     res.status(200).json({
