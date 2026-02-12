@@ -18,7 +18,14 @@ export default function StreaksPage() {
                     dashboardService.getStreakCalendar()
                 ]);
                 setStreakData(streaks);
-                setCalendarData(calendar);
+
+                // Transform { "YYYY-MM-DD": boolean } to Array<{ date, count }>
+                const calendarArray = Object.entries(calendar || {}).map(([date, isPerfect]) => ({
+                    date,
+                    count: isPerfect ? 4 : 1  // 4=Perfect, 1=Active but not perfect
+                })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                setCalendarData(calendarArray);
             } catch (err) {
                 console.error("Streaks fetch error:", err);
                 setError("Failed to load streak data");
@@ -29,6 +36,55 @@ export default function StreaksPage() {
 
         fetchData();
     }, []);
+
+    // Milestones Logic
+    const getNextMilestone = (current) => {
+        const milestones = [7, 14, 30, 60, 90, 100, 365];
+        const next = milestones.find(m => m > current) || 365;
+        const progress = Math.min((current / next) * 100, 100);
+        return { next, progress, remaining: next - current };
+    };
+
+    // Insights Logic
+    const getInsights = () => {
+        if (!calendarData || calendarData.length === 0) return [];
+
+        let perfectCount = 0;
+        const dayCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }; // Sun-Sat
+
+        calendarData.forEach(d => {
+            if (d.count >= 4) {
+                perfectCount++;
+                const dayOfWeek = new Date(d.date).getDay();
+                dayCounts[dayOfWeek]++;
+            }
+        });
+
+        const insights = [];
+
+        // Consistency
+        const consistency = Math.round((perfectCount / calendarData.length) * 100) || 0;
+        if (consistency > 80) insights.push("You are unstoppable! Extremely consistent.");
+        else if (consistency > 50) insights.push("Building good habits. Keep it up!");
+        else insights.push("Try to perform tasks at least 3 days a week.");
+
+        // Best Day
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        let bestDayIndex = 0;
+        let maxCount = -1;
+        Object.entries(dayCounts).forEach(([day, count]) => {
+            if (count > maxCount) {
+                maxCount = count;
+                bestDayIndex = Number(day);
+            }
+        });
+
+        if (maxCount > 0) {
+            insights.push(`You are most productive on ${days[bestDayIndex]}s.`);
+        }
+
+        return insights;
+    };
 
     if (error) {
         return (
@@ -53,26 +109,29 @@ export default function StreaksPage() {
                 ) : (
                     <>
                         {/* Current Streak */}
-                        <div className="bg-gradient-to-br from-orange-900/40 to-black border border-orange-500/20 rounded-xl p-6 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <div className="bg-gradient-to-br from-orange-900/40 to-black border border-orange-500/20 rounded-xl p-6 relative overflow-hidden group shadow-[0_0_30px_rgba(249,115,22,0.1)]">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity animate-pulse">
                                 <FaFire className="w-24 h-24 text-orange-500" />
                             </div>
                             <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-orange-500/20 rounded-lg">
+                                    <div className="p-2 bg-orange-500/20 rounded-lg shadow-[0_0_10px_rgba(249,115,22,0.3)]">
                                         <FaFire className="w-5 h-5 text-orange-500" />
                                     </div>
                                     <h3 className="text-gray-400 font-medium">Current Streak</h3>
                                 </div>
-                                <div className="text-4xl font-bold text-white mb-1">
+                                <div className="text-4xl font-bold text-white mb-1 drop-shadow-lg">
                                     {streakData?.currentStreak || 0} <span className="text-lg font-normal text-gray-500">days</span>
                                 </div>
-                                <p className="text-xs text-orange-400">Keep it burning!</p>
+                                <p className="text-xs text-orange-400 font-bold tracking-wide uppercase">Keep it burning!</p>
                             </div>
                         </div>
 
                         {/* Longest Streak */}
                         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                <FaTrophy className="w-20 h-20 text-yellow-500" />
+                            </div>
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 bg-yellow-500/20 rounded-lg">
                                     <FaTrophy className="w-5 h-5 text-yellow-500" />
@@ -87,6 +146,9 @@ export default function StreaksPage() {
 
                         {/* Total Active Days */}
                         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                <FaCalendarCheck className="w-20 h-20 text-cyan-500" />
+                            </div>
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 bg-cyan-500/20 rounded-lg">
                                     <FaCalendarCheck className="w-5 h-5 text-cyan-500" />
@@ -101,6 +163,52 @@ export default function StreaksPage() {
                     </>
                 )}
             </div>
+
+            {/* Milestones & Insights */}
+            {!loading && streakData && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Next Milestone */}
+                    <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6">
+                        <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-4">Next Goal</h3>
+                        {(() => {
+                            const { next, progress, remaining } = getNextMilestone(streakData.currentStreak || 0);
+                            return (
+                                <div>
+                                    <div className="flex justify-between items-end mb-2">
+                                        <div className="text-2xl font-bold text-white">{next} Days</div>
+                                        <div className="text-sm text-cyan-400 font-mono">{remaining} days left</div>
+                                    </div>
+                                    <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-linear-to-r from-cyan-600 to-purple-600 rounded-full transition-all duration-1000"
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
+                                    <p className="mt-3 text-xs text-gray-500">
+                                        Reach a {next}-day streak to unlock the next level of consistency.
+                                    </p>
+                                </div>
+                            );
+                        })()}
+                    </div>
+
+                    {/* Quick Insights */}
+                    <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6">
+                        <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-4">Streak Habits</h3>
+                        <div className="space-y-3">
+                            {getInsights().map((text, i) => (
+                                <div key={i} className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-2 shrink-0" />
+                                    <p className="text-sm text-gray-300">{text}</p>
+                                </div>
+                            ))}
+                            {getInsights().length === 0 && (
+                                <p className="text-sm text-gray-500 italic">No activity data to analyze yet.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Calendar Heatmap (Simplified Visualization) */}
             <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6">

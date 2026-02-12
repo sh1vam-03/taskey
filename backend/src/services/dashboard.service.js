@@ -724,10 +724,13 @@ export const getStreakOverview = async (userId) => {
 
     let longest = 0;
     let run = 0;
+    let totalActiveDays = 0;
+
     for (const k of keys) {
         if (map[k]) {
             run++;
             longest = Math.max(longest, run);
+            totalActiveDays++;
         } else {
             run = 0;
         }
@@ -736,6 +739,7 @@ export const getStreakOverview = async (userId) => {
     return {
         currentStreak: current,
         longestStreak: longest,
+        totalActiveDays,
         isActive: current > 0
     };
 };
