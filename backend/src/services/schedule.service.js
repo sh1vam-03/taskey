@@ -282,6 +282,7 @@ export const getSchedules = async (userId, from, to, taskId) => {
 // Update schedule
 export const updateSchedule = async (userId, scheduleId, data) => {
     const {
+        taskId,
         scheduleDate,
         startTime,
         endTime,
@@ -359,7 +360,7 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     // Duplicate where to check the schedule is already exists or not
     const duplicateWhere = {
         userId,
-        taskId: existing.taskId,
+        taskId: taskId || existing.taskId,
         scheduleDate: new Date(scheduleDate),
         startTime: normalizeStartTime,
         endTime: normalizeEndTime,
@@ -398,6 +399,7 @@ export const updateSchedule = async (userId, scheduleId, data) => {
             recurrence,
             repeatUntil: normalizeRepeatUntil,
             repeatOnDays: repeatOnDays ?? [],
+            taskId: taskId || existing.taskId,
             notes,
         }
     });

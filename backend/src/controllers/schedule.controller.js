@@ -123,9 +123,9 @@ export const getSchedules = asyncHandler(async (req, res) => {
 export const updateSchedule = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const scheduleId = req.params.id;
-    const { scheduleDate, startTime, endTime, recurrence = "NONE", repeatUntil, repeatOnDays, notes } = req.body;
+    const { taskId, scheduleDate, startTime, endTime, recurrence = "NONE", repeatUntil, repeatOnDays, notes } = req.body;
 
-    if (!scheduleDate || !startTime || !endTime) {
+    if (!scheduleDate || !startTime || !endTime || !taskId) {
         throw new ApiError(400, "Required fields are missing");
     }
 
@@ -190,6 +190,7 @@ export const updateSchedule = asyncHandler(async (req, res) => {
         userId,
         scheduleId,
         {
+            taskId,
             scheduleDate,
             startTime,
             endTime,
