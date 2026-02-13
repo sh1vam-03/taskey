@@ -2,6 +2,7 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { buildDailyStatsMap } from "./dashboard.service.js";
 import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
 
 /* -------------------------------------------------------------------------- */
 /*                               DATE UTILS                                   */
@@ -16,55 +17,6 @@ export const toUTCDate = (input) => {
         d.getUTCMonth(),
         d.getUTCDate()
     ));
-};
-
-/* -------------------------------------------------------------------------- */
-/*                       PRODUCTIVITY SCORE (WEIGHTED)                        */
-/* -------------------------------------------------------------------------- */
-
-const clamp = (v, min = 0, max = 100) =>
-    Math.max(min, Math.min(max, v));
-
-export const calculateProductivityScore = ({
-    total,
-    completed,
-    missed,
-    sleepHours,
-    exercise,
-    mood // HAPPY, NEUTRAL, SAD
-}) => {
-    let score = 0;
-
-    // 1️⃣ Task Completion (Max 60 pts)
-    if (total > 0) {
-        const completionRate = completed / total;
-        score += completionRate * 60;
-    }
-
-    // 2️⃣ Lifestyle Modifiers (Max 40 pts + Penalties)
-
-    // Sleep (Max 10 pts)
-    if (sleepHours != null) {
-        if (sleepHours > 7) score += 10;       // Optimal
-        else if (sleepHours >= 5) score += 5;  // Acceptable
-        else score -= 10;                      // Deprived
-    }
-
-    // Exercise (Max 15 pts)
-    if (exercise === true) score += 15;
-
-    // Mood Impact (±5 pts)
-    if (mood === "HAPPY") score += 5;
-    else if (mood === "SAD") score -= 5;
-    // NEUTRAL = 0
-
-    // 3️⃣ Missed Task Penalty
-    // Punish missed tasks, but cap the penalty
-    if (missed > 0) {
-        score -= Math.min(missed * 2, 20); // -2 per missed, max -20
-    }
-
-    return clamp(Math.round(score));
 };
 
 /* -------------------------------------------------------------------------- */
@@ -191,11 +143,21 @@ export const getBehaviorLogByDate = async (userId, date) => {
 
     return {
         ...behavior,
+        behaviorScore: calculateBehaviorScore({
+            sleepHours: behavior.sleepHours,
+            exercise: behavior.exercise,
+            mood: behavior.mood
+        }),
         productivityScore: calculateProductivityScore({
             ...stats,
             sleepHours: behavior.sleepHours,
             exercise: behavior.exercise,
-            mood: behavior.mood
+            mood: behavior.mood,
+            behaviorScore: calculateBehaviorScore({
+                sleepHours: behavior.sleepHours,
+                exercise: behavior.exercise,
+                mood: behavior.mood
+            })
         })
     };
 };
@@ -248,28 +210,41 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         const dayDate = new Date(loopDate);
         const log = logsMap.get(key);
 
-        let score = 0;
+        let behaviorScore = 0;
+        let productivityScore = 0;
 
         if (log) {
             // Calculate score for existing log
             const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate);
             const stats = statsMap[key] ?? { total: 0, completed: 0, missed: 0 };
 
-            score = calculateProductivityScore({
-                ...stats,
+            const bScore = calculateBehaviorScore({
                 sleepHours: log.sleepHours,
                 exercise: log.exercise,
                 mood: log.mood
             });
 
+            const pScore = calculateProductivityScore({
+                ...stats,
+                behaviorScore: bScore
+            });
+
+            behaviorScore = bScore;
+            productivityScore = pScore;
+
             // Accumulate metadata for summary stats only from existing logs
-            totalScore += score;
+            totalScore += pScore; // Keep average based on productivity? Or behavior? Let's keep productivity for "Average Productivity" if usage implies.
+            // Actually, if the user wants "Behavior Score" focus, maybe average should be behavior?
+            // "avgProductivity" is the return key.
+            // I'll keep totalScore as productivity for now to minimize breakage, but I will return both in history.
             moodDistribution[log.mood] = (moodDistribution[log.mood] || 0) + 1;
         }
 
         history.push({
             date: key,
-            score
+            behaviorScore,
+            productivityScore,
+            score: productivityScore // Fallback
         });
 
         loopDate.setUTCDate(loopDate.getUTCDate() + 1);

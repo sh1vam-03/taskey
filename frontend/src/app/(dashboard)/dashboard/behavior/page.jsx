@@ -108,7 +108,7 @@ export default function BehaviorPage() {
         return "text-red-500 border-red-500/50 shadow-red-900/50";
     };
 
-    const currentScore = dayDetails?.productivityScore || 0;
+    const currentScore = dayDetails?.behaviorScore || 0;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -142,7 +142,7 @@ export default function BehaviorPage() {
                     </div>
 
                     <h2 className="text-gray-400 text-sm font-mono font-bold uppercase tracking-widest mb-8">
-                        Productivity Index
+                        Behavior Score
                     </h2>
 
                     {loading ? (
@@ -221,7 +221,7 @@ export default function BehaviorPage() {
                                     key={chartPeriod}
                                     data={summary?.history || []}
                                     type="area"
-                                    dataKey="score"
+                                    dataKey="behaviorScore"
                                     xAxisKey="date"
                                     height={250}
                                     color={chartPeriod === 7 ? "#06b6d4" : "#a855f7"}

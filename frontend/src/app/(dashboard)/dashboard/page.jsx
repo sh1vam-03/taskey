@@ -182,14 +182,15 @@ export default function DashboardOverview() {
                         </p>
                     </Card>
 
-                    {/* Behavior Score */}
+                    {/* Productivity Score */}
                     <Card
-                        title="Behavior Score"
+                        title="Productivity Score"
                         icon={BrainCircuit}
+                        description="Tasks (70%) + Lifestyle (30%)"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.behaviorScore || 0}</div>
+                        <div className="text-3xl font-bold text-white mt-2">{overview?.productivityScore || 0}</div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
-                            Daily Optimization
+                            Daily Efficiency Index
                         </p>
                     </Card>
 

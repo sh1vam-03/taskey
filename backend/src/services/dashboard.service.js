@@ -1,5 +1,7 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
+import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
+import { startOfUTCDate, dayKey, appliesOnDate, getWeekRange } from "../utils/date.utils.js";
 
 
 export const getDashboardOverview = async (userId) => {
@@ -168,43 +170,29 @@ export const getDashboardOverview = async (userId) => {
     // It's: (completed/total)*100 - missed*5 ...
     // Let's just do a basic fetch for "today's behavior log" and calculated score using the stats we already have.
 
+    // 4. Calculate Scores Consistency Fix
+    // We used to do ad-hoc calculation here, now we will use the shared logic
+    // We already called getTodayDashboard which returns stats.
+    // Ideally we should use buildDailyStatsMap to be 100% sure we match performance page,
+    // but getTodayDashboard largely does the same thing.
+    // Let's rely on standard logic components.
+
+    // 4. Score Consistency Fix (FINAL)
     const todayDate = startOfUTCDate();
-    const behaviorLog = await prisma.behaviorLog.findUnique({
-        where: { userId_date: { userId, date: todayDate } }
-    });
+    // We call getDailyPerformance directly to ensure 100% matching logic with Performance Page.
+    const performanceData = await getDailyPerformance(userId, todayDate);
 
-    let behaviorScore = 0;
-    if (behaviorLog) {
-        // rudimentary score calc or just use 0 if not fully ready
-        // The frontend just wants a number.
-        // Let's calculate it using the stats we have from `todayData`
-        let score = 0;
-        if (total > 0) {
-            score = (completed / total) * 100;
-            score -= (todayData.stats.missed || 0) * 5;
-            if (behaviorLog.sleepHours < 5) score -= 5;
-            if (behaviorLog.exercise) score += 3;
-        }
-        behaviorScore = Math.max(0, Math.min(100, Math.round(score)));
-    }
-
+    // Calculate pending from todayData (for the specific task list view)
+    // We use todayData for the counters to match the timeline shown on the left.
+    // But for the SCORE card, we use performanceData.
+    const pendingCount = todayData.stats.pending;
 
     return {
-        todayTasksCount: pending, // "Pending Actions" text in frontend implies this is the remaining count?
-        // Frontend says: "Pending Actions" under the number.
-        // Wait, frontend code:
-        // <span class="text-3xl ...">{overview?.todayTasksCount || 0}</span>
-        // <span class="text-sm ...">/ {overview?.todayTasksTotal || 0}</span>
-        // <p ...>Pending Actions</p>
-        // Usually "Pending Actions" label refers to the big number.
-        // So `todayTasksCount` should be `pending`?
-        // Or is it `completed`?
-        // "3/5 Pending Actions" reads like "3 pending out of 5".
-        // Let's assume `todayTasksCount` = pending.
-        todayTasksCount: pending,
-        todayTasksTotal: total,
-        completedTasksCount: completed,
-        behaviorScore: behaviorScore,
+        todayTasksCount: pendingCount,
+        todayTasksTotal: todayData.stats.total,
+        completedTasksCount: todayData.stats.completed,
+        productivityScore: performanceData.productivityScore,
+        behaviorScore: performanceData.behaviorScore,
         currentStreak: streakData.currentStreak,
         timeline: todayData.timeline
     };
@@ -619,24 +607,6 @@ export const getMonthlyDashboard = async (userId, year, month) => {
 };
 
 // Helpers
-const startOfUTCDate = (d = new Date()) =>
-    new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-
-const dayKey = (d) => d.toISOString().slice(0, 10);
-
-const getWeekRange = (date) => {
-    const d = startOfUTCDate(date);
-    const day = d.getUTCDay(); // 0=Sun
-    const monday = new Date(d);
-    monday.setUTCDate(d.getUTCDate() - ((day + 6) % 7));
-    monday.setUTCHours(0, 0, 0, 0);
-
-    const sunday = new Date(monday);
-    sunday.setUTCDate(monday.getUTCDate() + 6);
-    sunday.setUTCHours(23, 59, 59, 999);
-
-    return { weekStart: monday, weekEnd: sunday };
-};
 
 const getMonthRange = (year, month) => {
     const start = new Date(Date.UTC(year, month - 1, 1));
@@ -644,26 +614,6 @@ const getMonthRange = (year, month) => {
     return { monthStart: start, monthEnd: end };
 };
 
-const appliesOnDate = (schedule, date) => {
-    const sDate = startOfUTCDate(schedule.scheduleDate);
-    const cDate = startOfUTCDate(date);
-
-    if (cDate < sDate) return false;
-    if (schedule.repeatUntil && cDate > startOfUTCDate(schedule.repeatUntil)) return false;
-
-    switch (schedule.recurrence) {
-        case "NONE":
-            return sDate.getTime() === cDate.getTime();
-        case "DAILY":
-            return true;
-        case "WEEKLY":
-            return schedule.repeatOnDays.includes(cDate.getUTCDay());
-        case "MONTHLY":
-            return cDate.getUTCDate() === sDate.getUTCDate();
-        default:
-            return false;
-    }
-};
 
 
 // STRICT streak engine
@@ -989,35 +939,138 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
     return statsMap;
 };
 
-// Daily
+// Daily Performance (Hourly Breakdown)
 export const getDailyPerformance = async (userId, date = new Date()) => {
     const day = startOfUTCDate(date);
-    const key = dayKey(day);
+    const end = new Date(day);
+    end.setUTCHours(23, 59, 59, 999);
 
-    const map = await buildDailyStatsMap(userId, day, day);
-    return { date: key, ...map[key] };
+    /* ------------------ FETCH ------------------ */
+
+    const [behaviorLog, dailyCompletions, statsMap] = await Promise.all([
+        prisma.behaviorLog.findUnique({
+            where: { userId_date: { userId, date: day } }
+        }),
+        prisma.taskDailyCompletion.findMany({
+            where: {
+                userId,
+                completedDate: day
+            },
+            select: { completedAt: true }
+        }),
+        buildDailyStatsMap(userId, day, day)
+    ]);
+
+    /* ------------------ HOURLY BREAKDOWN ------------------ */
+
+    const hourly = Array.from({ length: 24 }, (_, i) => ({
+        time: `${String(i).padStart(2, '0')}:00`,
+        completed: 0
+    }));
+
+    dailyCompletions.forEach(c => {
+        const hour = new Date(c.completedAt).getHours(); // Local or UTC? Prisma returns UTC usually but let's assume consistent
+        if (hourly[hour]) hourly[hour].completed++;
+    });
+
+    /* ------------------ SCORE ------------------ */
+
+    const key = dayKey(day);
+    const stats = statsMap[key] || { total: 0, completed: 0, missed: 0 };
+
+    const behaviorScore = calculateBehaviorScore({
+        sleepHours: behaviorLog?.sleepHours,
+        exercise: behaviorLog?.exercise,
+        mood: behaviorLog?.mood
+    });
+
+    const productivityScore = calculateProductivityScore({
+        total: stats.total,
+        completed: stats.completed,
+        missed: stats.missed,
+        behaviorScore
+    });
+
+    return {
+        date: key,
+        hourly,
+        completionRate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+        totalCompleted: stats.completed,
+        productivityScore,
+        behaviorScore
+    };
 };
 
-// Weekly
+// Weekly Performance (Daily Breakdown)
 export const getWeeklyPerformance = async (userId, date = new Date()) => {
     const { weekStart, weekEnd } = getWeekRange(date);
     const map = await buildDailyStatsMap(userId, weekStart, weekEnd);
 
-    let total = 0, completed = 0;
-    Object.values(map).forEach(v => {
-        total += v.total;
-        completed += v.completed;
+    // Fetch behaviors for the week to calculate daily scores
+    const behaviorLogs = await prisma.behaviorLog.findMany({
+        where: {
+            userId,
+            date: { gte: weekStart, lte: weekEnd }
+        }
     });
+
+    const behaviorMap = new Map();
+    behaviorLogs.forEach(b => behaviorMap.set(dayKey(b.date), b));
+
+    const daily = [];
+    let totalScore = 0;
+    let daysWithScore = 0;
+    let totalCompleted = 0;
+    let totalTasks = 0;
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    for (let d = new Date(weekStart); d <= weekEnd; d.setUTCDate(d.getUTCDate() + 1)) {
+        const key = dayKey(d);
+        const dayStat = map[key] || { total: 0, completed: 0, missed: 0 };
+        const behavior = behaviorMap.get(key);
+
+        const behaviorScore = calculateBehaviorScore({
+            sleepHours: behavior?.sleepHours,
+            exercise: behavior?.exercise,
+            mood: behavior?.mood
+        });
+
+        const score = calculateProductivityScore({
+            total: dayStat.total,
+            completed: dayStat.completed,
+            missed: dayStat.missed,
+            behaviorScore
+        });
+
+        if (dayStat.total > 0 || behavior) {
+            totalScore += score;
+            daysWithScore++;
+        }
+
+        totalCompleted += dayStat.completed;
+        totalTasks += dayStat.total;
+
+        daily.push({
+            day: days[d.getUTCDay()],
+            date: key,
+            completed: dayStat.completed,
+            score,
+            behaviorScore
+        });
+    }
 
     return {
         weekStart: dayKey(weekStart),
         weekEnd: dayKey(weekEnd),
-        percentage: total === 0 ? 0 : Math.round((completed / total) * 100),
-        breakdown: map
+        daily,
+        completionRate: totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0,
+        totalCompleted,
+        productivityScore: daysWithScore > 0 ? Math.round(totalScore / daysWithScore) : 0
     };
 };
 
-// Monthly
+// Monthly Performance (History Trend)
 export const getMonthlyPerformance = async (userId, year, month) => {
     const start = new Date(Date.UTC(year, month - 1, 1));
     const end = new Date(Date.UTC(year, month, 0, 23, 59, 59));
@@ -1026,16 +1079,67 @@ export const getMonthlyPerformance = async (userId, year, month) => {
 
     const map = await buildDailyStatsMap(userId, start, effectiveEnd);
 
-    let total = 0, completed = 0;
-    Object.values(map).forEach(v => {
-        total += v.total;
-        completed += v.completed;
+    // Fetch behaviors
+    const behaviorLogs = await prisma.behaviorLog.findMany({
+        where: {
+            userId,
+            date: { gte: start, lte: effectiveEnd }
+        }
     });
+    const behaviorMap = new Map();
+    behaviorLogs.forEach(b => behaviorMap.set(dayKey(b.date), b));
+
+    const history = [];
+    let totalScore = 0;
+    let daysWithScore = 0;
+    let totalCompleted = 0;
+    let totalTasks = 0;
+
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+        const key = dayKey(d);
+        // Only fill up to today/effective end, fill rest with empty/future projection if needed?
+        // Frontend expects full month? usually history is up to now.
+        if (d > effectiveEnd) break;
+
+        const dayStat = map[key] || { total: 0, completed: 0, missed: 0 };
+        const behavior = behaviorMap.get(key);
+
+        const behaviorScore = calculateBehaviorScore({
+            sleepHours: behavior?.sleepHours,
+            exercise: behavior?.exercise,
+            mood: behavior?.mood
+        });
+
+        const score = calculateProductivityScore({
+            total: dayStat.total,
+            completed: dayStat.completed,
+            missed: dayStat.missed,
+            behaviorScore
+        });
+
+        if (dayStat.total > 0 || behavior) {
+            totalScore += score;
+            daysWithScore++;
+        }
+
+        totalCompleted += dayStat.completed;
+        totalTasks += dayStat.total;
+
+        history.push({
+            date: key,
+            completionRate: dayStat.total > 0 ? Math.round((dayStat.completed / dayStat.total) * 100) : 0,
+            completed: dayStat.completed,
+            score,
+            behaviorScore
+        });
+    }
 
     return {
         month: `${year}-${String(month).padStart(2, "0")}`,
-        percentage: total === 0 ? 0 : Math.round((completed / total) * 100),
-        breakdown: map
+        history,
+        completionRate: totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0,
+        totalCompleted,
+        productivityScore: daysWithScore > 0 ? Math.round(totalScore / daysWithScore) : 0
     };
 };
 
