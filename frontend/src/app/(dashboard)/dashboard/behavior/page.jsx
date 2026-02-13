@@ -20,22 +20,29 @@ export default function BehaviorPage() {
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [chartPeriod, setChartPeriod] = useState(7);
+    const [latestLog, setLatestLog] = useState(null); // Keeps track of the MOST RECENT log (yesterday, etc.)
 
     // Initial Load: Summary + Default Date (Today)
-    const loadInitialData = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
             const today = new Date().toISOString().split('T')[0];
-            const [summaryData, logData, explainData] = await Promise.all([
+            const [summaryData, logData, explainData, latestData] = await Promise.all([
                 behaviorService.getSummary(chartPeriod),
                 behaviorService.getBehaviorByDate(today).catch(() => null),
-                behaviorService.explainScore(today).catch(() => ({ explanation: "Not enough data for explanation yet." }))
+                behaviorService.explainScore(today).catch(() => ({ explanation: "Not enough data for explanation yet." })),
+                behaviorService.getLatestBehavior().catch(() => null)
             ]);
 
             setSummary(summaryData);
             setTodayLog(logData); // Cache today's log for the "Log" button
-            setDayDetails(logData); // Initially showing today
-            setExplanation(explainData?.explanation || "No explanation available.");
+            setLatestLog(latestData); // Data to pre-fill if today is empty
+
+            // If we are currently viewing today (or just initialized), update details
+            if (selectedDate === today) {
+                setDayDetails(logData);
+                setExplanation(explainData?.explanation || "No explanation available.");
+            }
         } catch (err) {
             console.error("Behavior fetch error:", err);
         } finally {
@@ -63,7 +70,7 @@ export default function BehaviorPage() {
     };
 
     useEffect(() => {
-        loadInitialData();
+        fetchData();
     }, []);
 
     // Re-fetch summary when chart period changes
@@ -101,7 +108,7 @@ export default function BehaviorPage() {
         return "text-red-500 border-red-500/50 shadow-red-900/50";
     };
 
-    const currentScore = dayDetails?.score || 0;
+    const currentScore = dayDetails?.productivityScore || 0;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -119,10 +126,11 @@ export default function BehaviorPage() {
 
                 <Button
                     onClick={() => setIsModalOpen(true)}
-                    variant="scanline"
+                    variant={todayLog ? "outline" : "scanline"}
                     className="shrink-0"
                 >
-                    <Activity className="h-4 w-4" /> Log Current State
+                    <Activity className="h-4 w-4" />
+                    {todayLog ? "UPDATE LOG" : "LOG CURRENT STATE"}
                 </Button>
             </div>
 
@@ -186,7 +194,7 @@ export default function BehaviorPage() {
                         icon={TrendingUp}
                         className="relative"
                     >
-                        <div className="absolute top-4 right-4 flex bg-white/5 rounded-lg p-1 border border-white/5">
+                        <div className="absolute top-4 right-4 flex bg-white/5 rounded-lg p-1 border border-white/5 z-10">
                             <button
                                 onClick={() => setChartPeriod(7)}
                                 className={`px-3 py-1 text-xs rounded-md transition-all ${chartPeriod === 7 ? 'bg-cyan-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
@@ -210,6 +218,7 @@ export default function BehaviorPage() {
                                 </div>
                             ) : (
                                 <PerformanceChart
+                                    key={chartPeriod}
                                     data={summary?.history || []}
                                     type="area"
                                     dataKey="score"
@@ -271,29 +280,41 @@ export default function BehaviorPage() {
                         </div>
                     </Card>
 
+
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-6">
                         <Card className="border-t-4 border-t-purple-500/50">
                             <div className="flex justify-between items-start mb-2">
-                                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Focus Duration</div>
+                                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Sleep Duration</div>
                                 <Clock className="h-4 w-4 text-purple-500" />
                             </div>
                             <div className="text-3xl font-bold text-white tracking-tight">
-                                {detailsLoading ? <span className="text-lg animate-pulse">...</span> : (dayDetails?.focusHours || 0)}
+                                {detailsLoading ? <span className="text-lg animate-pulse">...</span> : (dayDetails?.sleepHours ?? '-')}
                                 <span className="text-sm font-normal text-gray-500 ml-1">hrs</span>
                             </div>
                         </Card>
 
                         <Card className="border-t-4 border-t-cyan-500/50">
                             <div className="flex justify-between items-start mb-2">
-                                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Tasks Executed</div>
-                                <CheckCircle2 className="h-4 w-4 text-cyan-500" />
+                                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Exercise</div>
+                                <Activity className="h-4 w-4 text-cyan-500" />
                             </div>
-                            <div className="text-3xl font-bold text-white tracking-tight">
-                                {detailsLoading ? <span className="text-lg animate-pulse">...</span> : (dayDetails?.tasksCompleted || 0)}
+                            <div className="text-xl font-bold text-white tracking-tight mt-1">
+                                {detailsLoading ? (
+                                    <span className="text-lg animate-pulse">...</span>
+                                ) : (
+                                    dayDetails?.exercise ? (
+                                        <span className="flex items-center gap-2 text-cyan-400">
+                                            <CheckCircle2 className="h-5 w-5" /> COMPLETED
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-500 text-base">NOT LOGGED</span>
+                                    )
+                                )}
                             </div>
                         </Card>
                     </div>
+
                 </div>
             </div>
 
@@ -305,6 +326,7 @@ export default function BehaviorPage() {
                     success("Behavioral log committed");
                 }}
                 currentLog={todayLog}
+                latestLog={latestLog}
             />
         </div>
     );

@@ -29,6 +29,14 @@ const behaviorService = {
     },
 
     /**
+     * Get the latest behavior log (most recent entry)
+     */
+    async getLatestBehavior() {
+        const response = await api.get("/behavior/latest");
+        return response.data.data;
+    },
+
+    /**
      * Get AI explanation for score on a specific date
      * @param {string} date - YYYY-MM-DD
      */

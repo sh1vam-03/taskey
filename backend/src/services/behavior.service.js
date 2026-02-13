@@ -19,7 +19,7 @@ export const toUTCDate = (input) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/*                       PRODUCTIVITY SCORE (DERIVED)                          */
+/*                       PRODUCTIVITY SCORE (WEIGHTED)                        */
 /* -------------------------------------------------------------------------- */
 
 const clamp = (v, min = 0, max = 100) =>
@@ -30,18 +30,39 @@ export const calculateProductivityScore = ({
     completed,
     missed,
     sleepHours,
-    exercise
+    exercise,
+    mood // HAPPY, NEUTRAL, SAD
 }) => {
-    if (!total || total === 0) return 0;
+    let score = 0;
 
-    let score = (completed / total) * 100;
+    // 1️⃣ Task Completion (Max 60 pts)
+    if (total > 0) {
+        const completionRate = completed / total;
+        score += completionRate * 60;
+    }
 
-    // strong signal
-    score -= missed * 5;
+    // 2️⃣ Lifestyle Modifiers (Max 40 pts + Penalties)
 
-    // mild lifestyle modifiers
-    if (sleepHours != null && sleepHours < 5) score -= 5;
-    if (exercise === true) score += 3;
+    // Sleep (Max 10 pts)
+    if (sleepHours != null) {
+        if (sleepHours > 7) score += 10;       // Optimal
+        else if (sleepHours >= 5) score += 5;  // Acceptable
+        else score -= 10;                      // Deprived
+    }
+
+    // Exercise (Max 15 pts)
+    if (exercise === true) score += 15;
+
+    // Mood Impact (±5 pts)
+    if (mood === "HAPPY") score += 5;
+    else if (mood === "SAD") score -= 5;
+    // NEUTRAL = 0
+
+    // 3️⃣ Missed Task Penalty
+    // Punish missed tasks, but cap the penalty
+    if (missed > 0) {
+        score -= Math.min(missed * 2, 20); // -2 per missed, max -20
+    }
 
     return clamp(Math.round(score));
 };
@@ -89,7 +110,7 @@ export const upsertBehaviorLog = async (userId, payload) => {
             mood,
             notes,
             sleepHours,
-            exercise,
+            exercise
         }
     });
 
@@ -100,7 +121,7 @@ export const upsertBehaviorLog = async (userId, payload) => {
     if (!existing) {
         const { month, year } = getCurrentMonthYear();
 
-        await prisma.usageStat.update({
+        await prisma.usageStat.upsert({
             where: {
                 userId_month_year: {
                     userId,
@@ -108,8 +129,16 @@ export const upsertBehaviorLog = async (userId, payload) => {
                     year
                 }
             },
-            data: {
+            update: {
                 behaviorCount: { increment: 1 }
+            },
+            create: {
+                userId,
+                month,
+                year,
+                behaviorCount: 1,
+                taskCount: 0,
+                scheduleCount: 0
             }
         });
     }
@@ -117,6 +146,21 @@ export const upsertBehaviorLog = async (userId, payload) => {
     return behavior;
 };
 
+
+/* -------------------------------------------------------------------------- */
+/*                         GET LATEST BEHAVIOR                                 */
+/* -------------------------------------------------------------------------- */
+
+export const getLatestBehaviorLog = async (userId) => {
+    if (!userId) throw new ApiError(401, "Unauthorized");
+
+    const behavior = await prisma.behaviorLog.findFirst({
+        where: { userId },
+        orderBy: { date: "desc" }
+    });
+
+    return behavior;
+};
 
 /* -------------------------------------------------------------------------- */
 /*                         GET BEHAVIOR BY DATE                                */
@@ -150,7 +194,8 @@ export const getBehaviorLogByDate = async (userId, date) => {
         productivityScore: calculateProductivityScore({
             ...stats,
             sleepHours: behavior.sleepHours,
-            exercise: behavior.exercise
+            exercise: behavior.exercise,
+            mood: behavior.mood
         })
     };
 };
@@ -181,40 +226,63 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         return {
             avgProductivity: 0,
             moodDistribution: {},
-            daysLogged: 0
+            daysLogged: 0,
+            history: [] // Add empty history
         };
     }
 
     let totalScore = 0;
     const moodDistribution = {};
+    const history = [];
 
-    for (const log of logs) {
-        const statsMap = await buildDailyStatsMap(userId, log.date, log.date);
-        const key = log.date.toISOString().slice(0, 10);
+    // Create a map of existing logs for quick lookup
+    const logsMap = new Map();
+    logs.forEach(log => {
+        logsMap.set(log.date.toISOString().slice(0, 10), log);
+    });
 
-        const stats = statsMap[key] ?? {
-            total: 0,
-            completed: 0,
-            missed: 0
-        };
+    // Iterate through EACH day in the range to build history (filling gaps)
+    const loopDate = new Date(start);
+    while (loopDate <= end) {
+        const key = loopDate.toISOString().slice(0, 10);
+        const dayDate = new Date(loopDate);
+        const log = logsMap.get(key);
 
-        const score = calculateProductivityScore({
-            ...stats,
-            sleepHours: log.sleepHours,
-            exercise: log.exercise
+        let score = 0;
+
+        if (log) {
+            // Calculate score for existing log
+            const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate);
+            const stats = statsMap[key] ?? { total: 0, completed: 0, missed: 0 };
+
+            score = calculateProductivityScore({
+                ...stats,
+                sleepHours: log.sleepHours,
+                exercise: log.exercise,
+                mood: log.mood
+            });
+
+            // Accumulate metadata for summary stats only from existing logs
+            totalScore += score;
+            moodDistribution[log.mood] = (moodDistribution[log.mood] || 0) + 1;
+        }
+
+        history.push({
+            date: key,
+            score
         });
 
-        totalScore += score;
-        moodDistribution[log.mood] =
-            (moodDistribution[log.mood] || 0) + 1;
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
     }
 
     return {
-        avgProductivity: Math.round(totalScore / logs.length),
+        avgProductivity: logs.length > 0 ? Math.round(totalScore / logs.length) : 0,
         moodDistribution,
-        daysLogged: logs.length
+        daysLogged: logs.length,
+        history
     };
 };
+
 
 /**
  * Explain why a productivity score was high or low

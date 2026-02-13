@@ -1,14 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Smile, Meh, Frown, Sparkles, Check, Clock, ListTodo } from "lucide-react";
+import { Smile, Meh, Frown, Sparkles, Check, Clock, ListTodo, Activity } from "lucide-react";
 import behaviorService from "@/services/behavior.service";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 
-export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentLog = null }) {
+export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentLog = null, latestLog = null }) {
     const [mood, setMood] = useState("NEUTRAL");
-    const [focusHours, setFocusHours] = useState(0);
-    const [tasksCompleted, setTasksCompleted] = useState(0);
+    const [sleepHours, setSleepHours] = useState(7); // Default to reasonable amount
+    const [exercise, setExercise] = useState(false);
     const [notes, setNotes] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -16,19 +16,27 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
     useEffect(() => {
         if (isOpen) {
             if (currentLog) {
+                // Editing today's existing log
                 setMood(currentLog.mood || "NEUTRAL");
-                setFocusHours(currentLog.focusHours || 0);
-                setTasksCompleted(currentLog.tasksCompleted || 0);
+                setSleepHours(currentLog.sleepHours ?? 7);
+                setExercise(currentLog.exercise || false);
                 setNotes(currentLog.notes || "");
+            } else if (latestLog) {
+                // Pre-fill from latest log (e.g. yesterday)
+                setMood("NEUTRAL"); // Mood resets
+                setSleepHours(latestLog.sleepHours ?? 7);
+                setExercise(latestLog.exercise || false); // Maybe they usually exercise?
+                setNotes(""); // Notes reset
             } else {
+                // Defaults
                 setMood("NEUTRAL");
-                setFocusHours(0);
-                setTasksCompleted(0);
+                setSleepHours(7);
+                setExercise(false);
                 setNotes("");
             }
             setError(null);
         }
-    }, [isOpen, currentLog]);
+    }, [isOpen, currentLog, latestLog]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -38,8 +46,8 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
         try {
             await behaviorService.upsertBehavior({
                 mood,
-                focusHours: Number(focusHours),
-                tasksCompleted: Number(tasksCompleted),
+                sleepHours: Number(sleepHours),
+                exercise,
                 notes
             });
             onLogSaved();
@@ -57,9 +65,9 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
     };
 
     const moodOptions = [
-        { value: "GOOD", icon: Smile, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/50", label: "OPTIMAL" },
+        { value: "HAPPY", icon: Smile, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/50", label: "OPTIMAL" },
         { value: "NEUTRAL", icon: Meh, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/50", label: "NOMINAL" },
-        { value: "BAD", icon: Frown, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/50", label: "CRITICAL" }
+        { value: "SAD", icon: Frown, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/50", label: "CRITICAL" }
     ];
 
     return (
@@ -103,10 +111,10 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    {/* Focus Hours */}
+                    {/* Sleep Hours */}
                     <div className="space-y-2">
                         <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                            <Clock className="h-3 w-3" /> Focus Duration
+                            <Clock className="h-3 w-3" /> Sleep Duration
                         </label>
                         <div className="relative">
                             <input
@@ -114,30 +122,34 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                                 min="0"
                                 max="24"
                                 step="0.5"
-                                value={focusHours}
-                                onChange={(e) => setFocusHours(e.target.value)}
+                                value={sleepHours}
+                                onChange={(e) => setSleepHours(e.target.value)}
                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all text-sm font-mono text-center"
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-mono">HRS</span>
                         </div>
                     </div>
-                    {/* Tasks Completed */}
+                    {/* Exercise Toggle */}
                     <div className="space-y-2">
                         <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                            <ListTodo className="h-3 w-3" /> Tasks Executed
+                            <Activity className="h-3 w-3" /> Exercise
                         </label>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                min="0"
-                                value={tasksCompleted}
-                                onChange={(e) => setTasksCompleted(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm font-mono text-center"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-mono">Ut.</span>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setExercise(!exercise)}
+                            className={`w-full h-[46px] rounded-lg border transition-all text-sm font-mono flex items-center justify-center gap-2
+                                ${exercise
+                                    ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400'
+                                    : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}
+                            `}
+                        >
+                            {exercise ? <Check className="h-4 w-4" /> : null}
+                            {exercise ? 'COMPLETED' : 'SKIPPED'}
+                        </button>
                     </div>
                 </div>
+
+
 
                 {/* Notes */}
                 <div className="space-y-2">

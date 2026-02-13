@@ -39,6 +39,20 @@ export const getBehaviorByDate = asyncHandler(async (req, res) => {
     });
 });
 
+export const getLatestBehavior = asyncHandler(async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const data = await behaviorService.getLatestBehaviorLog(userId);
+
+    res.json({
+        success: true,
+        data
+    });
+});
+
 /* ---------------- SUMMARY ---------------- */
 
 export const getBehaviorSummary = asyncHandler(async (req, res) => {
