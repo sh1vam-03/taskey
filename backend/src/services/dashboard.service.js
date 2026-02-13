@@ -719,19 +719,19 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
             t => dayKey(startOfUTCDate(t.createdAt)) === key
         );
 
-        // No work at all → NOT a streak day
+        // No work at all → EMPTY
         if (
             applicableSchedules.length === 0 &&
             unscheduledForDay.length === 0
         ) {
-            perfectMap[key] = false;
+            perfectMap[key] = "EMPTY";
             continue;
         }
 
         // Any missed schedule kills the streak
         const missedCount = missedScheduleMap.get(key)?.size ?? 0;
         if (missedCount > 0) {
-            perfectMap[key] = false;
+            perfectMap[key] = "MISSED";
             continue;
         }
 
@@ -739,7 +739,7 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
         if (applicableSchedules.length > 0) {
             const completed = completedScheduleMap.get(key)?.size ?? 0;
             if (completed !== applicableSchedules.length) {
-                perfectMap[key] = false;
+                perfectMap[key] = "MISSED";
                 continue;
             }
         }
@@ -748,13 +748,13 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
         if (unscheduledForDay.length > 0) {
             const completed = completedTaskMap.get(key)?.size ?? 0;
             if (completed !== unscheduledForDay.length) {
-                perfectMap[key] = false;
+                perfectMap[key] = "MISSED";
                 continue;
             }
         }
 
         // STRICT PERFECT DAY
-        perfectMap[key] = true;
+        perfectMap[key] = "PERFECT";
     }
 
     return perfectMap;
@@ -772,7 +772,7 @@ export const getStreakOverview = async (userId) => {
 
     let current = 0;
     for (let i = keys.length - 1; i >= 0; i--) {
-        if (!map[keys[i]]) break;
+        if (map[keys[i]] !== "PERFECT") break;
         current++;
     }
 
@@ -781,7 +781,7 @@ export const getStreakOverview = async (userId) => {
     let totalActiveDays = 0;
 
     for (const k of keys) {
-        if (map[k]) {
+        if (map[k] === "PERFECT") {
             run++;
             longest = Math.max(longest, run);
             totalActiveDays++;

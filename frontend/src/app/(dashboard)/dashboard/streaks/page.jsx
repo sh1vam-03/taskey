@@ -19,11 +19,15 @@ export default function StreaksPage() {
                 ]);
                 setStreakData(streaks);
 
-                // Transform { "YYYY-MM-DD": boolean } to Array<{ date, count }>
-                const calendarArray = Object.entries(calendar || {}).map(([date, isPerfect]) => ({
-                    date,
-                    count: isPerfect ? 4 : 1  // 4=Perfect, 1=Active but not perfect
-                })).sort((a, b) => new Date(a.date) - new Date(b.date));
+                // Transform { "YYYY-MM-DD": "PERFECT"|"MISSED"|"EMPTY" } to Array<{ date, count }>
+                const calendarArray = Object.entries(calendar || {}).map(([date, status]) => {
+                    let count = 0;
+                    if (status === "PERFECT") count = 4;
+                    else if (status === "MISSED") count = 2; // Show failed attempt as low intensity
+                    // EMPTY remains 0
+
+                    return { date, count };
+                }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
                 setCalendarData(calendarArray);
             } catch (err) {
