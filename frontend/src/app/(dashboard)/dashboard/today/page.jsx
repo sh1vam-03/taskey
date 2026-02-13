@@ -99,6 +99,8 @@ export default function TodayDashboardPage() {
             fetchData();
         } catch (err) {
             console.error("Quick add error:", err);
+            setError("Failed to create task");
+            setTimeout(() => setError(null), 3000);
         } finally {
             setIsAddingTask(false);
         }
@@ -198,8 +200,8 @@ export default function TodayDashboardPage() {
                         {timelineItems.length === 0 ? (
                             <p className="text-gray-500 text-sm text-center py-8">No items scheduled for today.</p>
                         ) : (
-                            timelineItems.map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-4 p-4 bg-zinc-950/50 border border-white/5 rounded-lg hover:border-cyan-500/30 transition-colors">
+                            timelineItems.map((item) => (
+                                <div key={item.id} className="flex items-center gap-4 p-4 bg-zinc-950/50 border border-white/5 rounded-lg hover:border-cyan-500/30 transition-colors">
                                     <div className="text-xs font-mono text-gray-500 w-24 shrink-0 text-right">
                                         {item.time}
                                     </div>

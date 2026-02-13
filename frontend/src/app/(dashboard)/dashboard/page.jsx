@@ -31,20 +31,9 @@ export default function DashboardOverview() {
             try {
                 // Call behavior update silently
                 await behaviorService.upsertBehavior({
-                    // You might want to gather real data here, but for now just logging presence/activity
-                    // or maybe just calling it to trigger backend logic if any
-                    // The requirement says "POST /api/behavior" on mount.
-                    // Assuming empty body or minimal data is fine for now based on "dumb but obedient" instruction.
-                    // If the backend requires specific fields, they should be provided.
-                    // For now, sending a simple timestamp or similar if needed, or empty object if allowed.
-                    // Checking behavior service, it takes { focusHours, tasksCompleted, mood, notes }
-                    // We'll send a "check-in" type update or just empty if purely for activity tracking
-                    // The instruction says "If NOT already implemented... On page mount, call: POST /api/behavior"
-                    // We will send a minimal payload or reliance on backend to handle defaults.
-                    // Let's send a placeholder for now to satisfy the "call" requirement without overwriting user data if possible.
-                    // Ideally verify if backend updates or just logs.
-                    // safer to just call it.
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    mood: "NEUTRAL", // Default to NEUTRAL for auto-log
+                    notes: "Daily Dashboard Check-in"
                 });
             } catch (err) {
                 // Silent fail for behavior log

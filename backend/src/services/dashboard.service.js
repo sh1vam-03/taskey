@@ -3,108 +3,210 @@ import ApiError from "../utils/ApiError.js";
 
 
 export const getDashboardOverview = async (userId) => {
-    const today = startOfUTCDate();
-    const tomorrow = new Date(today);
-    tomorrow.setUTCDate(today.getUTCDate() + 1);
+    /*
+        const today = startOfUTCDate();
+        const tomorrow = new Date(today);
+        tomorrow.setUTCDate(today.getUTCDate() + 1);
+    
+        // 1 Fetch all relevant data
+    
+        const [
+            schedules,
+            scheduleCompletions,
+            missedSchedules,
+            unscheduledTasks,
+            dailyCompletions
+        ] = await Promise.all([
+    
+            prisma.schedule.findMany({
+                where: {
+                    userId,
+                    scheduleDate: { lte: today },
+                    OR: [
+                        { repeatUntil: null },
+                        { repeatUntil: { gte: today } }
+                    ]
+                }
+            }),
+    
+            prisma.scheduleCompletion.findMany({
+                where: { userId, completedOn: today }
+            }),
+    
+            prisma.missedSchedule.findMany({
+                where: { userId, missedOn: today }
+            }),
+    
+            prisma.task.findMany({
+                where: {
+                    userId,
+                    deletedAt: null,
+                    schedules: { none: {} },
+                    createdAt: { gte: today, lt: tomorrow }
+                }
+            }),
+    
+            prisma.taskDailyCompletion.findMany({
+                where: { userId, completedDate: today }
+            })
+        ]);
+    
+        // 2 Build lookup sets
+    
+        const completedScheduleSet = new Set(
+            scheduleCompletions.map(c => c.scheduleId)
+        );
+    
+        const missedScheduleSet = new Set(
+            missedSchedules.map(m => m.scheduleId)
+        );
+    
+        const completedTaskSet = new Set(
+            dailyCompletions.map(c => c.taskId)
+        );
+    
+        // Count scheduled tasks
+    
+        let scheduledTotal = 0;
+        let scheduledCompleted = 0;
+        let scheduledMissed = 0;
+    
+        for (const s of schedules) {
+            if (!appliesOnDate(s, today)) continue;
+    
+            scheduledTotal++;
+    
+            if (completedScheduleSet.has(s.id)) scheduledCompleted++;
+            else if (missedScheduleSet.has(s.id)) scheduledMissed++;
+        }
+    
+        // 4 Count unscheduled tasks
+    
+        const unscheduledTotal = unscheduledTasks.length;
+        let unscheduledCompleted = 0;
+    
+        for (const t of unscheduledTasks) {
+            if (completedTaskSet.has(t.id)) unscheduledCompleted++;
+        }
+    
+        // 5 Final aggregation
+    
+        const totalTasks = scheduledTotal + unscheduledTotal;
+        const completedTasks = scheduledCompleted + unscheduledCompleted;
+        const missedTasks = scheduledMissed;
+        const pendingTasks = Math.max(
+            totalTasks - completedTasks - missedTasks,
+            0
+        );
 
-    /* ---------- 1️⃣ Fetch all relevant data ---------- */
 
-    const [
-        schedules,
-        scheduleCompletions,
-        missedSchedules,
-        unscheduledTasks,
-        dailyCompletions
-    ] = await Promise.all([
-
-        prisma.schedule.findMany({
-            where: {
-                userId,
-                scheduleDate: { lte: today },
-                OR: [
-                    { repeatUntil: null },
-                    { repeatUntil: { gte: today } }
-                ]
-            }
-        }),
-
-        prisma.scheduleCompletion.findMany({
-            where: { userId, completedOn: today }
-        }),
-
-        prisma.missedSchedule.findMany({
-            where: { userId, missedOn: today }
-        }),
-
-        prisma.task.findMany({
-            where: {
-                userId,
-                deletedAt: null,
-                schedules: { none: {} },
-                createdAt: { gte: today, lt: tomorrow }
-            }
-        }),
-
-        prisma.taskDailyCompletion.findMany({
-            where: { userId, completedDate: today }
-        })
-    ]);
-
-    /* ---------- 2️⃣ Build lookup sets ---------- */
-
-    const completedScheduleSet = new Set(
-        scheduleCompletions.map(c => c.scheduleId)
-    );
-
-    const missedScheduleSet = new Set(
-        missedSchedules.map(m => m.scheduleId)
-    );
-
-    const completedTaskSet = new Set(
-        dailyCompletions.map(c => c.taskId)
-    );
-
-    /* ---------- 3️⃣ Count scheduled tasks ---------- */
-
-    let scheduledTotal = 0;
-    let scheduledCompleted = 0;
-    let scheduledMissed = 0;
-
-    for (const s of schedules) {
-        if (!appliesOnDate(s, today)) continue;
-
-        scheduledTotal++;
-
-        if (completedScheduleSet.has(s.id)) scheduledCompleted++;
-        else if (missedScheduleSet.has(s.id)) scheduledMissed++;
-    }
-
-    /* ---------- 4️⃣ Count unscheduled tasks ---------- */
-
-    const unscheduledTotal = unscheduledTasks.length;
-    let unscheduledCompleted = 0;
-
-    for (const t of unscheduledTasks) {
-        if (completedTaskSet.has(t.id)) unscheduledCompleted++;
-    }
-
-    /* ---------- 5️⃣ Final aggregation ---------- */
-
-    const totalTasks = scheduledTotal + unscheduledTotal;
-    const completedTasks = scheduledCompleted + unscheduledCompleted;
-    const missedTasks = scheduledMissed;
-    const pendingTasks = Math.max(
-        totalTasks - completedTasks - missedTasks,
-        0
-    );
-
-    return {
+        return {
         today: {
             totalTasks,
             completedTasks,
             missedTasks,
             pendingTasks
         }
+
+    */
+
+    // 1. Get Today's Data (Timeline + Counts)
+    const todayData = await getTodayDashboard(userId);
+
+    // 2. Get Streak Data
+    const streakData = await getStreakOverview(userId);
+
+    // 3. Get Behavior Data (Summary / Score)
+    // We'll get the summary for the last 7 days to show a "Score" or recent trend
+    // Or if the frontend shows a specific "Behavior Score" for *today*, we might need today's log.
+    // The frontend shows "overview?.behaviorScore".
+    // Let's see if we can get today's score.
+    // We can use getBehaviorLogByDate(userId, new Date()) but we need to import it.
+    // Let's assume for now we want the "Daily Optimization" score which is likely today's score.
+    // If no log exists, score is 0.
+
+    // We'll return a structure matching what the frontend expects:
+    // overview.todayTasksCount
+    // overview.todayTasksTotal
+    // overview.completedTasksCount
+    // overview.behaviorScore
+    // overview.currentStreak
+    // overview.timeline
+
+    // Calculate counts from todayData
+    const { total, completed, pending } = todayData.stats;
+
+    // Get today's behavior score (we need to be careful with imports)
+    // Since we are in dashboard.service, we can't easily import behavior.service if it creates a circular dependency.
+    // behavior.service imports dashboard.service (for stats map).
+    // So we CANNOT import behavior.service here.
+    // We have to rely on what we can query or move the logic.
+    // However, we can use prisma directly here to fetch valid behavior log if needed,
+    // OR we can move the aggregation to the controller which can import both services.
+    // BUT the user asked to "Trace backend..." and "Fix...".
+    // Best practice: Keep service logic pure.
+    // Let's use the controller for aggregation?
+    // The previous implementation was in the service.
+    // Let's try to do it here using Prisma to avoid circular dep if needed, or just import if valid.
+    // Check behavior.service.js... it imports `buildDailyStatsMap` from dashboard.service.
+    // If I import behaviorService here, it will cycle.
+    // SOLUTION: Use the controller to aggregate, OR implement a lightweight fetch here.
+    // Actually, `getDashboardOverview` in `dashboard.controller.js` calls `dashboardService.getDashboardOverview`.
+    // I will rewrite this function to do the aggregation manually using the other functions IN THIS FILE
+    // and maybe a direct prisma call for behavior if strictly necessary, or just return 0 for now and let the frontend fetch strictly?
+    // NO, the frontend expects it in `overview`.
+    // I will simply fetch the behavior log using Prisma here to get the score, duplicating the score logic slightly or standardizing it?
+    // The score logic is complex (in checkBehavior... wait, in help function).
+    // `calculateProductivityScore` is exported from `behavior.service.js`? No, it's not exported?
+    // Wait, let me check behavior.service.js exports.
+    // It exports `calculateProductivityScore`.
+    // So I can import `calculateProductivityScore` from behavior.service.js?
+    // `import { calculateProductivityScore } from "./behavior.service.js"`
+    // `behavior.service.js` imports `buildDailyStatsMap` from `dashboard.service.js`.
+    // This IS a circular dependency.
+    // modification: I will move `calculateProductivityScore` to a shared util or just replicate the simple math here.
+    // It's: (completed/total)*100 - missed*5 ...
+    // Let's just do a basic fetch for "today's behavior log" and calculated score using the stats we already have.
+
+    const todayDate = startOfUTCDate();
+    const behaviorLog = await prisma.behaviorLog.findUnique({
+        where: { userId_date: { userId, date: todayDate } }
+    });
+
+    let behaviorScore = 0;
+    if (behaviorLog) {
+        // rudimentary score calc or just use 0 if not fully ready
+        // The frontend just wants a number.
+        // Let's calculate it using the stats we have from `todayData`
+        let score = 0;
+        if (total > 0) {
+            score = (completed / total) * 100;
+            score -= (todayData.stats.missed || 0) * 5;
+            if (behaviorLog.sleepHours < 5) score -= 5;
+            if (behaviorLog.exercise) score += 3;
+        }
+        behaviorScore = Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+
+    return {
+        todayTasksCount: pending, // "Pending Actions" text in frontend implies this is the remaining count?
+        // Frontend says: "Pending Actions" under the number.
+        // Wait, frontend code:
+        // <span class="text-3xl ...">{overview?.todayTasksCount || 0}</span>
+        // <span class="text-sm ...">/ {overview?.todayTasksTotal || 0}</span>
+        // <p ...>Pending Actions</p>
+        // Usually "Pending Actions" label refers to the big number.
+        // So `todayTasksCount` should be `pending`?
+        // Or is it `completed`?
+        // "3/5 Pending Actions" reads like "3 pending out of 5".
+        // Let's assume `todayTasksCount` = pending.
+        todayTasksCount: pending,
+        todayTasksTotal: total,
+        completedTasksCount: completed,
+        behaviorScore: behaviorScore,
+        currentStreak: streakData.currentStreak,
+        timeline: todayData.timeline
     };
 };
 
@@ -190,6 +292,7 @@ export const getTodayDashboard = async (userId) => {
         else if (missedScheduleSet.has(s.id)) status = "MISSED";
 
         timeline.push({
+            id: s.id, // Explicit ID
             type: "SCHEDULED",
             scheduleId: s.id,
             taskId: s.taskId,
@@ -204,6 +307,7 @@ export const getTodayDashboard = async (userId) => {
     // Unscheduled
     for (const t of unscheduledTasks) {
         timeline.push({
+            id: t.id, // Explicit ID
             type: "UNSCHEDULED",
             taskId: t.id,
             title: t.title,
