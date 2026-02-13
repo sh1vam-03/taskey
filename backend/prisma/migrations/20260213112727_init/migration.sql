@@ -17,7 +17,7 @@ CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
 CREATE TYPE "AccountStatus" AS ENUM ('ACTIVE', 'SUSPENDED', 'DELETED');
 
 -- CreateEnum
-CREATE TYPE "PlanType" AS ENUM ('FREE', 'PRO', 'PRO_PLUS', 'ULTRA');
+CREATE TYPE "PlanType" AS ENUM ('FREE', 'PRO', 'PRO_PLUS');
 
 -- CreateEnum
 CREATE TYPE "BillingCycle" AS ENUM ('MONTHLY', 'YEARLY');
@@ -26,13 +26,16 @@ CREATE TYPE "BillingCycle" AS ENUM ('MONTHLY', 'YEARLY');
 CREATE TYPE "AiUsageType" AS ENUM ('CHAT', 'VOICE');
 
 -- CreateEnum
-CREATE TYPE "TokenSource" AS ENUM ('PLAN_MONTHLY', 'TOP_UP');
+CREATE TYPE "CreditSource" AS ENUM ('PLAN_CYCLE', 'TOP_UP', 'REFUND', 'AI_USAGE');
 
 -- CreateEnum
-CREATE TYPE "PaymentPurpose" AS ENUM ('SUBSCRIPTION', 'AI_TOP_UP');
+CREATE TYPE "AiMessageRole" AS ENUM ('USER', 'ASSISTANT', 'SYSTEM');
 
 -- CreateEnum
-CREATE TYPE "AssistantMessageRole" AS ENUM ('USER', 'ASSISTANT');
+CREATE TYPE "AiConversationType" AS ENUM ('GENERAL', 'DAILY_PLANNING', 'REFLECTION', 'VOICE');
+
+-- CreateEnum
+CREATE TYPE "PaymentPurpose" AS ENUM ('SUBSCRIPTION', 'TOP_UP', 'REFUND');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('CREATED', 'PAID', 'FAILED', 'REFUNDED');
@@ -49,11 +52,14 @@ CREATE TABLE "User" (
     "isEmailVerified" BOOLEAN NOT NULL DEFAULT false,
     "timezone" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
-    "status" "AccountStatus" NOT NULL DEFAULT 'ACTIVE',
     "plan" "PlanType" NOT NULL DEFAULT 'FREE',
-    "aiTokenBalance" INTEGER NOT NULL DEFAULT 0,
+    "status" "AccountStatus" NOT NULL DEFAULT 'ACTIVE',
+    "aiCreditBalance" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tokenVersion" INTEGER NOT NULL DEFAULT 1,
+    "passwordResetToken" TEXT,
+    "passwordResetExpires" TIMESTAMP(3),
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -78,6 +84,7 @@ CREATE TABLE "Session" (
     "refreshTokenHash" TEXT NOT NULL,
     "userAgent" TEXT,
     "ipAddress" TEXT,
+    "isPersistent" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "revokedAt" TIMESTAMP(3),
@@ -91,14 +98,17 @@ CREATE TABLE "Subscription" (
     "id" TEXT NOT NULL,
     "plan" "PlanType" NOT NULL,
     "billingCycle" "BillingCycle" NOT NULL,
-    "monthlyTokens" INTEGER NOT NULL,
+    "cycleCredits" INTEGER NOT NULL,
     "startsAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "endsAt" TIMESTAMP(3),
+    "nextBillingAt" TIMESTAMP(3) NOT NULL,
+    "lastBilledAt" TIMESTAMP(3),
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "lastCreditGrantedAt" TIMESTAMP(3),
     "razorpaySubscriptionId" TEXT,
+    "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "userId" TEXT NOT NULL,
 
     CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id")
 );
@@ -225,10 +235,43 @@ CREATE TABLE "ContactUs" (
 );
 
 -- CreateTable
+CREATE TABLE "AiConversation" (
+    "id" TEXT NOT NULL,
+    "title" TEXT,
+    "type" "AiConversationType" NOT NULL DEFAULT 'GENERAL',
+    "totalCreditsUsed" INTEGER NOT NULL DEFAULT 0,
+    "isPinned" BOOLEAN NOT NULL DEFAULT false,
+    "isArchived" BOOLEAN NOT NULL DEFAULT false,
+    "lastMessageAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "AiConversation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AiMessage" (
+    "id" TEXT NOT NULL,
+    "role" "AiMessageRole" NOT NULL,
+    "content" TEXT NOT NULL,
+    "creditsUsed" INTEGER NOT NULL DEFAULT 0,
+    "meta" JSONB,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "conversationId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "AiMessage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AiUsage" (
     "id" TEXT NOT NULL,
     "type" "AiUsageType" NOT NULL,
-    "tokensUsed" INTEGER NOT NULL,
+    "model" TEXT NOT NULL,
+    "creditsUsed" INTEGER NOT NULL,
+    "conversationId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" TEXT NOT NULL,
 
@@ -238,8 +281,7 @@ CREATE TABLE "AiUsage" (
 -- CreateTable
 CREATE TABLE "AiTopUp" (
     "id" TEXT NOT NULL,
-    "tokensAdded" INTEGER NOT NULL,
-    "source" "TokenSource" NOT NULL,
+    "creditsAdded" INTEGER NOT NULL,
     "paymentId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "userId" TEXT NOT NULL,
@@ -248,28 +290,18 @@ CREATE TABLE "AiTopUp" (
 );
 
 -- CreateTable
-CREATE TABLE "AiChatMessage" (
+CREATE TABLE "AiCreditLedger" (
     "id" TEXT NOT NULL,
-    "role" "AssistantMessageRole" NOT NULL,
-    "content" TEXT NOT NULL,
-    "tokensUsed" INTEGER NOT NULL,
+    "credits" INTEGER NOT NULL,
+    "source" "CreditSource" NOT NULL,
+    "reason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
+    "conversationId" TEXT,
+    "paymentId" TEXT,
 
-    CONSTRAINT "AiChatMessage_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "AiVoiceSession" (
-    "id" TEXT NOT NULL,
-    "transcribedText" TEXT NOT NULL,
-    "assistantReply" TEXT NOT NULL,
-    "durationSeconds" INTEGER NOT NULL,
-    "tokensUsed" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "userId" TEXT NOT NULL,
-
-    CONSTRAINT "AiVoiceSession_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AiCreditLedger_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -294,10 +326,10 @@ CREATE TABLE "Payment" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
+CREATE UNIQUE INDEX "User_passwordResetToken_key" ON "User"("passwordResetToken");
 
 -- CreateIndex
-CREATE INDEX "User_plan_idx" ON "User"("plan");
+CREATE INDEX "User_email_idx" ON "User"("email");
 
 -- CreateIndex
 CREATE INDEX "User_status_idx" ON "User"("status");
@@ -324,10 +356,16 @@ CREATE UNIQUE INDEX "Subscription_razorpaySubscriptionId_key" ON "Subscription"(
 CREATE UNIQUE INDEX "Subscription_userId_key" ON "Subscription"("userId");
 
 -- CreateIndex
-CREATE INDEX "Subscription_plan_idx" ON "Subscription"("plan");
+CREATE INDEX "Subscription_nextBillingAt_idx" ON "Subscription"("nextBillingAt");
+
+-- CreateIndex
+CREATE INDEX "Subscription_billingCycle_idx" ON "Subscription"("billingCycle");
 
 -- CreateIndex
 CREATE INDEX "Subscription_isActive_idx" ON "Subscription"("isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Subscription_userId_isActive_key" ON "Subscription"("userId", "isActive");
 
 -- CreateIndex
 CREATE INDEX "UsageStat_userId_idx" ON "UsageStat"("userId");
@@ -402,7 +440,28 @@ CREATE UNIQUE INDEX "BehaviorLog_userId_date_key" ON "BehaviorLog"("userId", "da
 CREATE INDEX "ContactUs_email_idx" ON "ContactUs"("email");
 
 -- CreateIndex
+CREATE INDEX "AiConversation_userId_idx" ON "AiConversation"("userId");
+
+-- CreateIndex
+CREATE INDEX "AiConversation_type_idx" ON "AiConversation"("type");
+
+-- CreateIndex
+CREATE INDEX "AiConversation_lastMessageAt_idx" ON "AiConversation"("lastMessageAt");
+
+-- CreateIndex
+CREATE INDEX "AiMessage_conversationId_idx" ON "AiMessage"("conversationId");
+
+-- CreateIndex
+CREATE INDEX "AiMessage_userId_idx" ON "AiMessage"("userId");
+
+-- CreateIndex
+CREATE INDEX "AiMessage_createdAt_idx" ON "AiMessage"("createdAt");
+
+-- CreateIndex
 CREATE INDEX "AiUsage_userId_idx" ON "AiUsage"("userId");
+
+-- CreateIndex
+CREATE INDEX "AiUsage_conversationId_idx" ON "AiUsage"("conversationId");
 
 -- CreateIndex
 CREATE INDEX "AiUsage_createdAt_idx" ON "AiUsage"("createdAt");
@@ -414,13 +473,13 @@ CREATE UNIQUE INDEX "AiTopUp_paymentId_key" ON "AiTopUp"("paymentId");
 CREATE INDEX "AiTopUp_userId_idx" ON "AiTopUp"("userId");
 
 -- CreateIndex
-CREATE INDEX "AiChatMessage_userId_idx" ON "AiChatMessage"("userId");
+CREATE INDEX "AiCreditLedger_userId_idx" ON "AiCreditLedger"("userId");
 
 -- CreateIndex
-CREATE INDEX "AiChatMessage_createdAt_idx" ON "AiChatMessage"("createdAt");
+CREATE INDEX "AiCreditLedger_source_idx" ON "AiCreditLedger"("source");
 
 -- CreateIndex
-CREATE INDEX "AiVoiceSession_userId_idx" ON "AiVoiceSession"("userId");
+CREATE INDEX "AiCreditLedger_createdAt_idx" ON "AiCreditLedger"("createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Payment_razorpayPaymentId_key" ON "Payment"("razorpayPaymentId");
@@ -480,6 +539,18 @@ ALTER TABLE "MissedSchedule" ADD CONSTRAINT "MissedSchedule_userId_fkey" FOREIGN
 ALTER TABLE "BehaviorLog" ADD CONSTRAINT "BehaviorLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "AiConversation" ADD CONSTRAINT "AiConversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiMessage" ADD CONSTRAINT "AiMessage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "AiConversation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiMessage" ADD CONSTRAINT "AiMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiUsage" ADD CONSTRAINT "AiUsage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "AiConversation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "AiUsage" ADD CONSTRAINT "AiUsage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -489,10 +560,7 @@ ALTER TABLE "AiTopUp" ADD CONSTRAINT "AiTopUp_paymentId_fkey" FOREIGN KEY ("paym
 ALTER TABLE "AiTopUp" ADD CONSTRAINT "AiTopUp_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AiChatMessage" ADD CONSTRAINT "AiChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "AiVoiceSession" ADD CONSTRAINT "AiVoiceSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "AiCreditLedger" ADD CONSTRAINT "AiCreditLedger_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
