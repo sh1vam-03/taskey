@@ -97,7 +97,22 @@ const handleSubscriptionCharged = async (payload) => {
         }
     });
 
-    // Log credit ledger? (Optional but good)
+    // 🚨 GRANT CREDITS TO USER BALANCE 🚨
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { id: subscription.userId },
+            data: { aiCreditBalance: { increment: credits } }
+        }),
+        prisma.aiCreditLedger.create({
+            data: {
+                userId: subscription.userId,
+                credits: credits,
+                source: "PLAN_CYCLE",
+                reason: "Subscription Renewal",
+                paymentId: paymentEntity.id
+            }
+        })
+    ]);
 };
 
 const handleSubscriptionCancelled = async (payload) => {
@@ -112,31 +127,76 @@ const handleSubscriptionCancelled = async (payload) => {
     await prisma.subscription.update({
         where: { id: subscription.id },
         data: {
-            isActive: false, // Cancelled immediately or at end?
-            // Razorpay usually keeps it 'active' until period end, but status changes.
-            // But for simplicity, we mark as cancelled if the event says halted/cancelled.
-            // If it's just 'scheduled for cancellation', we might wait.
-            // Let's rely on `subEntity.status`.
+            isActive: false,
             endsAt: subEntity.end_at ? new Date(subEntity.end_at * 1000) : new Date()
         }
     });
 };
 
 const handlePaymentCaptured = async (payload) => {
-    // Handle one-off payments (Credits top-up)
-    // Needs logic to find the user via notes or order_id
     const paymentEntity = payload.payment.entity;
 
-    // Check if it's already recorded
-    const existing = await prisma.payment.findUnique({
-        where: { razorpayPaymentId: paymentEntity.id }
-    });
+    // Check if it's a Top-Up
+    // We stored 'type': 'TOP_UP' in notes during order creation
+    const notes = paymentEntity.notes || {};
 
-    if (existing) {
-        await prisma.payment.update({
-            where: { id: existing.id },
-            data: { status: "PAID" }
+    if (notes.type === "TOP_UP") {
+        const userId = notes.userId;
+        const credits = Number(notes.credits);
+
+        if (!userId || !credits) {
+            console.error("Invalid Top-Up Payload", notes);
+            return;
+        }
+
+        // 1. Record Payment
+        const payment = await prisma.payment.findFirst({
+            where: { razorpayOrderId: paymentEntity.order_id }
         });
-        // Grant credits if it was a top-up
+
+        if (payment) {
+            await prisma.payment.update({
+                where: { id: payment.id },
+                data: {
+                    status: "PAID",
+                    razorpayPaymentId: paymentEntity.id
+                }
+            });
+        } else {
+            // Should verify why payment record missing, but create anyway
+            await prisma.payment.create({
+                data: {
+                    userId,
+                    razorpayPaymentId: paymentEntity.id,
+                    razorpayOrderId: paymentEntity.order_id,
+                    entity: "PAYMENT",
+                    purpose: "TOP_UP",
+                    amount: paymentEntity.amount,
+                    currency: paymentEntity.currency,
+                    status: "PAID"
+                }
+            });
+        }
+
+        // 2. Grant Credits
+        await prisma.$transaction([
+            prisma.user.update({
+                where: { id: userId },
+                data: { aiCreditBalance: { increment: credits } }
+            }),
+            prisma.aiCreditLedger.create({
+                data: {
+                    userId,
+                    credits: credits,
+                    source: "TOP_UP",
+                    reason: `Top-Up: ${credits} Credits`,
+                    paymentId: paymentEntity.id
+                }
+            })
+        ]);
+
+        console.log(`Granted ${credits} credits to ${userId} via Top-Up`);
+    } else {
+        // Handle other payments (e.g. one-off invoice not top-up?)
     }
 };

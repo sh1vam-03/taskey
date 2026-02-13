@@ -342,12 +342,12 @@ export default function DashboardOverview() {
                                 <div className="p-3 rounded-lg bg-white/5 border border-white/5 space-y-2">
                                     <div className="flex justify-between text-xs text-gray-400">
                                         <span>Usage</span>
-                                        <span>{Math.round((usage?.aiTokensUsed / (subscription?.usageLimit || 100)) * 100) || 0}%</span>
+                                        <span>{(subscription?.usageLimit > 0) ? Math.round((usage?.aiTokensUsed / subscription.usageLimit) * 100) : 0}%</span>
                                     </div>
                                     <div className="h-2 bg-black rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-cyan-500 rounded-full"
-                                            style={{ width: `${Math.min(((usage?.aiTokensUsed || 0) / (subscription?.usageLimit || 100)) * 100, 100)}%` }}
+                                            style={{ width: `${(subscription?.usageLimit > 0) ? Math.min(((usage?.aiTokensUsed || 0) / subscription.usageLimit) * 100, 100) : 0}%` }}
                                         />
                                     </div>
                                 </div>

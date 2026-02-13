@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import billingService from '@/services/billing.service';
 import { useAuth } from '@/context/AuthContext';
-import { Check, CreditCard, Shield, Zap, Sparkles, TrendingUp } from 'lucide-react';
+import { Check, CreditCard, Shield, Zap, Sparkles, TrendingUp, FileText, Clock } from 'lucide-react';
 import usageService from '@/services/usage.service';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -57,11 +57,33 @@ const PLANS = [
     }
 ];
 
+const TOP_UP_PACKS = [
+    {
+        id: "CREDIT_100",
+        credits: 100,
+        price: '₹99',
+        label: "Starter Pack"
+    },
+    {
+        id: "CREDIT_500",
+        credits: 500,
+        price: '₹399',
+        label: "Pro Pack"
+    },
+    {
+        id: "CREDIT_1000",
+        credits: 1000,
+        price: '₹699',
+        label: "Power Pack"
+    }
+];
+
 export default function BillingPage() {
     const { toast, success, error, info } = useToast();
     const { user, loading: authLoading } = useAuth();
     const [currentSub, setCurrentSub] = useState(null);
     const [usage, setUsage] = useState(null);
+    const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [cancelModal, setCancelModal] = useState(false);
@@ -70,12 +92,14 @@ export default function BillingPage() {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [subData, usageData] = await Promise.all([
+                const [subData, usageData, historyData] = await Promise.all([
                     billingService.getCurrentSubscription(),
-                    usageService.getMyUsage()
+                    usageService.getMyUsage(),
+                    billingService.getHistory()
                 ]);
                 setCurrentSub(subData);
                 setUsage(usageData);
+                setHistory(historyData);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -208,9 +232,9 @@ export default function BillingPage() {
 
                 {/* Usage Stats */}
                 <div className="mt-8 grid gap-6 md:grid-cols-3">
-                    <UsageBar label="Task Protocol" current={usage?.taskCount} max={usage?.limits?.task} color="cyan" />
-                    <UsageBar label="Temporal Blocks" current={usage?.scheduleCount} max={usage?.limits?.schedule} color="indigo" />
-                    <UsageBar label="Neural Actions" current={usage?.behaviorCount} max={usage?.limits?.behavior} color="purple" />
+                    <UsageBar label="Created Tasks" current={usage?.taskCount} max={usage?.limits?.task} color="cyan" />
+                    <UsageBar label="Schedules" current={usage?.scheduleCount} max={usage?.limits?.schedule} color="indigo" />
+                    <UsageBar label="Behavior Logs" current={usage?.behaviorCount} max={usage?.limits?.behavior} color="purple" />
                 </div>
 
                 {/* Renewal Info */}
@@ -289,6 +313,109 @@ export default function BillingPage() {
                 })}
             </div>
 
+            {/* Top-Up Section */}
+            <div className="mt-16 border-t border-white/5 pt-10">
+                <div className="mb-8">
+                    <h2 className="text-2xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+                        <Zap className="h-6 w-6 text-yellow-500" />
+                        Neural Credit Top-Up
+                    </h2>
+                    <p className="text-gray-400 font-mono text-sm max-w-xl">
+                        Run out of monthly credits? Boost your balance instantly. One-time purchase, never expires.
+                    </p>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3">
+                    {TOP_UP_PACKS.map((pack) => (
+                        <Card key={pack.id} className="p-6 relative overflow-hidden group hover:border-yellow-500/30 transition-colors">
+                            <div className="absolute top-0 right-0 p-24 bg-yellow-500/5 rounded-full blur-2xl group-hover:bg-yellow-500/10 transition-colors" />
+
+                            <div className="relative z-10 flex flex-col h-full">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-bold text-white font-mono">{pack.label}</h3>
+                                    <div className="text-3xl font-bold text-yellow-400 mt-1">{pack.price}</div>
+                                </div>
+
+                                <div className="flex items-center gap-2 mb-6 text-yellow-500/80 font-mono text-sm">
+                                    <Zap className="h-4 w-4" />
+                                    <span>{pack.credits} Credits</span>
+                                </div>
+
+                                <Button
+                                    onClick={() => handleTopUp(pack.id)}
+                                    disabled={processing}
+                                    variant="outline"
+                                    className="mt-auto border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                                >
+                                    {processing ? 'PROCESSING...' : 'INSTANT TOP-UP'}
+                                </Button>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+
+            {/* Transaction History */}
+            <div className="mt-16 border-t border-white/5 pt-10 pb-20">
+                <div className="mb-6">
+                    <h2 className="text-xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                        Billing History
+                    </h2>
+                </div>
+
+                <Card className="overflow-hidden bg-black/20 border-white/5">
+                    {history.length === 0 ? (
+                        <div className="p-12 text-center text-gray-500 font-mono text-sm">
+                            No payment history found.
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm text-gray-400">
+                                <thead className="bg-white/5 text-gray-300 font-mono uppercase text-xs">
+                                    <tr>
+                                        <th className="px-6 py-4">Date</th>
+                                        <th className="px-6 py-4">Description</th>
+                                        <th className="px-6 py-4">Amount</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4">Ref ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 font-mono">
+                                    {history.map((item) => (
+                                        <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="h-3 w-3 text-gray-600" />
+                                                    {new Date(item.createdAt).toLocaleDateString()}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-white font-medium">
+                                                {item.purpose.replace('_', ' ')}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {item.currency} {(item.amount / 100).toFixed(2)}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${item.status === 'PAID'
+                                                    ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                                                    : 'text-red-400 bg-red-500/10 border-red-500/20'
+                                                    }`}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-xs text-gray-600">
+                                                {item.razorpayPaymentId || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </Card>
+            </div>
+
             <ConfirmationModal
                 isOpen={cancelModal}
                 onClose={() => setCancelModal(false)}
@@ -298,7 +425,7 @@ export default function BillingPage() {
                 confirmText="Confirm Cancellation"
                 variant="danger"
             />
-        </div>
+        </div >
     );
 }
 

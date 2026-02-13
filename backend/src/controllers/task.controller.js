@@ -2,6 +2,7 @@ import * as taskService from "../services/task.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import { TaskPriority } from "@prisma/client";
+import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
 /**
  * @route   POST /api/tasks
@@ -24,10 +25,16 @@ export const createTask = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid priority");
     }
 
+    // Check Limit
+    await checkUsageLimit(userId, 'task');
+
     const task = await taskService.createTask(userId, { title, description, priority, dueDate, categoryId: sanitizedCategoryId, userId });
 
+    // Increment Usage
+    await incrementUsage(userId, 'task');
+
     res.status(201).json(task);
-})
+});
 
 
 /**

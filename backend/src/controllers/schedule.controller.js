@@ -2,6 +2,7 @@ import * as scheduleService from "../services/schedule.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import { nextDay } from "date-fns";
+import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
 /**
  * @route POST /api/schedules
@@ -15,6 +16,9 @@ export const createSchedule = asyncHandler(async (req, res) => {
     if (!taskId || !scheduleDate || !startTime || !endTime) {
         throw new ApiError(400, "Required fields are missing");
     }
+
+    // Check Limit
+    await checkUsageLimit(userId, 'schedule');
 
     const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -82,6 +86,10 @@ export const createSchedule = asyncHandler(async (req, res) => {
         repeatUntil,
         repeatOnDays
     });
+
+    // Increment Usage
+    await incrementUsage(userId, 'schedule');
+
     res.status(201).json({
         success: true,
         message: "Schedule created successfully",

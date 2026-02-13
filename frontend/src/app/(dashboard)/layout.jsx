@@ -3,6 +3,7 @@
 import Sidebar from '@/components/dashboard/Sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
+import UpgradeModal from '@/components/ui/UpgradeModal';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardLayout({ children }) {
@@ -32,6 +33,7 @@ export default function DashboardLayout({ children }) {
 
     return (
         <div className="flex min-h-screen bg-black text-white selection:bg-cyan-500/30 selection:text-cyan-500">
+            <UpgradeModal />
             <Sidebar />
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Mobile header removed, handled by Sidebar */}

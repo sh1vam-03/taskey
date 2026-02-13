@@ -1,7 +1,7 @@
 import Razorpay from "razorpay";
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { PLANS, getPlanRank } from "../config/plans.config.js"; // New Import
+import { PLANS, TOP_UP_PLANS, getPlanRank } from "../config/plans.config.js"; // New Import
 import { PaymentPurpose, RazorpayEntity } from "@prisma/client";
 
 const razorpay = new Razorpay({
@@ -32,11 +32,22 @@ export const createSubscription = async (userId, plan, billingCycle) => {
     }
 
     // 3️⃣ Create Razorpay subscription
-    const razorpaySubscription = await razorpay.subscriptions.create({
-        plan_id: process.env[`RAZORPAY_${plan}_${billingCycle}_PLAN_ID`],
-        customer_notify: 1,
-        total_count: billingCycle === "YEARLY" ? 1 : 12,
-    });
+    const planId = process.env[`RAZORPAY_${plan}_${billingCycle}_PLAN_ID`];
+
+    if (!planId) {
+        throw new ApiError(500, "Server Configuration Error: Plan ID not found");
+    }
+
+    let razorpaySubscription;
+    try {
+        razorpaySubscription = await razorpay.subscriptions.create({
+            plan_id: planId,
+            customer_notify: 1,
+            total_count: billingCycle === "YEARLY" ? 1 : 12,
+        });
+    } catch (error) {
+        throw new ApiError(error.statusCode || 500, `Razorpay Error: ${error.error?.description || error.message}`);
+    }
 
     // 4️⃣ Save payment intent
     await prisma.payment.create({
@@ -117,4 +128,54 @@ export const getSubscription = async (userId) => {
         where: { userId },
     });
     return subscription;
+};
+
+export const createTopUpOrder = async (userId, topUpId) => {
+    // 1. Validate Top-Up Plan
+    const pack = TOP_UP_PLANS[topUpId];
+    if (!pack) {
+        throw new ApiError(400, "Invalid top-up pack");
+    }
+
+    // 2. Create Razorpay Order
+    const options = {
+        amount: pack.price * 100, // paise
+        currency: "INR",
+        receipt: `topup_${userId}_${Date.now()}`,
+        payment_capture: 1
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    // 3. Create Payment Record (Pending)
+    await prisma.payment.create({
+        data: {
+            userId,
+            entity: RazorpayEntity.TOP_UP, // Ensure this enum exists or use 'TOP_UP' string if enum is String
+            purpose: PaymentPurpose.TOP_UP,
+            amount: pack.price * 100,
+            currency: "INR",
+            status: "CREATED",
+            razorpayOrderId: order.id,
+            // metadata: { credits: pack.credits } // Schema doesn't have metadata
+        }
+    });
+
+    return {
+        ...pack,
+        orderId: order.id,
+        key: process.env.RAZORPAY_KEY_ID
+    };
+};
+
+export const getPaymentHistory = async (userId) => {
+    const history = await prisma.payment.findMany({
+        where: {
+            userId,
+            status: "PAID" // Only show successful payments
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+    });
+    return history;
 };

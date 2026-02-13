@@ -36,6 +36,34 @@ export const cancelMySubscription = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @route POST /api/billing/top-up
+ */
+export const createTopUp = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { topUpId } = req.body;
+
+    const data = await billingService.createTopUpOrder(userId, topUpId);
+
+    res.status(200).json({
+        success: true,
+        data,
+    });
+});
+
+/**
+ * @route GET /api/billing/history
+ */
+export const getHistory = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const history = await billingService.getPaymentHistory(userId);
+
+    res.status(200).json({
+        success: true,
+        data: history
+    });
+});
+
+/**
  * @route POST /api/billing/downgrade
  */
 export const downgradePlan = asyncHandler(async (req, res) => {

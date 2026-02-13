@@ -26,11 +26,25 @@ router.post(
     billingController.downgradePlan
 );
 
+router.post(
+    "/top-up",
+    authMiddleware,
+    requireRole("USER"),
+    billingController.createTopUp
+);
+
 router.get(
     "/current",
     authMiddleware,
     requireRole("USER"),
     billingController.getCurrentSubscription
+);
+
+router.get(
+    "/history",
+    authMiddleware,
+    requireRole("USER"),
+    billingController.getHistory
 );
 
 export default router;

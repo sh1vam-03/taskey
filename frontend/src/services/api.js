@@ -29,6 +29,18 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        if (
+            error.response?.status === 403 &&
+            error.response.data?.message?.toLowerCase().includes("limit")
+        ) {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('taskey-limit-reached', {
+                    detail: error.response.data.message
+                }));
+            }
+            return Promise.reject(error);
+        }
+
         // Prevent infinite loop: Don't retry if the failed request was already a retry or was the refresh endpoint itself
         if (
             error.response?.status === 401 &&

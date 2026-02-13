@@ -23,7 +23,8 @@ import { validateInputSafety } from "../validators/safety.validator.js";
 export const processAiRequest = async ({ userId, conversationId, message, mode = "TEXT" }) => {
 
     // 0. Strict Billing Pre-Check
-    await checkCreditBalance(userId);
+    const minCredits = mode === "VOICE" ? 3 : 1;
+    await checkCreditBalance(userId, minCredits);
 
     // 0.1 Safety Check
     if (!validateInputSafety(message)) {

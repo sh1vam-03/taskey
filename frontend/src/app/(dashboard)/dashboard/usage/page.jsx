@@ -45,8 +45,9 @@ export default function UsagePage() {
         );
     }
 
-    const isUnlimited = data?.limits === 'UNLIMITED';
     const planName = subscription?.plan || 'FREE';
+    // Paid plans are effectively unlimited for standard resources
+    const isUnlimited = planName !== 'FREE';
 
     // Check if user is near any limit (only for FREE users)
     const isNearLimit = !isUnlimited && (
@@ -122,7 +123,7 @@ export default function UsagePage() {
             )}
 
             {/* Usage Cards Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <UsageCard
                     label="Task Protocol"
                     count={data?.taskCount}
@@ -138,19 +139,27 @@ export default function UsagePage() {
                     color="indigo"
                 />
                 <UsageCard
-                    label="Neural Actions"
+                    label="Behavior Logs"
                     count={data?.behaviorCount}
                     limit={isUnlimited ? null : data?.limits?.behavior}
-                    icon={<Zap className="w-5 h-5" />}
+                    icon={<Shield className="w-5 h-5" />}
                     color="purple"
+                />
+                <UsageCard
+                    label="AI Credits"
+                    count={data?.aiTokensUsed}
+                    limit={subscription?.usageLimit}
+                    icon={<Zap className="w-5 h-5" />}
+                    color="cyan"
+                    forceLimit={true} // AI is never unlimited
                 />
             </div>
         </div>
     );
 }
 
-function UsageCard({ label, count = 0, limit, icon, color = "cyan" }) {
-    const isUnlimited = limit === null || limit === undefined;
+function UsageCard({ label, count = 0, limit, icon, color = "cyan", forceLimit = false }) {
+    const isUnlimited = !forceLimit && (limit === null || limit === undefined);
     const percentage = isUnlimited ? 0 : Math.min((count / limit) * 100, 100);
 
     // Color Logic

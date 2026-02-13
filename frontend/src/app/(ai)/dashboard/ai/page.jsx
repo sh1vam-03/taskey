@@ -26,10 +26,32 @@ export default function AIPage() {
     const chunksRef = useRef([]);
     const messagesEndRef = useRef(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+    const [thinkingText, setThinkingText] = useState("Thinking...");
+
+    const THINKING_STEPS = [
+        "Reading your schedule...",
+        "Checking pending tasks...",
+        "Analyzing recent habits...",
+        "Formulating plan..."
+    ];
 
     useEffect(() => {
         loadConversations();
     }, []);
+
+    useEffect(() => {
+        if (!loading) return;
+
+        let step = 0;
+        setThinkingText(THINKING_STEPS[0]);
+
+        const interval = setInterval(() => {
+            step = (step + 1) % THINKING_STEPS.length;
+            setThinkingText(THINKING_STEPS[step]);
+        }, 2000); // Change every 2s
+
+        return () => clearInterval(interval);
+    }, [loading]);
 
     useEffect(() => {
         if (currentConv) {
@@ -41,7 +63,7 @@ export default function AIPage() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, thinkingText]); // Scroll when text changes too
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -294,22 +316,33 @@ export default function AIPage() {
                             </h2>
 
                             {!voiceMode && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full px-6">
-                                    {[
-                                        { icon: Sparkles, label: "Brainstorm ideas", sub: "for a marketing campaign" },
-                                        { icon: BrainCircuit, label: "Explain quantum computing", sub: "in simple terms" },
-                                        { icon: CalendarIcon, label: "Plan my schedule", sub: "for the upcoming week" },
-                                        { icon: MessageSquare, label: "Draft an email", sub: "requesting a deadline extension" }
-                                    ].map((item, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => setInput(item.label + " " + item.sub)}
-                                            className="text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-sm group"
-                                        >
-                                            <div className="font-medium text-gray-200 mb-1 group-hover:text-white">{item.label}</div>
-                                            <div className="text-gray-500 text-xs">{item.sub}</div>
-                                        </button>
-                                    ))}
+                                <div className="flex flex-col items-center gap-6 max-w-2xl w-full px-6">
+                                    {/* Context Badge */}
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-cyan-950/30 border border-cyan-500/20 rounded-full text-xs text-cyan-400 font-medium animate-pulse">
+                                        <Sparkles className="w-3 h-3" />
+                                        <span>Context Active: Schedule • Tasks • Habits</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                                        {[
+                                            { icon: CalendarIcon, label: "What should I focus on?", sub: "Check my tasks & schedule" },
+                                            { icon: BrainCircuit, label: "Do I have free time?", sub: "Analyze my calendar today" },
+                                            { icon: Sparkles, label: "I'm feeling overwhelmed", sub: "Help me prioritize" },
+                                            { icon: MessageSquare, label: "Review my habits", sub: "How is my sleep & mood?" }
+                                        ].map((item, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setInput(item.label)}
+                                                className="text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-sm group bg-[#2a2a2a]/50 hover:border-cyan-500/30"
+                                            >
+                                                <div className="font-medium text-gray-200 mb-1 group-hover:text-cyan-400 transition-colors flex items-center gap-2">
+                                                    <item.icon className="w-4 h-4" />
+                                                    {item.label}
+                                                </div>
+                                                <div className="text-gray-500 text-xs">{item.sub}</div>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -356,14 +389,20 @@ export default function AIPage() {
                             ))}
 
                             {loading && (
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     <div className="w-8 h-8 rounded-full bg-cyan-600/20 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                                        <div className="w-4 h-4 rounded-full border-2 border-cyan-400/50 border-t-cyan-400 animate-spin" />
+                                        <BrainCircuit className="w-4 h-4 text-cyan-400 animate-pulse" />
                                     </div>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
-                                        <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-75" />
-                                        <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150" />
+                                    <div className="flex flex-col justify-center gap-1 mt-1">
+                                        <div className="text-sm text-cyan-400 font-mono tracking-wide animate-pulse">
+                                            {thinkingText}
+                                        </div>
+                                        {/* Little dots */}
+                                        <div className="flex gap-1">
+                                            <span className="w-1 h-1 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                            <span className="w-1 h-1 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                            <span className="w-1 h-1 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        </div>
                                     </div>
                                 </div>
                             )}

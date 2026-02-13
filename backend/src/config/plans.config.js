@@ -17,6 +17,30 @@ export const AI_COSTS = {
 };
 
 // ==========================================
+// 1.5. TOP-UP PACKS
+// ==========================================
+export const TOP_UP_PLANS = {
+    CREDIT_100: {
+        id: "CREDIT_100",
+        label: "100 Credits",
+        credits: 100,
+        price: 99 // INR
+    },
+    CREDIT_500: {
+        id: "CREDIT_500",
+        label: "500 Credits",
+        credits: 500,
+        price: 399
+    },
+    CREDIT_1000: {
+        id: "CREDIT_1000",
+        label: "1000 Credits",
+        credits: 1000,
+        price: 699
+    }
+};
+
+// ==========================================
 // 2. PLAN LIMITS & PRICING (Single Source of Truth)
 // ==========================================
 export const PLANS = {

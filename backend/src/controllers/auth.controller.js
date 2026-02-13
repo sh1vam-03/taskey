@@ -75,6 +75,7 @@ export const login = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
+        path: "/",
     };
 
     // Only set maxAge if persistent (Remember Me) -> NO, Access Token should ALWAYS expire
@@ -125,6 +126,7 @@ export const logout = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
+        path: "/",
     };
 
     res.clearCookie("accessToken", cookieOptions);
@@ -236,6 +238,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: COOKIE_SECURE,
         sameSite: COOKIE_SAMESITE,
+        path: "/",
         maxAge: ACCESS_COOKIE_MAX_AGE, // Always set maxAge
     };
 

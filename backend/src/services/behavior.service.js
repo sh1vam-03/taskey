@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import { buildDailyStatsMap } from "./dashboard.service.js";
 import { getCurrentMonthYear } from "../utils/date.utils.js";
 import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
+import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
 /* -------------------------------------------------------------------------- */
 /*                               DATE UTILS                                   */
@@ -45,7 +46,12 @@ export const upsertBehaviorLog = async (userId, payload) => {
         }
     });
 
-    // 2️⃣ Upsert behavior
+    // 2️⃣ Check Limits (Only if creating new)
+    if (!existing) {
+        await checkUsageLimit(userId, 'behavior');
+    }
+
+    // 3️⃣ Upsert behavior
     const behavior = await prisma.behaviorLog.upsert({
         where: {
             userId_date: { userId, date: day }
@@ -67,32 +73,10 @@ export const upsertBehaviorLog = async (userId, payload) => {
     });
 
     /**
-     * 3️⃣ Increment usage ONLY if it's a NEW record
-     * (editing same day should NOT count again)
+     * 4️⃣ Increment usage ONLY if it's a NEW record
      */
     if (!existing) {
-        const { month, year } = getCurrentMonthYear();
-
-        await prisma.usageStat.upsert({
-            where: {
-                userId_month_year: {
-                    userId,
-                    month,
-                    year
-                }
-            },
-            update: {
-                behaviorCount: { increment: 1 }
-            },
-            create: {
-                userId,
-                month,
-                year,
-                behaviorCount: 1,
-                taskCount: 0,
-                scheduleCount: 0
-            }
-        });
+        await incrementUsage(userId, 'behavior');
     }
 
     return behavior;

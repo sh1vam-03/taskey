@@ -34,6 +34,23 @@ const billingService = {
     async downgradePlan(newPlan) {
         const response = await api.post("/billing/downgrade", { newPlan });
         return response.data;
+    },
+
+    /**
+     * Create Top-Up Order
+     * @param {string} topUpId 
+     */
+    async createTopUp(topUpId) {
+        const response = await api.post("/billing/top-up", { topUpId });
+        return response.data;
+    },
+
+    /**
+     * Get payment history
+     */
+    async getHistory() {
+        const response = await api.get("/billing/history");
+        return response.data.data;
     }
 };
 

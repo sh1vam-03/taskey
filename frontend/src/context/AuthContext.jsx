@@ -59,6 +59,16 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const logoutAll = async () => {
+        try {
+            await authService.logoutAll();
+            setUser(null);
+            router.push('/login');
+        } catch (error) {
+            console.error("Logout All failed", error);
+        }
+    };
+
     const requestOtp = async (email) => {
         // Implement OTP request logic here
         // For now, assuming authService has this method or we need to add it
@@ -73,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     const signup = register;
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, signup, logout, checkSession, requestOtp, verifyOtp }}>
+        <AuthContext.Provider value={{ user, loading, login, signup, logout, logoutAll, checkSession, requestOtp, verifyOtp }}>
             {children}
         </AuthContext.Provider>
     );

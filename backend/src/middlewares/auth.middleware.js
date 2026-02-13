@@ -6,7 +6,11 @@ const authMiddleware = async (req, res, next) => {
     try {
         const token = req.cookies?.accessToken;
 
+        // DEBUG LOGGING
+        // console.log("Auth Middleware - Token Present:", !!token);
+
         if (!token) {
+            console.log("Auth Middleware: No access token in cookies");
             return res.status(401).json({ message: "Unauthorized access" });
         }
 
@@ -21,21 +25,25 @@ const authMiddleware = async (req, res, next) => {
                 email: true,
                 role: true,
                 status: true,
-                tokenVersion: true
+                tokenVersion: true,
+                plan: true // Add plan to user object for easy access
             },
         });
 
         if (!user || user.status !== "ACTIVE") {
+            console.log("Auth Middleware: User not found or inactive");
             return res.status(403).json({ message: "Account disabled or not found" });
         }
 
         if (decoded.tokenVersion !== user.tokenVersion) {
+            console.log(`Auth Middleware: Token version mismatch. Token: ${decoded.tokenVersion}, User: ${user.tokenVersion}`);
             return res.status(401).json({ message: "Session expired (Logged out from another device)" });
         }
 
         req.user = user;
         next();
     } catch (error) {
+        console.error("Auth Middleware Error:", error.message);
         return res.status(401).json({ message: "Invalid or expired token" });
     }
 };

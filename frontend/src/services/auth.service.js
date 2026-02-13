@@ -18,6 +18,11 @@ const authService = {
         await api.post('/auth/logout');
     },
 
+    // Logout All Devices
+    logoutAll: async () => {
+        await api.post('/auth/logout-all');
+    },
+
     // Get Current User (Session Check)
     getMe: async () => {
         const response = await api.get('/auth/me');

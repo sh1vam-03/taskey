@@ -1,8 +1,7 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import billingService from '@/services/billing.service';
+import authService from '@/services/auth.service';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Toggle from '@/components/ui/Toggle';
@@ -12,18 +11,20 @@ import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 import {
     Settings, User, CreditCard, Bell, Shield, LogOut,
-    Trash2, Cpu, Mic, Volume2
+    Trash2, Cpu, Zap, Calendar, ShieldCheck, Mail
 } from 'lucide-react';
 
 export default function SettingsPage() {
-    const { user, logout } = useAuth();
-    const { toast, success, error } = useToast();
+    const { user, logout, logoutAll } = useAuth();
+    const { toast, success, error, info } = useToast();
     const router = useRouter();
 
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
     const [logoutModal, setLogoutModal] = useState(false);
+    const [logoutAllModal, setLogoutAllModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
     // AI Preferences (Local State)
     const [aiPrefs, setAiPrefs] = useState({
@@ -59,26 +60,30 @@ export default function SettingsPage() {
 
     const handleLogout = async () => {
         await logout();
-        router.push('/login');
+    };
+
+    const handleLogoutAll = async () => {
+        await logoutAll();
+    };
+
+    const handleChangePassword = async () => {
+        if (!user?.email) return;
+        try {
+            await authService.forgotPassword(user.email);
+            success("Password reset link sent to your email.");
+        } catch (err) {
+            error("Failed to send reset link.");
+        }
     };
 
     const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== "DELETE") {
+            error("Please type DELETE to confirm.");
+            return;
+        }
+
         try {
-            // Import dynamically or assume authService is available via context if we extended it? 
-            // Since we updated authService directly, we should import it.
-            // But optimal way is to expose it via useAuth if used often.
-            // For now, let's use the one attached to the component or import specifically if needed.
-            // Wait, we updated the service file, but did we update context? 
-            // The context usually wraps authActions. 
-            // Let's import authService directly at top of file for this specific action if context doesn't have it.
-
-            // To be safe/clean, I will add `import authService` at the top in a separate edit 
-            // OR I can use the existing `logout` as reference.
-            // Actually, we modified `authService` file. We need to import it.
-
-            const { default: authService } = await import('@/services/auth.service');
             await authService.deleteAccount();
-
             success("Account deleted successfully.");
             window.location.href = '/signup';
         } catch (err) {
@@ -112,6 +117,11 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-3 mb-6">
                             <User className="h-5 w-5 text-cyan-500" />
                             <h3 className="font-bold text-lg text-white">Profile Identity</h3>
+                            {user?.isEmailVerified && (
+                                <span className="ml-auto flex items-center gap-1 text-[10px] font-mono text-green-400 bg-green-950/30 px-2 py-1 rounded border border-green-500/20">
+                                    <ShieldCheck className="h-3 w-3" /> VERIFIED
+                                </span>
+                            )}
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">
@@ -125,6 +135,24 @@ export default function SettingsPage() {
                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-mono">Neural ID (Email)</label>
                                 <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
                                     {user?.email}
+                                </div>
+                            </div>
+
+                            {/* Advanced Info */}
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-500 uppercase tracking-wider font-mono flex items-center gap-2">
+                                    <Zap className="h-3 w-3 text-yellow-500" /> AI Credits
+                                </label>
+                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
+                                    {user?.aiCreditBalance || 0}
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-500 uppercase tracking-wider font-mono flex items-center gap-2">
+                                    <Calendar className="h-3 w-3 text-cyan-500" /> Joined Date
+                                </label>
+                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
+                                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                                 </div>
                             </div>
                         </div>
@@ -223,7 +251,28 @@ export default function SettingsPage() {
                         </div>
                     </Card>
 
-                    {/* 5. Danger Zone */}
+                    {/* 5. Security & Passwords */}
+                    <Card className="p-6 border-white/5">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Shield className="h-5 w-5 text-blue-500" />
+                            <h3 className="font-bold text-lg text-white">Security</h3>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleChangePassword}
+                                className="w-full flex items-center px-4 py-3 text-sm font-medium text-gray-300 border border-white/10 rounded-md hover:bg-white/5 transition-colors"
+                            >
+                                <Mail className="w-4 h-4 mr-2" />
+                                Change Password
+                            </button>
+                            <p className="text-[10px] text-gray-500 px-1">
+                                Sends a secure reset link to your email.
+                            </p>
+                        </div>
+                    </Card>
+
+                    {/* 6. Danger Zone */}
                     <Card className="p-6 border-red-900/20 bg-red-950/5">
                         <div className="flex items-center gap-3 mb-6">
                             <Shield className="h-5 w-5 text-red-500" />
@@ -233,10 +282,10 @@ export default function SettingsPage() {
                         <div className="space-y-3">
                             <button
                                 className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-400 border border-red-500/20 rounded-md hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                                onClick={() => setLogoutModal(true)}
+                                onClick={() => setLogoutAllModal(true)}
                             >
                                 <LogOut className="w-4 h-4 mr-2" />
-                                Disconnect Session (Log Out)
+                                Log Out All Devices
                             </button>
 
                             <button
@@ -246,6 +295,13 @@ export default function SettingsPage() {
                             >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete Information
+                            </button>
+
+                            <button
+                                className="w-full flex items-center justify-center px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
+                                onClick={() => setLogoutModal(true)}
+                            >
+                                Log Out Current Session
                             </button>
                         </div>
                     </Card>
@@ -269,14 +325,35 @@ export default function SettingsPage() {
             />
 
             <ConfirmationModal
+                isOpen={logoutAllModal}
+                onClose={() => setLogoutAllModal(false)}
+                onConfirm={handleLogoutAll}
+                title="Disconnect All Devices"
+                message="This will invalidate all active sessions across all your devices. You will need to log in again."
+                confirmText="Log Out All"
+                variant="danger"
+            />
+
+            <ConfirmationModal
                 isOpen={deleteModal}
                 onClose={() => setDeleteModal(false)}
                 onConfirm={handleDeleteAccount}
                 title="Delete Account"
-                message="WARNING: This action is irreversible. All your data, including tasks, schedules, and AI history will be permanently erased."
+                message="WARNING: This action is irreversible. All your data will be permanently erased. Type 'DELETE' to confirm."
                 confirmText="Permanently Delete"
                 variant="danger"
-            />
+            >
+                <div className="mt-4">
+                    <label className="block text-xs text-gray-500 uppercase mb-1">Confirmation</label>
+                    <input
+                        type="text"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
+                        placeholder="Type DELETE"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    />
+                </div>
+            </ConfirmationModal>
         </div>
     );
 }
