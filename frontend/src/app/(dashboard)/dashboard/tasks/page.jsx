@@ -15,9 +15,16 @@ import {
     Circle,
     ListTodo,
     Search,
+    Calendar,
     X
 } from 'lucide-react';
-import TaskModal from './TaskModal';
+import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
+import TaskModal from '@/components/dashboard/TaskModal';
+
+// ...
+
+// Inside return > list:
+
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -25,6 +32,7 @@ import Input from '@/components/ui/Input';
 import { useToast } from '@/context/ToastContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
+
 
 export default function TasksPage() {
     const { success, error } = useToast();
@@ -40,6 +48,7 @@ export default function TasksPage() {
     const [filterPriority, setFilterPriority] = useState('ALL');
     const [selectedCategory, setSelectedCategory] = useState('ALL');
     const [showCompleted, setShowCompleted] = useState(false);
+    const [filterDueDate, setFilterDueDate] = useState(new Date().toLocaleDateString('en-CA')); // Default to Today
     const [categories, setCategories] = useState([]);
 
     // Pagination State
@@ -56,10 +65,23 @@ export default function TasksPage() {
         }
 
         try {
-
             const currentPage = reset ? 1 : page;
+            const localDate = new Date().toLocaleDateString('en-CA');
+
+            // Prepare filters
+            const filters = {
+                page: currentPage,
+                limit: 10,
+                date: localDate,
+                search: searchQuery,
+                priority: filterPriority,
+                categoryId: selectedCategory,
+                excludeCompleted: !showCompleted ? 'true' : 'false', // Explicit string for backend
+                dueDate: filterDueDate || undefined // Pass dueDate if exists
+            };
+
             const [taskResponse, usageData, categoriesData] = await Promise.all([
-                taskService.getTasks({ page: currentPage, limit: 10 }), // Pass pagination
+                taskService.getTasks(filters),
                 reset ? usageService.getMyUsage() : Promise.resolve(null),
                 reset ? categoryService.getCategories() : Promise.resolve(null)
             ]);
@@ -81,9 +103,6 @@ export default function TasksPage() {
 
             setMeta(taskResponse.meta);
 
-            // No longer enforcing inference, relying on API
-            // if (reset && taskResponse.tasks) { ... }
-
         } catch (err) {
             console.error("Failed to fetch tasks", err);
             error("Failed to load tasks");
@@ -91,22 +110,25 @@ export default function TasksPage() {
             setLoading(false);
             setIsMoreLoading(false);
         }
-    }, [page, error]);
+    }, [page, searchQuery, filterPriority, selectedCategory, showCompleted, filterDueDate, error]);
 
+    // Initial Load
     useEffect(() => {
-        fetchTasks(true); // Initial load
-    }, []); // Run once on mount
+        fetchTasks(true);
+    }, []);
 
-    // Load More Handler
-    const handleLoadMore = () => {
-        setPage(prev => prev + 1);
-        // Effect will trigger fetch due to page dependency? 
-        // No, fetchTasks depends on page, but we need to trigger it.
-        // Actually, better to just call fetchTasks with new page logic or specific logic.
-        // Let's rely on a separate effect or call explicitly.
-        // Simpler: Just update page, and have an effect watch page?
-        // Or cleaner: handleLoadMore calls fetchTasks specifically.
-    };
+    // Search Effect (Debounced)
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            fetchTasks(true);
+        }, 500); // 500ms debounce
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
+
+    // Filter Effect (Immediate)
+    useEffect(() => {
+        fetchTasks(true);
+    }, [filterPriority, selectedCategory, showCompleted, filterDueDate]);
 
     // Trigger fetch on page change (skip first render handled by mount effect)
     useEffect(() => {
@@ -143,7 +165,7 @@ export default function TasksPage() {
     };
 
     const handleToggleComplete = async (task) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('en-CA');
 
         // Optimistic Update
         const previousTasks = [...tasks];
@@ -170,20 +192,10 @@ export default function TasksPage() {
     };
 
     const canCreate = !usage || usage.taskCount < (usage.limits?.task || Infinity);
+    // const completedCount = tasks.filter(t => t.isCompleted).length; // Removed confusing count
 
-    // Filtering Logic
-    const filteredTasks = useMemo(() => {
-        return tasks.filter(t => {
-            const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesPriority = filterPriority === 'ALL' || t.priority === filterPriority;
-            const matchesCategory = selectedCategory === 'ALL' || (t.category && t.category.id === selectedCategory);
-            const matchesCompletion = showCompleted ? true : !t.isCompleted;
-
-            return matchesSearch && matchesPriority && matchesCategory && matchesCompletion;
-        });
-    }, [tasks, searchQuery, filterPriority, selectedCategory, showCompleted]);
-
-    const completedCount = tasks.filter(t => t.isCompleted).length;
+    // Use tasks directly instead of filteredTasks
+    const displayTasks = tasks;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -232,49 +244,73 @@ export default function TasksPage() {
 
             <Card className="min-h-[600px] border-white/10 bg-black/50">
                 {/* Filters */}
-                <div className="flex flex-col md:flex-row md:items-center gap-4 pb-6 border-b border-white/10">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-                        <Filter className="h-4 w-4 text-gray-500 mr-2 shrink-0" />
-                        {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilterPriority(f)}
-                                className={`
-                                    px-3 py-1 text-xs font-mono tracking-wider transition-all border rounded
-                                    ${filterPriority === f
-                                        ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                                        : 'bg-white/5 text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/10'
-                                    }
-                                `}
+                {/* Filters */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+
+                    {/* Left: Filters Group */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <Filter className="h-4 w-4" />
+                            <span className="text-xs font-mono uppercase tracking-wider">Filters:</span>
+                        </div>
+
+                        {/* Date Filter */}
+                        <div className="relative group">
+                            <input
+                                type="date"
+                                value={filterDueDate}
+                                onChange={(e) => setFilterDueDate(e.target.value)}
+                                className="pl-8 pr-3 py-1.5 text-xs font-mono bg-black/40 border border-white/10 rounded flex items-center gap-2 text-gray-300 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all hover:bg-white/5 w-36"
+                            />
+                            <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cyan-500 pointer-events-none" />
+                            {filterDueDate && (
+                                <button
+                                    onClick={() => setFilterDueDate('')}
+                                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                                    title="Clear Date"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Priority Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={filterPriority}
+                                onChange={(e) => setFilterPriority(e.target.value)}
+                                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-mono bg-black/40 border border-white/10 rounded text-gray-300 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all hover:bg-white/5 cursor-pointer uppercase"
                             >
-                                {f}
-                            </button>
-                        ))}
+                                <option value="ALL">All Priorities</option>
+                                <option value="HIGH">High Priority</option>
+                                <option value="MEDIUM">Medium Priority</option>
+                                <option value="LOW">Low Priority</option>
+                            </select>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                <Filter className="h-3 w-3" />
+                            </div>
+                        </div>
+
+                        {/* Category Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-mono bg-black/40 border border-white/10 rounded text-gray-300 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all hover:bg-white/5 cursor-pointer"
+                            >
+                                <option value="ALL">All Categories</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                <ListTodo className="h-3 w-3" />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="h-6 w-px bg-white/10 hidden md:block"></div>
-
-                    {/* Category Filter */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-                        <span className="text-xs text-gray-500 uppercase font-mono">Cat:</span>
-                        <button
-                            onClick={() => setSelectedCategory('ALL')}
-                            className={`px-3 py-1 text-xs font-mono transition-all border rounded ${selectedCategory === 'ALL' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50' : 'bg-white/5 text-gray-500 border-transparent'}`}
-                        >
-                            ALL
-                        </button>
-                        {categories.map(cat => (
-                            <button
-                                key={cat.id}
-                                onClick={() => setSelectedCategory(cat.id)}
-                                className={`px-3 py-1 text-xs font-mono transition-all border rounded ${selectedCategory === cat.id ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50' : 'bg-white/5 text-gray-500 border-transparent'}`}
-                            >
-                                {cat.name}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="ml-auto flex items-center gap-4">
+                    {/* Right: Toggle & Count */}
+                    <div className="flex items-center gap-6">
                         <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-400 hover:text-white transition-colors">
                             <input
                                 type="checkbox"
@@ -282,10 +318,13 @@ export default function TasksPage() {
                                 onChange={(e) => setShowCompleted(e.target.checked)}
                                 className="rounded border-white/10 bg-white/5 text-cyan-500 focus:ring-cyan-500/50 focus:ring-offset-0"
                             />
-                            Show Completed ({completedCount})
+                            Show Completed
                         </label>
-                        <div className="text-xs font-mono text-gray-600 hidden md:block">
-                            Total: {tasks.length}
+
+                        <div className="h-4 w-px bg-white/10 hidden md:block"></div>
+
+                        <div className="text-xs font-mono text-gray-500">
+                            Total: <span className="text-white">{tasks.length}</span>
                         </div>
                     </div>
                 </div>
@@ -294,59 +333,18 @@ export default function TasksPage() {
                 <div className="space-y-1 mt-6">
                     {loading ? (
                         <SkeletonLoader type="list" />
-                    ) : filteredTasks.length > 0 ? (
-                        filteredTasks.map(task => (
-                            <div
+                    ) : displayTasks.length > 0 ? (
+                        displayTasks.map(task => (
+                            <UniversalTaskCard
                                 key={task.id}
-                                className="group flex items-center justify-between p-4 rounded-lg border border-transparent hover:bg-white/5 hover:border-white/10 transition-all duration-200"
-                            >
-                                <div className="flex items-start gap-4">
-                                    <button
-                                        onClick={() => handleToggleComplete(task)}
-                                        className={`mt-1 transition-colors ${task.isCompleted ? 'text-green-500' : 'text-gray-600 hover:text-cyan-500'}`}
-                                    >
-                                        {task.isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                                    </button>
-
-                                    <div>
-                                        <h3 className={`font-medium text-white group-hover:text-cyan-400 transition-colors ${task.isCompleted ? 'line-through text-gray-500' : ''}`}>
-                                            {task.title}
-                                        </h3>
-                                        <div className="flex items-center gap-3 mt-1.5">
-                                            <Badge variant={
-                                                task.priority === 'HIGH' ? 'danger' :
-                                                    task.priority === 'MEDIUM' ? 'warning' : 'info'
-                                            }>
-                                                {task.priority}
-                                            </Badge>
-
-                                            {task.category && (
-                                                <span className="text-[10px] uppercase font-mono text-gray-500 border border-white/10 px-1.5 py-0.5 rounded">
-                                                    {task.category.name}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 duration-300">
-                                    <button
-                                        onClick={() => handleEdit(task)}
-                                        className="p-2 hover:bg-white/10 rounded-md text-gray-500 hover:text-cyan-400 transition-colors"
-                                        title="Edit Task"
-                                    >
-                                        <Edit2 className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => confirmDelete(task)}
-                                        className="p-2 hover:bg-red-500/10 rounded-md text-gray-500 hover:text-red-400 transition-colors"
-                                        title="Delete Task"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
+                                item={task}
+                                type="TASK"
+                                onComplete={() => handleToggleComplete(task)}
+                                onEdit={() => handleEdit(task)}
+                                onDelete={() => confirmDelete(task)}
+                            />
                         ))
+
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-white/5 rounded-xl">
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
@@ -365,20 +363,60 @@ export default function TasksPage() {
 
 
                 {/* Pagination / Load More */}
-                {
-                    meta && meta.page < meta.totalPages && (
-                        <div className="p-4 border-t border-white/5 flex justify-center">
-                            <Button
-                                variant="ghost"
-                                onClick={handleLoadMore}
-                                disabled={isMoreLoading}
-                                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30"
-                            >
-                                {isMoreLoading ? "Loading Coordinates..." : "Load Extended Objectives"}
-                            </Button>
+                {/* Pagination */}
+                {meta && meta.totalPages > 1 && (
+                    <div className="p-4 border-t border-white/5 flex items-center justify-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1 || isMoreLoading}
+                            className="text-gray-400 hover:text-white"
+                        >
+                            &lt;
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: meta.totalPages }, (_, i) => i + 1)
+                                .filter(p => p === 1 || p === meta.totalPages || Math.abs(page - p) <= 1) // Show first, last, and neighbors
+                                .reduce((acc, p, i, arr) => {
+                                    if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
+                                    acc.push(p);
+                                    return acc;
+                                }, [])
+                                .map((p, idx) => (
+                                    p === '...' ? (
+                                        <span key={`ellipsis-${idx}`} className="px-2 text-gray-600">...</span>
+                                    ) : (
+                                        <button
+                                            key={p}
+                                            onClick={() => setPage(p)}
+                                            className={`
+                                                w-8 h-8 rounded text-xs font-mono transition-colors
+                                                ${page === p
+                                                    ? 'bg-cyan-500 text-black font-bold'
+                                                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                                }
+                                            `}
+                                        >
+                                            {p}
+                                        </button>
+                                    )
+                                ))
+                            }
                         </div>
-                    )
-                }
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                            disabled={page === meta.totalPages || isMoreLoading}
+                            className="text-gray-400 hover:text-white"
+                        >
+                            &gt;
+                        </Button>
+                    </div>
+                )}
             </Card >
 
             <TaskModal

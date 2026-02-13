@@ -1,6 +1,6 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { getCurrentMonthYear, startOfUTCDate } from "../utils/date.utils.js";
 
 export const createTask = async (userId, taskData) => {
     const { title, description, priority, dueDate, categoryId } = taskData;
@@ -68,7 +68,9 @@ export const getTasks = async (userId, query) => {
         page = 1,
         limit = 10,
         sortBy = 'createdAt',
-        sortOrder = 'desc'
+        sortOrder = 'desc',
+        date,
+        excludeCompleted // Add param
     } = query;
 
     const where = {
@@ -76,11 +78,11 @@ export const getTasks = async (userId, query) => {
         deletedAt: null,
     }
 
-    if (categoryId) {
+    if (categoryId && categoryId !== 'ALL') { // Handle 'ALL' explicit check just in case
         where.categoryId = categoryId;
     }
 
-    if (priority) {
+    if (priority && priority !== 'ALL') {
         where.priority = priority;
     }
 
@@ -92,6 +94,18 @@ export const getTasks = async (userId, query) => {
         where.title = {
             contains: search,
             mode: 'insensitive'
+        };
+    }
+
+    // Determine Date for Completion Check
+    const completionDate = date ? startOfUTCDate(new Date(date)) : startOfUTCDate();
+
+    // Completion Filter
+    if (excludeCompleted === 'true') {
+        where.dailyCompletions = {
+            none: {
+                completedDate: completionDate
+            }
         };
     }
 
@@ -112,7 +126,7 @@ export const getTasks = async (userId, query) => {
                 category: true,
                 dailyCompletions: {
                     where: {
-                        completedDate: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()))
+                        completedDate: completionDate
                     }
                 }
             }

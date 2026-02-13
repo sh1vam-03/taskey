@@ -4,187 +4,18 @@ import { calculateBehaviorScore, calculateProductivityScore } from "../utils/sco
 import { startOfUTCDate, dayKey, appliesOnDate, getWeekRange } from "../utils/date.utils.js";
 
 
-export const getDashboardOverview = async (userId) => {
-    /*
-        const today = startOfUTCDate();
-        const tomorrow = new Date(today);
-        tomorrow.setUTCDate(today.getUTCDate() + 1);
-    
-        // 1 Fetch all relevant data
-    
-        const [
-            schedules,
-            scheduleCompletions,
-            missedSchedules,
-            unscheduledTasks,
-            dailyCompletions
-        ] = await Promise.all([
-    
-            prisma.schedule.findMany({
-                where: {
-                    userId,
-                    scheduleDate: { lte: today },
-                    OR: [
-                        { repeatUntil: null },
-                        { repeatUntil: { gte: today } }
-                    ]
-                }
-            }),
-    
-            prisma.scheduleCompletion.findMany({
-                where: { userId, completedOn: today }
-            }),
-    
-            prisma.missedSchedule.findMany({
-                where: { userId, missedOn: today }
-            }),
-    
-            prisma.task.findMany({
-                where: {
-                    userId,
-                    deletedAt: null,
-                    schedules: { none: {} },
-                    createdAt: { gte: today, lt: tomorrow }
-                }
-            }),
-    
-            prisma.taskDailyCompletion.findMany({
-                where: { userId, completedDate: today }
-            })
-        ]);
-    
-        // 2 Build lookup sets
-    
-        const completedScheduleSet = new Set(
-            scheduleCompletions.map(c => c.scheduleId)
-        );
-    
-        const missedScheduleSet = new Set(
-            missedSchedules.map(m => m.scheduleId)
-        );
-    
-        const completedTaskSet = new Set(
-            dailyCompletions.map(c => c.taskId)
-        );
-    
-        // Count scheduled tasks
-    
-        let scheduledTotal = 0;
-        let scheduledCompleted = 0;
-        let scheduledMissed = 0;
-    
-        for (const s of schedules) {
-            if (!appliesOnDate(s, today)) continue;
-    
-            scheduledTotal++;
-    
-            if (completedScheduleSet.has(s.id)) scheduledCompleted++;
-            else if (missedScheduleSet.has(s.id)) scheduledMissed++;
-        }
-    
-        // 4 Count unscheduled tasks
-    
-        const unscheduledTotal = unscheduledTasks.length;
-        let unscheduledCompleted = 0;
-    
-        for (const t of unscheduledTasks) {
-            if (completedTaskSet.has(t.id)) unscheduledCompleted++;
-        }
-    
-        // 5 Final aggregation
-    
-        const totalTasks = scheduledTotal + unscheduledTotal;
-        const completedTasks = scheduledCompleted + unscheduledCompleted;
-        const missedTasks = scheduledMissed;
-        const pendingTasks = Math.max(
-            totalTasks - completedTasks - missedTasks,
-            0
-        );
-
-
-        return {
-        today: {
-            totalTasks,
-            completedTasks,
-            missedTasks,
-            pendingTasks
-        }
-
-    */
-
+export const getDashboardOverview = async (userId, dateString) => {
     // 1. Get Today's Data (Timeline + Counts)
-    const todayData = await getTodayDashboard(userId);
+    const todayData = await getTodayDashboard(userId, dateString);
 
     // 2. Get Streak Data
     const streakData = await getStreakOverview(userId);
 
-    // 3. Get Behavior Data (Summary / Score)
-    // We'll get the summary for the last 7 days to show a "Score" or recent trend
-    // Or if the frontend shows a specific "Behavior Score" for *today*, we might need today's log.
-    // The frontend shows "overview?.behaviorScore".
-    // Let's see if we can get today's score.
-    // We can use getBehaviorLogByDate(userId, new Date()) but we need to import it.
-    // Let's assume for now we want the "Daily Optimization" score which is likely today's score.
-    // If no log exists, score is 0.
-
-    // We'll return a structure matching what the frontend expects:
-    // overview.todayTasksCount
-    // overview.todayTasksTotal
-    // overview.completedTasksCount
-    // overview.behaviorScore
-    // overview.currentStreak
-    // overview.timeline
-
-    // Calculate counts from todayData
-    const { total, completed, pending } = todayData.stats;
-
-    // Get today's behavior score (we need to be careful with imports)
-    // Since we are in dashboard.service, we can't easily import behavior.service if it creates a circular dependency.
-    // behavior.service imports dashboard.service (for stats map).
-    // So we CANNOT import behavior.service here.
-    // We have to rely on what we can query or move the logic.
-    // However, we can use prisma directly here to fetch valid behavior log if needed,
-    // OR we can move the aggregation to the controller which can import both services.
-    // BUT the user asked to "Trace backend..." and "Fix...".
-    // Best practice: Keep service logic pure.
-    // Let's use the controller for aggregation?
-    // The previous implementation was in the service.
-    // Let's try to do it here using Prisma to avoid circular dep if needed, or just import if valid.
-    // Check behavior.service.js... it imports `buildDailyStatsMap` from dashboard.service.
-    // If I import behaviorService here, it will cycle.
-    // SOLUTION: Use the controller to aggregate, OR implement a lightweight fetch here.
-    // Actually, `getDashboardOverview` in `dashboard.controller.js` calls `dashboardService.getDashboardOverview`.
-    // I will rewrite this function to do the aggregation manually using the other functions IN THIS FILE
-    // and maybe a direct prisma call for behavior if strictly necessary, or just return 0 for now and let the frontend fetch strictly?
-    // NO, the frontend expects it in `overview`.
-    // I will simply fetch the behavior log using Prisma here to get the score, duplicating the score logic slightly or standardizing it?
-    // The score logic is complex (in checkBehavior... wait, in help function).
-    // `calculateProductivityScore` is exported from `behavior.service.js`? No, it's not exported?
-    // Wait, let me check behavior.service.js exports.
-    // It exports `calculateProductivityScore`.
-    // So I can import `calculateProductivityScore` from behavior.service.js?
-    // `import { calculateProductivityScore } from "./behavior.service.js"`
-    // `behavior.service.js` imports `buildDailyStatsMap` from `dashboard.service.js`.
-    // This IS a circular dependency.
-    // modification: I will move `calculateProductivityScore` to a shared util or just replicate the simple math here.
-    // It's: (completed/total)*100 - missed*5 ...
-    // Let's just do a basic fetch for "today's behavior log" and calculated score using the stats we already have.
-
-    // 4. Calculate Scores Consistency Fix
-    // We used to do ad-hoc calculation here, now we will use the shared logic
-    // We already called getTodayDashboard which returns stats.
-    // Ideally we should use buildDailyStatsMap to be 100% sure we match performance page,
-    // but getTodayDashboard largely does the same thing.
-    // Let's rely on standard logic components.
-
-    // 4. Score Consistency Fix (FINAL)
-    const todayDate = startOfUTCDate();
-    // We call getDailyPerformance directly to ensure 100% matching logic with Performance Page.
+    // 3. Get Behavior Score
+    // We determine "today" based on the passed date or default
+    const todayDate = dateString ? startOfUTCDate(new Date(dateString)) : startOfUTCDate();
     const performanceData = await getDailyPerformance(userId, todayDate);
 
-    // Calculate pending from todayData (for the specific task list view)
-    // We use todayData for the counters to match the timeline shown on the left.
-    // But for the SCORE card, we use performanceData.
     const pendingCount = todayData.stats.pending;
 
     return {
@@ -198,8 +29,9 @@ export const getDashboardOverview = async (userId) => {
     };
 };
 
-export const getTodayDashboard = async (userId) => {
-    const today = startOfUTCDate();
+export const getTodayDashboard = async (userId, dateString) => {
+    // IF dateString is provided, use it. Else default to server today.
+    const today = dateString ? startOfUTCDate(new Date(dateString)) : startOfUTCDate();
     const tomorrow = new Date(today);
     tomorrow.setUTCDate(today.getUTCDate() + 1);
 
@@ -224,7 +56,11 @@ export const getTodayDashboard = async (userId) => {
                     }
                 ]
             },
-            include: { task: true },
+            include: {
+                task: {
+                    include: { category: true }
+                }
+            },
             orderBy: { startTime: "asc" }
         }),
 
@@ -244,7 +80,8 @@ export const getTodayDashboard = async (userId) => {
                 deletedAt: null,
                 schedules: { none: {} },
                 createdAt: { gte: today, lt: tomorrow }
-            }
+            },
+            include: { category: true }
         }),
 
         prisma.taskDailyCompletion.findMany({
@@ -285,7 +122,11 @@ export const getTodayDashboard = async (userId) => {
             scheduleId: s.id,
             taskId: s.taskId,
             title: s.task.title,
+            description: s.task.description,
+            notes: s.notes,
             priority: s.task.priority,
+            category: s.task.category,
+            recurrence: s.recurrence,
             startTime: s.startTime?.toISOString().slice(11, 16),
             endTime: s.endTime?.toISOString().slice(11, 16),
             status
@@ -299,7 +140,9 @@ export const getTodayDashboard = async (userId) => {
             type: "UNSCHEDULED",
             taskId: t.id,
             title: t.title,
+            description: t.description,
             priority: t.priority,
+            category: t.category,
             startTime: null,
             endTime: null,
             status: completedTaskSet.has(t.id) ? "COMPLETED" : "PENDING"

@@ -9,8 +9,9 @@ import ApiError from "../utils/ApiError.js";
  */
 export const getDashboardOverview = asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    const { date } = req.query; // Expect YYYY-MM-DD
 
-    const data = await dashboardService.getDashboardOverview(userId);
+    const data = await dashboardService.getDashboardOverview(userId, date);
 
     res.status(200).json({
         success: true,
@@ -26,8 +27,9 @@ export const getDashboardOverview = asyncHandler(async (req, res) => {
  */
 export const getTodayDashboard = asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    const { date } = req.query;
 
-    const data = await dashboardService.getTodayDashboard(userId);
+    const data = await dashboardService.getTodayDashboard(userId, date);
 
     res.status(200).json({
         success: true,

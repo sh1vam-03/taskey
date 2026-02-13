@@ -9,6 +9,7 @@ import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { FaCheckCircle, FaClock, FaList, FaPlus, FaCalendarDay } from "react-icons/fa";
+import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
 
 export default function TodayDashboardPage() {
     const [data, setData] = useState(null);
@@ -19,7 +20,8 @@ export default function TodayDashboardPage() {
 
     const fetchData = async () => {
         try {
-            const result = await dashboardService.getToday();
+            const localDate = new Date().toLocaleDateString('en-CA');
+            const result = await dashboardService.getToday(localDate);
             setData(result);
         } catch (err) {
             console.error("Today fetch error:", err);
@@ -190,6 +192,7 @@ export default function TodayDashboardPage() {
                 )}
             </div>
 
+
             {/* Timeline */}
             <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6">
                 <h2 className="text-lg font-mono font-bold text-cyan-400 mb-4 uppercase tracking-wider">Timeline</h2>
@@ -201,47 +204,18 @@ export default function TodayDashboardPage() {
                             <p className="text-gray-500 text-sm text-center py-8">No items scheduled for today.</p>
                         ) : (
                             timelineItems.map((item) => (
-                                <div key={item.id} className="flex items-center gap-4 p-4 bg-zinc-950/50 border border-white/5 rounded-lg hover:border-cyan-500/30 transition-colors">
-                                    <div className="text-xs font-mono text-gray-500 w-24 shrink-0 text-right">
-                                        {item.time}
-                                    </div>
-                                    <div className="grow">
-                                        <h3 className={`text-sm font-medium ${item.status === 'COMPLETED' ? 'text-gray-500 line-through' : 'text-white'}`}>
-                                            {item.title}
-                                        </h3>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] uppercase font-bold text-cyan-500/70 border border-cyan-900/30 px-1.5 py-0.5 rounded">
-                                                {item.type}
-                                            </span>
-                                            {item.status && (
-                                                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${item.status === 'COMPLETED' ? 'text-green-500/70 border-green-900/30' :
-                                                    item.status === 'MISSED' ? 'text-red-500/70 border-red-900/30' :
-                                                        'text-yellow-500/70 border-yellow-900/30'
-                                                    }`}>
-                                                    {item.status}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {/* Action Button */}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                if (item.type === 'SCHEDULED') {
-                                                    handleToggleSchedule(item.id, item.status !== 'COMPLETED');
-                                                } else {
-                                                    handleToggleTask(item.id, item.status !== 'COMPLETED');
-                                                }
-                                            }}
-                                            className={`transition-all ${item.status === 'COMPLETED' ? 'text-green-500 hover:text-red-400' : 'text-gray-500 hover:text-green-400'}`}
-                                            title={item.status === 'COMPLETED' ? "Undo Completion" : "Complete"}
-                                        >
-                                            <FaCheckCircle className={`h-5 w-5 ${item.status === 'COMPLETED' ? 'opacity-100' : 'opacity-20 hover:opacity-100'}`} />
-                                        </Button>
-                                    </div>
-                                </div>
+                                <UniversalTaskCard
+                                    key={item.id}
+                                    item={item}
+                                    type={item.type}
+                                    onComplete={() => {
+                                        if (item.type === 'SCHEDULED') {
+                                            handleToggleSchedule(item.id, item.status !== 'COMPLETED');
+                                        } else {
+                                            handleToggleTask(item.id, item.status !== 'COMPLETED');
+                                        }
+                                    }}
+                                />
                             ))
                         )}
                     </div>

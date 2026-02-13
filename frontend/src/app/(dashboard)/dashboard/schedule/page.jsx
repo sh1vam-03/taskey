@@ -11,6 +11,7 @@ import Badge from '@/components/ui/Badge';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 import { useToast } from '@/context/ToastContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
 import usageService from '@/services/usage.service';
 
 export default function SchedulePage() {
@@ -142,6 +143,7 @@ export default function SchedulePage() {
             </div>
 
             <div className="grid grid-cols-1 gap-8">
+
                 {/* Upcoming Schedules */}
                 <Card className="min-h-[400px] border-white/10 bg-black/50">
                     <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -155,57 +157,14 @@ export default function SchedulePage() {
                             <SkeletonLoader type="list" />
                         ) : upcomingSchedules.length > 0 ? (
                             upcomingSchedules.map(schedule => (
-                                <div
+                                <UniversalTaskCard
                                     key={`${schedule.id}-${schedule.scheduleDate}`}
-                                    className="group flex items-center justify-between p-4 rounded-lg border border-transparent hover:bg-white/5 hover:border-white/10 transition-all duration-200"
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <button
-                                            onClick={() => handleToggleComplete(schedule)}
-                                            className="mt-1 text-gray-600 hover:text-cyan-500 transition-colors"
-                                        >
-                                            <Circle className="h-5 w-5" />
-                                        </button>
-
-                                        <div>
-                                            <h3 className="font-medium text-white group-hover:text-cyan-400 transition-colors">
-                                                {schedule.title}
-                                            </h3>
-                                            <div className="flex items-center gap-3 mt-1.5 text-sm">
-                                                <div className="flex items-center gap-1.5 text-cyan-200 bg-cyan-950/30 px-2 py-0.5 rounded border border-cyan-500/20">
-                                                    <Calendar className="w-3 h-3 opacity-70" />
-                                                    <span className="font-mono text-xs">{formatScheduleDate(schedule.scheduleDate)}</span>
-                                                </div>
-                                                {schedule.startTime && (
-                                                    <div className="flex items-center gap-1.5 text-gray-400 font-mono text-xs">
-                                                        <Clock className="w-3 h-3 opacity-70" />
-                                                        {schedule.startTime} - {schedule.endTime}
-                                                    </div>
-                                                )}
-                                                {schedule.category && (
-                                                    <Badge variant="outline" className="text-[10px] py-0">
-                                                        {schedule.category.name}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0 duration-300">
-                                        <button
-                                            onClick={() => handleEdit(schedule)}
-                                            className="p-2 hover:bg-white/10 rounded-md text-gray-500 hover:text-cyan-400 transition-colors"
-                                        >
-                                            <Edit2 className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => confirmDelete(schedule)}
-                                            className="p-2 hover:bg-red-500/10 rounded-md text-gray-500 hover:text-red-400 transition-colors"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </div>
+                                    item={schedule}
+                                    type="SCHEDULE"
+                                    onComplete={() => handleToggleComplete(schedule)}
+                                    onEdit={() => handleEdit(schedule)}
+                                    onDelete={() => confirmDelete(schedule)}
+                                />
                             ))
                         ) : (
                             <div className="text-center py-12 text-gray-500">
@@ -223,33 +182,14 @@ export default function SchedulePage() {
                         </h2>
                         <div className="space-y-2">
                             {completedSchedules.map(schedule => (
-                                <div
+                                <UniversalTaskCard
                                     key={`${schedule.id}-${schedule.scheduleDate}`}
-                                    className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-black/20"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <button
-                                            onClick={() => handleToggleComplete(schedule)}
-                                            className="text-green-500 hover:text-red-400 transition-colors"
-                                        >
-                                            <CheckCircle2 className="h-5 w-5" />
-                                        </button>
-                                        <div>
-                                            <h3 className="font-medium text-gray-500 line-through">
-                                                {schedule.title}
-                                            </h3>
-                                            <div className="text-xs text-gray-600 font-mono mt-0.5">
-                                                {formatScheduleDate(schedule.scheduleDate)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => confirmDelete(schedule)}
-                                        className="p-2 hover:bg-red-500/10 rounded-md text-gray-600 hover:text-red-400 transition-colors"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
+                                    item={schedule}
+                                    type="SCHEDULE"
+                                    onComplete={() => handleToggleComplete(schedule)}
+                                    onDelete={() => confirmDelete(schedule)}
+                                // No edit for completed typically, or keep it consistent
+                                />
                             ))}
                         </div>
                     </div>

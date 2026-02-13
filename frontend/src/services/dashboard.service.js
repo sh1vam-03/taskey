@@ -2,14 +2,14 @@ import api from './api';
 
 const dashboardService = {
     // Overview
-    getOverview: async () => {
-        const response = await api.get('/dashboard/overview');
+    getOverview: async (date) => {
+        const response = await api.get('/dashboard/overview', { params: { date } });
         return response.data.data;
     },
 
     // Today
-    getToday: async () => {
-        const response = await api.get('/dashboard/today');
+    getToday: async (date) => {
+        const response = await api.get('/dashboard/today', { params: { date } });
         return response.data.data;
     },
 

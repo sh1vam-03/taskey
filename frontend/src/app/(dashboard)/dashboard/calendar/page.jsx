@@ -8,6 +8,7 @@ import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaChevronLeft, FaChevronRight, FaPlus, FaCheckCircle, FaClock, FaCalendarDay, FaCalendarWeek, FaCalendarAlt } from "react-icons/fa";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
+import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
 
 export default function CalendarPage() {
     const { success } = useToast();
@@ -194,9 +195,12 @@ export default function CalendarPage() {
         );
     };
 
+
+
+    // ... (in renderDayView)
+
     const renderDayView = () => {
-        // Group by hour or just list
-        // Simple list to start with, similar to Today page
+        // ...
         return (
             <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6 min-h-[400px]">
                 {loading ? <SkeletonLoader type="list" /> : (
@@ -205,31 +209,12 @@ export default function CalendarPage() {
                             <div className="text-center py-20 text-gray-500">No events for this day.</div>
                         ) : (
                             events.map(event => (
-                                <div key={event.id} className="flex items-center gap-4 p-4 bg-zinc-950/50 border border-white/5 rounded-lg hover:border-cyan-500/30 transition-colors">
-                                    <div className="text-xs font-mono text-gray-500 w-24 shrink-0 text-right">
-                                        {event.startTime ? `${event.startTime.slice(0, 5)} - ${event.endTime?.slice(0, 5)}` : 'All Day'}
-                                    </div>
-                                    <div className="grow">
-                                        <h3 className={`text-sm font-medium ${event.status === 'COMPLETED' ? 'text-gray-500 line-through' : 'text-white'}`}>
-                                            {event.title}
-                                        </h3>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] uppercase font-bold text-cyan-500/70 border border-cyan-900/30 px-1.5 py-0.5 rounded">
-                                                {event.type}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => { e.stopPropagation(); handleToggleCompletion(event); }}
-                                            className={`transition-all ${event.status === 'COMPLETED' ? 'text-green-500 hover:text-red-400' : 'text-gray-500 hover:text-green-400'}`}
-                                        >
-                                            <FaCheckCircle className={`h-5 w-5 ${event.status === 'COMPLETED' ? 'opacity-100' : 'opacity-20 hover:opacity-100'}`} />
-                                        </Button>
-                                    </div>
-                                </div>
+                                <UniversalTaskCard
+                                    key={event.id}
+                                    item={event}
+                                    type={event.type}
+                                    onComplete={() => handleToggleCompletion(event)}
+                                />
                             ))
                         )}
                     </div>

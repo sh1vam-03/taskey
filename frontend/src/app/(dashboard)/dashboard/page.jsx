@@ -7,12 +7,20 @@ import usageService from '@/services/usage.service';
 import billingService from '@/services/billing.service';
 import behaviorService from '@/services/behavior.service';
 import scheduleService from '@/services/schedule.service';
-import { CheckSquare, Calendar, BrainCircuit, Zap, ArrowRight, Activity, Plus, Bot, Trophy, Target, TrendingUp } from 'lucide-react';
+import { Zap, CheckSquare, Trophy, BrainCircuit, TrendingUp, Activity, Calendar, ArrowRight, Bot, Target } from 'lucide-react';
+import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
 import Link from 'next/link';
+import taskService from '@/services/task.service';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+
+// ... (keep imports)
+
+// Inside render:
+
+
 
 export default function DashboardOverview() {
     const { user, refreshUser } = useAuth();
@@ -51,8 +59,11 @@ export default function DashboardOverview() {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                // Calculate local date string to ensure backend matches user's "Today"
+                const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
                 const [overviewData, usageData, subscriptionData] = await Promise.all([
-                    dashboardService.getOverview(),
+                    dashboardService.getOverview(localDate),
                     usageService.getMyUsage(),
                     billingService.getCurrentSubscription()
                 ]);
@@ -72,16 +83,32 @@ export default function DashboardOverview() {
         }
     }, [user]);
 
-    const handleCompleteSchedule = async (scheduleId) => {
+    const handleToggleItem = async (item) => {
         try {
-            await scheduleService.completeSchedule(scheduleId);
-            // Optimistic update or refetch
-            // Refetching for simplicity and accuracy
-            const overviewData = await dashboardService.getOverview();
+            // Optimistic Update (Optional: could be handled by local state, but refetch is safer for now)
+
+            if (item.type === 'SCHEDULED') {
+                if (item.status === 'COMPLETED') {
+                    await scheduleService.undoCompleteSchedule(item.id);
+                } else {
+                    await scheduleService.completeSchedule(item.id);
+                }
+            } else {
+                // Task (UNSCHEDULED)
+                if (item.status === 'COMPLETED' || item.isCompleted) {
+                    await taskService.undoCompleteTask(item.id);
+                } else {
+                    await taskService.completeTask(item.id);
+                }
+            }
+
+            // Refetch
+            const localDate = new Date().toLocaleDateString('en-CA');
+            const overviewData = await dashboardService.getOverview(localDate);
             setOverview(overviewData);
         } catch (err) {
-            console.error("Failed to complete schedule:", err);
-            // Optionally show a toast or error message
+            console.error("Failed to toggle item:", err);
+            // Optionally show a toast
         }
     };
 
@@ -218,40 +245,14 @@ export default function DashboardOverview() {
                         <div className="space-y-4 mt-6">
                             {overview?.timeline?.length > 0 ? (
                                 overview.timeline.map((item, i) => (
-                                    <div key={i} className="group flex items-center justify-between gap-4 rounded-lg bg-white/5 p-4 border border-white/5 hover:border-cyan-500/30 transition-colors">
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-black border border-white/10 text-cyan-500 font-mono text-xs font-bold">
-                                                {item.startTime}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-medium text-white group-hover:text-cyan-400 transition-colors">
-                                                    {item.task?.title || item.title || "Focus Block"}
-                                                </h4>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs text-gray-500 font-mono">
-                                                        {item.endTime ? `Until ${item.endTime}` : 'Scheduled'}
-                                                    </span>
-                                                    {item.task?.priority && (
-                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${item.task.priority === 'HIGH' ? 'border-red-500/30 text-red-500' :
-                                                            item.task.priority === 'MEDIUM' ? 'border-yellow-500/30 text-yellow-500' :
-                                                                'border-blue-500/30 text-blue-500'
-                                                            } font-mono uppercase`}>
-                                                            {item.task.priority}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleCompleteSchedule(item._id || item.id)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                                        >
-                                            <CheckSquare className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                    <UniversalTaskCard
+                                        key={i}
+                                        item={item}
+                                        type={item.type === 'SCHEDULED' ? 'SCHEDULE' : 'TASK'}
+                                        onComplete={() => handleToggleItem(item)}
+                                    />
                                 ))
+
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-64 text-center">
                                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
