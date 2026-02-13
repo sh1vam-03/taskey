@@ -45,24 +45,20 @@ export default function CalendarPage() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            let from, to;
+            let result;
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
 
             if (view === 'day') {
-                from = formatDateISO(currentDate);
-                to = from;
+                result = await calendarService.getDayCalendar(formatDateISO(currentDate));
             } else if (view === 'week') {
-                const start = getStartOfWeek(currentDate);
-                const end = addDays(start, 6);
-                from = formatDateISO(start);
-                to = formatDateISO(end);
+                result = await calendarService.getWeekCalendar(formatDateISO(currentDate));
             } else { // month
-                from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-                to = `${year}-${String(month + 1).padStart(2, '0')}-${getDaysInMonth(year, month)}`;
+                // API expects year and month (1-12)
+                result = await calendarService.getMonthCalendar(year, month + 1);
             }
 
-            const result = await calendarService.getEvents(from, to);
+
             setEvents(result);
         } catch (err) {
             console.error("Calendar load error:", err);

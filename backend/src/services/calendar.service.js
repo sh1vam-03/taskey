@@ -106,39 +106,42 @@ export const getDayCalendar = async (dateString, userId) => {
     const dailyCompletedSet = new Set(dailyCompletions.map(c => c.taskId));
 
     return {
-        date: dayKey,
-        items: [
-            ...schedules
-                .filter(s => appliesOnDate(s, date))
-                .map(s => ({
-                    type: "SCHEDULED",
-                    scheduleId: s.id,
-                    taskId: s.taskId,
-                    title: s.task.title,
-                    priority: s.task.priority,
-                    startTime: formatTime(s.startTime),
-                    endTime: formatTime(s.endTime),
-                    status: completedSet.has(s.id)
+        days: {
+            [dayKey]: [
+                ...schedules
+                    .filter(s => appliesOnDate(s, date))
+                    .map(s => ({
+                        id: s.id, // Explicit ID
+                        type: "SCHEDULED",
+                        scheduleId: s.id,
+                        taskId: s.taskId,
+                        title: s.task.title,
+                        priority: s.task.priority,
+                        startTime: formatTime(s.startTime),
+                        endTime: formatTime(s.endTime),
+                        status: completedSet.has(s.id)
+                            ? "COMPLETED"
+                            : missedSet.has(s.id)
+                                ? "MISSED"
+                                : "PENDING"
+                    })),
+
+                ...tasks.map(t => ({
+                    id: t.id, // Explicit ID
+                    type: "UNSCHEDULED",
+                    taskId: t.id,
+                    title: t.title,
+                    priority: t.priority,
+                    startTime: null,
+                    endTime: null,
+                    status: dailyCompletedSet.has(t.id)
                         ? "COMPLETED"
-                        : missedSet.has(s.id)
+                        : date < today
                             ? "MISSED"
                             : "PENDING"
-                })),
-
-            ...tasks.map(t => ({
-                type: "UNSCHEDULED",
-                taskId: t.id,
-                title: t.title,
-                priority: t.priority,
-                startTime: null,
-                endTime: null,
-                status: dailyCompletedSet.has(t.id)
-                    ? "COMPLETED"
-                    : date < today
-                        ? "MISSED"
-                        : "PENDING"
-            }))
-        ]
+                }))
+            ]
+        }
     };
 };
 
@@ -220,6 +223,7 @@ export const getWeekCalendar = async (dateString, userId) => {
             else if (missedMap.get(dayKey)?.has(s.id)) status = "MISSED";
 
             days[dayKey].push({
+                id: s.id, // Explicit ID
                 type: "SCHEDULED",
                 scheduleId: s.id,
                 taskId: s.taskId,
@@ -273,6 +277,7 @@ export const getWeekCalendar = async (dateString, userId) => {
         }
 
         days[dayKey].push({
+            id: task.id, // Explicit ID
             type: "UNSCHEDULED",
             taskId: task.id,
             title: task.title,
@@ -373,6 +378,7 @@ export const getMonthCalendar = async (year, month, userId) => {
             else if (missedMap.get(dayKey)?.has(schedule.id)) status = "MISSED";
 
             days[dayKey].push({
+                id: schedule.id, // Explicit ID
                 type: "SCHEDULED",
                 scheduleId: schedule.id,
                 taskId: schedule.taskId,
@@ -426,6 +432,7 @@ export const getMonthCalendar = async (year, month, userId) => {
         }
 
         days[key].push({
+            id: task.id, // Explicit ID
             type: "UNSCHEDULED",
             taskId: task.id,
             title: task.title,

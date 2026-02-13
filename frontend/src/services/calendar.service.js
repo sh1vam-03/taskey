@@ -1,3 +1,4 @@
+import api from './api';
 import scheduleService from "./schedule.service";
 import taskService from "./task.service";
 
@@ -7,46 +8,47 @@ const calendarService = {
      * @param {string} from - ISO Date string (YYYY-MM-DD)
      * @param {string} to - ISO Date string (YYYY-MM-DD)
      */
-    async getEvents(from, to) {
-        try {
-            // Parallel fetch
-            const [schedules, tasks] = await Promise.all([
-                scheduleService.getSchedules({ from, to }),
-                taskService.getTasks() // Task service might not support date range filtering yet, filtering client side
-            ]);
+    async getDayCalendar(date) {
+        const response = await api.get('/calendar/day', { params: { date } });
+        return this.normalizeBackendResponse(response.data.data);
+    },
 
-            // Transform Schedules to Events
-            const scheduleEvents = schedules.map(s => ({
-                id: s.id,
-                title: s.task?.title || "Busy",
-                date: s.scheduleDate.split('T')[0],
-                startTime: s.startTime,
-                endTime: s.endTime,
-                type: 'SCHEDULE',
-                color: 'cyan', // Visual cue
-                original: s
-            }));
+    async getWeekCalendar(date) {
+        const response = await api.get('/calendar/week', { params: { date } });
+        return this.normalizeBackendResponse(response.data.data);
+    },
 
-            // Transform Tasks with Due Dates to Events
-            // Filter tasks that fall within range matching 'from' and 'to'
-            // Simple string comparison works for ISO dates yyyy-mm-dd
-            const taskEvents = tasks
-                .filter(t => t.dueDate && t.dueDate.split('T')[0] >= from && t.dueDate.split('T')[0] <= to && !t.isArchived)
-                .map(t => ({
-                    id: t.id,
-                    title: `Due: ${t.title}`,
-                    date: t.dueDate.split('T')[0],
-                    type: 'TASK',
-                    color: 'red', // Visual cue for deadlines
-                    priority: t.priority,
-                    original: t
-                }));
+    async getMonthCalendar(year, month) {
+        const response = await api.get('/calendar/month', { params: { year, month } });
+        return this.normalizeBackendResponse(response.data.data);
+    },
 
-            return [...scheduleEvents, ...taskEvents];
-        } catch (error) {
-            console.error("Calendar fetch error:", error);
-            throw error;
-        }
+    /**
+     * Normalize Backend Response { days: { "YYYY-MM-DD": [items...] } }
+     * into Flat Array [{ date: "YYYY-MM-DD", ...item }]
+     */
+    normalizeBackendResponse(data) {
+        if (!data || !data.days) return [];
+
+        const events = [];
+        Object.entries(data.days).forEach(([dateStr, items]) => {
+            items.forEach(item => {
+                events.push({
+                    id: `${item.id}-${dateStr}`, // Composite unique key for React
+                    scheduleId: item.scheduleId, // Preserve original IDs
+                    taskId: item.taskId,
+                    title: item.title,
+                    date: dateStr,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    type: item.type === "SCHEDULED" ? "SCHEDULE" : "TASK",
+                    status: item.status,
+                    color: item.type === "SCHEDULED" ? "cyan" : "red",
+                    priority: item.priority
+                });
+            });
+        });
+        return events;
     }
 };
 
