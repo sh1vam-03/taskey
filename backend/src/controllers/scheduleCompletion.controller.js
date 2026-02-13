@@ -5,8 +5,9 @@ import ApiError from "../utils/ApiError.js";
 export const completeSchedule = asyncHandler(async (req, res) => {
     const { id: userId } = req.user;
     const { id } = req.params;
+    const { date } = req.body; // Extract date
 
-    const data = await service.completeSchedule(id, userId);
+    const data = await service.completeSchedule(id, userId, date);
 
     res.status(201).json({
         success: true,
@@ -18,8 +19,9 @@ export const completeSchedule = asyncHandler(async (req, res) => {
 export const undoCompleteSchedule = asyncHandler(async (req, res) => {
     const { id: userId } = req.user;
     const { id } = req.params;
+    const { date } = req.body; // Extract date
 
-    await service.undoCompleteSchedule(id, userId);
+    await service.undoCompleteSchedule(id, userId, date);
 
     res.json({
         success: true,

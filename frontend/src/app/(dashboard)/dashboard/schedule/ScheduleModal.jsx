@@ -8,35 +8,79 @@ import taskService from '@/services/task.service';
 import Button from '@/components/ui/Button';
 import { AlertCircle, Clock, Calendar, Repeat } from 'lucide-react';
 
-export default function ScheduleModal({ isOpen, onClose, selectedDate, onScheduleSaved }) {
+export default function ScheduleModal({ isOpen, onClose, selectedDate, onScheduleSaved, scheduleToEdit }) {
     const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
     const [loading, setLoading] = useState(false);
     const [tasks, setTasks] = useState([]);
     const [error, setError] = useState(null);
 
-    const recurrence = watch('recurrence', 'NONE');
+    const DAYS = [
+        { id: 1, label: 'M' },
+        { id: 2, label: 'T' },
+        { id: 3, label: 'W' },
+        { id: 4, label: 'T' },
+        { id: 5, label: 'F' },
+        { id: 6, label: 'S' },
+        { id: 7, label: 'S' }
+    ];
 
     useEffect(() => {
         if (isOpen) {
-            taskService.getTasks().then(setTasks).catch(console.error);
+            taskService.getTasks().then(data => setTasks(data.tasks || [])).catch(console.error);
 
-            reset({
-                taskId: '',
-                scheduleDate: selectedDate || new Date().toISOString().split('T')[0],
-                startTime: '09:00',
-                endTime: '10:00',
-                recurrence: 'NONE',
-                repeatUntil: ''
-            });
+            if (scheduleToEdit) {
+                // EDIT MODE
+                reset({
+                    taskId: scheduleToEdit.taskId,
+                    scheduleDate: scheduleToEdit.startScheduleDate ? new Date(scheduleToEdit.startScheduleDate).toISOString().split('T')[0] : scheduleToEdit.scheduleDate,
+                    startTime: scheduleToEdit.startTime,
+                    endTime: scheduleToEdit.endTime,
+                    recurrence: scheduleToEdit.recurrence || 'NONE',
+                    repeatUntil: scheduleToEdit.repeatUntil ? new Date(scheduleToEdit.repeatUntil).toISOString().split('T')[0] : '',
+                    repeatOnDays: scheduleToEdit.repeatOnDays || []
+                });
+            } else {
+                // CREATE MODE
+                reset({
+                    taskId: '',
+                    scheduleDate: selectedDate || new Date().toISOString().split('T')[0],
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    recurrence: 'NONE',
+                    repeatUntil: ''
+                });
+            }
             setError(null);
         }
-    }, [isOpen, selectedDate, reset]);
+    }, [isOpen, selectedDate, reset, scheduleToEdit]);
 
     const onSubmit = async (data) => {
         setLoading(true);
         setError(null);
+
+        // Sanitize Payload
+        const payload = { ...data };
+
+        if (payload.recurrence === 'NONE') {
+            payload.repeatUntil = null;
+            payload.repeatOnDays = [];
+        } else if (payload.recurrence === 'DAILY') {
+            payload.repeatOnDays = [];
+        } else if (payload.recurrence === 'WEEKLY') {
+            // Ensure repeatOnDays is array of numbers
+            payload.repeatOnDays = (data.repeatOnDays || []).map(Number);
+        } else if (payload.recurrence === 'MONTHLY') {
+            payload.repeatOnDays = [];
+        }
+
+        if (!payload.repeatUntil) payload.repeatUntil = null;
+
         try {
-            await scheduleService.createSchedule(data);
+            if (scheduleToEdit) {
+                await scheduleService.updateSchedule(scheduleToEdit.id, payload);
+            } else {
+                await scheduleService.createSchedule(payload);
+            }
             onScheduleSaved();
             onClose();
         } catch (err) {
@@ -47,11 +91,23 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
         }
     };
 
+    // Watchers
+    const watchRecurrence = watch('recurrence', 'NONE');
+    const watchRepeatOnDays = watch('repeatOnDays', []);
+
+    const toggleDay = (dayId) => {
+        const current = watchRepeatOnDays || [];
+        const updated = current.includes(dayId)
+            ? current.filter(d => d !== dayId)
+            : [...current, dayId];
+        setValue('repeatOnDays', updated);
+    };
+
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="ALLOCATE TIME BLOCK"
+            title={scheduleToEdit ? "UPDATE ASSIGNMENT" : "ALLOCATE TIME BLOCK"}
             className="border-white/10 bg-black/90 backdrop-blur-xl"
         >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -126,15 +182,41 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                     </div>
                 </div>
 
-                {recurrence !== 'NONE' && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                        <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Repeat Until</label>
-                        <input
-                            type="date"
-                            {...register('repeatUntil', { required: "End date required for recurring events" })}
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm scheme-dark"
-                        />
-                        {errors.repeatUntil && <p className="text-red-400 text-xs">{errors.repeatUntil.message}</p>}
+                {/* Recurring Options */}
+                {watchRecurrence !== 'NONE' && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border-t border-white/5 pt-4">
+
+                        {watchRecurrence === 'WEEKLY' && (
+                            <div className="space-y-2">
+                                <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Repeat On Days</label>
+                                <div className="flex gap-2">
+                                    {DAYS.map(day => (
+                                        <button
+                                            key={day.id}
+                                            type="button"
+                                            onClick={() => toggleDay(day.id)}
+                                            className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all ${watchRepeatOnDays?.includes(day.id)
+                                                    ? 'bg-cyan-500 text-black'
+                                                    : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            {day.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <input type="hidden" {...register('repeatOnDays')} />
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Repeat Until</label>
+                            <input
+                                type="date"
+                                {...register('repeatUntil', { required: "End date required for recurring events" })}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm scheme-dark"
+                            />
+                            {errors.repeatUntil && <p className="text-red-400 text-xs">{errors.repeatUntil.message}</p>}
+                        </div>
                     </div>
                 )}
 
@@ -152,7 +234,7 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                         disabled={loading}
                         className="min-w-[120px]"
                     >
-                        {loading ? 'ALLOCATING...' : 'CONFIRM BLOCK'}
+                        {loading ? 'SAVING...' : (scheduleToEdit ? 'UPDATE BLOCK' : 'CONFIRM BLOCK')}
                     </Button>
                 </div>
             </form>

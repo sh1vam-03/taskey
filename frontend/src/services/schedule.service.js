@@ -27,14 +27,15 @@ const scheduleService = {
     },
 
     // Complete Schedule
-    completeSchedule: async (id) => {
-        const response = await api.post(`/scheduleCompletion/${id}/complete`);
+    completeSchedule: async (id, date) => {
+        const response = await api.post(`/scheduleCompletion/${id}/complete`, { date });
         return response.data;
     },
 
     // Undo Complete Schedule
-    undoCompleteSchedule: async (id) => {
-        const response = await api.delete(`/scheduleCompletion/${id}/complete`);
+    undoCompleteSchedule: async (id, date) => {
+        // DELETE with body (axios supports 'data' config)
+        const response = await api.delete(`/scheduleCompletion/${id}/complete`, { data: { date } });
         return response.data;
     },
 };

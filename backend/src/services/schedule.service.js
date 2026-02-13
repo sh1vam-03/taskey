@@ -132,29 +132,60 @@ export const createSchedule = async (data) => {
 };
 
 
-// Get All Schedules and Task Schedules
+const startOfDay = (date) => {
+    const d = new Date(date);
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+};
+
+const appliesOnDate = (schedule, date) => {
+    const sDate = startOfDay(schedule.scheduleDate);
+    const cDate = startOfDay(date);
+
+    if (cDate < sDate) return false;
+    if (schedule.repeatUntil && cDate > schedule.repeatUntil) return false;
+
+    switch (schedule.recurrence) {
+        case "NONE":
+            return cDate.getTime() === sDate.getTime();
+        case "DAILY":
+            return true;
+        case "WEEKLY":
+            return schedule.repeatOnDays.includes(cDate.getUTCDay());
+        case "MONTHLY":
+            return cDate.getUTCDate() === sDate.getUTCDate();
+        default:
+            return false;
+    }
+};
+
+// Get All Schedules (Expanded Instances)
 export const getSchedules = async (userId, from, to, taskId) => {
+    // Default to Today -> Today + 30 days if no range provided
+    const startDate = from ? new Date(from) : new Date();
+    const endDate = to ? new Date(to) : new Date(new Date().setDate(new Date().getDate() + 30));
 
-    const where = {
-        userId,
-    };
+    // Normalize to UTC start/end of day
+    startDate.setUTCHours(0, 0, 0, 0);
+    endDate.setUTCHours(23, 59, 59, 999);
 
-    if (taskId) {
-        where.taskId = taskId;
-    }
-
-    if (from && to) {
-        where.scheduleDate = {};
-        if (from) {
-            where.scheduleDate.gte = new Date(from);
-        }
-        if (to) {
-            where.scheduleDate.lte = new Date(to);
-        }
-    }
-
+    // 1. Fetch Definitions
     const schedules = await prisma.schedule.findMany({
-        where,
+        where: {
+            userId,
+            ...(taskId && { taskId }),
+            OR: [
+                {
+                    recurrence: "NONE",
+                    scheduleDate: { gte: startDate, lte: endDate }
+                },
+                {
+                    recurrence: { not: "NONE" },
+                    scheduleDate: { lte: endDate }, // Started before end of range
+                    repeatUntil: { gte: startDate } // Ends after start of range
+                }
+            ]
+        },
         include: {
             task: {
                 select: {
@@ -163,24 +194,88 @@ export const getSchedules = async (userId, from, to, taskId) => {
                     description: true,
                     priority: true,
                     category: {
-                        select: {
-                            id: true,
-                            name: true,
-                            color: true
-                        }
+                        select: { id: true, name: true, color: true }
                     }
                 }
             }
-        }, orderBy: [
-            {
-                scheduleDate: "asc"
-            },
-            {
-                startTime: "asc"
-            }
-        ]
+        }
     });
-    return schedules;
+
+    // 2. Fetch Completions & Missed for Range
+    const [completions, missed] = await Promise.all([
+        prisma.scheduleCompletion.findMany({
+            where: {
+                userId,
+                completedOn: { gte: startDate, lte: endDate }
+            }
+        }),
+        prisma.missedSchedule.findMany({
+            where: {
+                userId,
+                missedOn: { gte: startDate, lte: endDate }
+            }
+        })
+    ]);
+
+    const completedMap = new Map(); // key: "YYYY-MM-DD", val: Set(scheduleId)
+    completions.forEach(c => {
+        const key = c.completedOn.toISOString().slice(0, 10);
+        if (!completedMap.has(key)) completedMap.set(key, new Set());
+        completedMap.get(key).add(c.scheduleId);
+    });
+
+    const missedMap = new Map();
+    missed.forEach(m => {
+        const key = m.missedOn.toISOString().slice(0, 10);
+        if (!missedMap.has(key)) missedMap.set(key, new Set());
+        missedMap.get(key).add(m.scheduleId);
+    });
+
+    // 3. Expand Instances
+    const instances = [];
+    const loopDate = new Date(startDate);
+
+    while (loopDate <= endDate) {
+        const dayKey = loopDate.toISOString().slice(0, 10);
+        const dayDate = new Date(loopDate); // copy
+
+        for (const s of schedules) {
+            if (appliesOnDate(s, dayDate)) {
+                let status = "PENDING";
+                if (completedMap.get(dayKey)?.has(s.id)) status = "COMPLETED";
+                else if (missedMap.get(dayKey)?.has(s.id)) status = "MISSED";
+
+                instances.push({
+                    id: s.id, // Keep original ID for editing
+                    scheduleId: s.id,
+                    taskId: s.taskId,
+                    title: s.task.title,
+                    description: s.task.description,
+                    priority: s.task.priority,
+                    category: s.task.category,
+                    scheduleDate: dayKey, // The specific instance date
+                    startTime: s.startTime ? s.startTime.toISOString().slice(11, 16) : null,
+                    endTime: s.endTime ? s.endTime.toISOString().slice(11, 16) : null,
+                    status,
+                    // Recurrence Details for Editing
+                    recurrence: s.recurrence,
+                    repeatUntil: s.repeatUntil ? s.repeatUntil.toISOString().split('T')[0] : null,
+                    repeatOnDays: s.repeatOnDays,
+                    notes: s.notes,
+                    startScheduleDate: s.scheduleDate // Original recurrence start date
+                });
+            }
+        }
+
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
+    }
+
+    // Sort by Date then Time
+    return instances.sort((a, b) => {
+        const dateA = new Date(`${a.scheduleDate}T${a.startTime || '00:00'}:00Z`);
+        const dateB = new Date(`${b.scheduleDate}T${b.startTime || '00:00'}:00Z`);
+        return dateA - dateB;
+    });
 };
 
 

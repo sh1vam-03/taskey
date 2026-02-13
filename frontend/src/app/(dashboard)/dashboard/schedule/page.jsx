@@ -25,8 +25,12 @@ export default function SchedulePage() {
     const fetchSchedules = useCallback(async () => {
         setLoading(true);
         try {
+            const today = new Date();
+            const from = today.toISOString().split('T')[0];
+            const to = new Date(today.setDate(today.getDate() + 30)).toISOString().split('T')[0];
+
             const [data, usageData] = await Promise.all([
-                scheduleService.getSchedules(), // Fetch all (or reasonable range)
+                scheduleService.getSchedules({ from, to }), // Fetch upcoming month
                 usageService.getMyUsage()
             ]);
             // Ensure data is an array
@@ -74,15 +78,17 @@ export default function SchedulePage() {
         // Optimistic Update
         const previousSchedules = [...schedules];
         const updatedSchedules = schedules.map(s =>
-            s.id === schedule.id ? { ...s, status: s.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED' } : s
+            (s.id === schedule.id && s.scheduleDate === schedule.scheduleDate)
+                ? { ...s, status: s.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED' }
+                : s
         );
         setSchedules(updatedSchedules);
 
         try {
             if (schedule.status === 'COMPLETED') {
-                await scheduleService.undoCompleteSchedule(schedule.id);
+                await scheduleService.undoCompleteSchedule(schedule.id, schedule.scheduleDate);
             } else {
-                await scheduleService.completeSchedule(schedule.id);
+                await scheduleService.completeSchedule(schedule.id, schedule.scheduleDate);
             }
             // fetchSchedules(); // Optional sync
         } catch (err) {
@@ -150,7 +156,7 @@ export default function SchedulePage() {
                         ) : upcomingSchedules.length > 0 ? (
                             upcomingSchedules.map(schedule => (
                                 <div
-                                    key={schedule.id}
+                                    key={`${schedule.id}-${schedule.scheduleDate}`}
                                     className="group flex items-center justify-between p-4 rounded-lg border border-transparent hover:bg-white/5 hover:border-white/10 transition-all duration-200"
                                 >
                                     <div className="flex items-start gap-4">
@@ -218,7 +224,7 @@ export default function SchedulePage() {
                         <div className="space-y-2">
                             {completedSchedules.map(schedule => (
                                 <div
-                                    key={schedule.id}
+                                    key={`${schedule.id}-${schedule.scheduleDate}`}
                                     className="flex items-center justify-between p-4 rounded-lg border border-white/5 bg-black/20"
                                 >
                                     <div className="flex items-center gap-4">
