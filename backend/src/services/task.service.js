@@ -34,7 +34,7 @@ export const createTask = async (userId, taskData) => {
     // 2️⃣ Increment monthly task usage
     const { month, year } = getCurrentMonthYear();
 
-    await prisma.usageStat.update({
+    await prisma.usageStat.upsert({
         where: {
             userId_month_year: {
                 userId,
@@ -42,9 +42,16 @@ export const createTask = async (userId, taskData) => {
                 year,
             },
         },
-        data: {
+        update: {
             taskCount: { increment: 1 },
         },
+        create: {
+            userId,
+            month,
+            year,
+            taskCount: 1,
+            // aiTokensUsed and storageUsed are not in UsageStat model
+        }
     });
 
     return task;
@@ -102,7 +109,12 @@ export const getTasks = async (userId, query) => {
                 [sortBy]: sortOrder
             },
             include: {
-                category: true
+                category: true,
+                dailyCompletions: {
+                    where: {
+                        completedDate: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()))
+                    }
+                }
             }
         }),
         prisma.task.count({ where })

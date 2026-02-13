@@ -42,7 +42,8 @@ export const completeTask = async (userId, taskId, date) => {
     });
 
     if (existing) {
-        throw new ApiError(409, "Task already completed for this date");
+        return existing;
+        // throw new ApiError(409, "Task already completed for this date");
     }
 
     // 3️⃣ Create completion

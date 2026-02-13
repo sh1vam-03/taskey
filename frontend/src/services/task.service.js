@@ -11,7 +11,7 @@ const taskService = {
     getTasks: async (filters = {}) => {
         // filters can be { categoryId, priority, isArchived, etc }
         const response = await api.get('/task', { params: filters });
-        return response.data.tasks || [];
+        return response.data; // Returns { tasks: [], meta: { ... } }
     },
 
     // Get Single Task

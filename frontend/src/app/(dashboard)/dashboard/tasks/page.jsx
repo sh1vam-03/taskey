@@ -3,18 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import taskService from '@/services/task.service';
 import usageService from '@/services/usage.service';
-// Assuming categoryService exists, if not we might need to verify or mock/create it. 
-// The prompt mentioned "Categories (Optional but Recommended) GET /api/category".
-// I'll check if category.service.js exists, if not I'll just use what's available or empty list.
-// For now, I will assume we might need to fetch them if the service exists.
-// Let's stick to the plan: "Fetch categories in fetchTasks".
-// If category service is missing, I will just skip fetching them for now or list what's in tasks.
-import api from '@/services/api'; // Direct api usage for categories if service missing? 
-// Actually, let's look at the file list from previous turns... 
-// I don't see category.service.js in the list from Step 16.
-// I will check if I can infer categories from tasks or if I should just leave the dropdown empty/static for now.
-// The prompt said "Categories (Optional but Recommended)".
-// I'll add the UI and logic, and if I can't fetch categories, I'll just show 'All'.
+import categoryService from '@/services/category.service';
+// Categories are now fetched from the API
 import {
     Plus,
     Filter,
@@ -52,32 +42,78 @@ export default function TasksPage() {
     const [showCompleted, setShowCompleted] = useState(false);
     const [categories, setCategories] = useState([]);
 
-    const fetchTasks = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [taskList, usageData] = await Promise.all([
-                taskService.getTasks(),
-                usageService.getMyUsage()
-            ]);
-            setTasks(taskList);
-            setUsage(usageData);
+    // Pagination State
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState(null);
+    const [isMoreLoading, setIsMoreLoading] = useState(false);
 
-            // Extract unique categories from tasks if no category API
-            // Or try to fetch if endpoint exists. For safety, I'll extract from tasks first.
-            const uniqueCats = [...new Map(taskList.filter(t => t.category).map(t => [t.category.id, t.category])).values()];
-            setCategories(uniqueCats);
+    const fetchTasks = useCallback(async (reset = false) => {
+        if (reset) {
+            setLoading(true);
+            setPage(1);
+        } else {
+            setIsMoreLoading(true);
+        }
+
+        try {
+
+            const currentPage = reset ? 1 : page;
+            const [taskResponse, usageData, categoriesData] = await Promise.all([
+                taskService.getTasks({ page: currentPage, limit: 10 }), // Pass pagination
+                reset ? usageService.getMyUsage() : Promise.resolve(null),
+                reset ? categoryService.getCategories() : Promise.resolve(null)
+            ]);
+
+            const processTasks = (tasksRaw) => {
+                return tasksRaw.map(t => ({
+                    ...t,
+                    isCompleted: t.dailyCompletions && t.dailyCompletions.length > 0
+                }));
+            };
+
+            if (reset) {
+                setTasks(processTasks(taskResponse.tasks));
+                if (usageData) setUsage(usageData);
+                if (categoriesData) setCategories(categoriesData);
+            } else {
+                setTasks(prev => [...prev, ...processTasks(taskResponse.tasks)]);
+            }
+
+            setMeta(taskResponse.meta);
+
+            // No longer enforcing inference, relying on API
+            // if (reset && taskResponse.tasks) { ... }
 
         } catch (err) {
             console.error("Failed to fetch tasks", err);
             error("Failed to load tasks");
         } finally {
             setLoading(false);
+            setIsMoreLoading(false);
         }
-    }, [error]);
+    }, [page, error]);
 
     useEffect(() => {
-        fetchTasks();
-    }, [fetchTasks]);
+        fetchTasks(true); // Initial load
+    }, []); // Run once on mount
+
+    // Load More Handler
+    const handleLoadMore = () => {
+        setPage(prev => prev + 1);
+        // Effect will trigger fetch due to page dependency? 
+        // No, fetchTasks depends on page, but we need to trigger it.
+        // Actually, better to just call fetchTasks with new page logic or specific logic.
+        // Let's rely on a separate effect or call explicitly.
+        // Simpler: Just update page, and have an effect watch page?
+        // Or cleaner: handleLoadMore calls fetchTasks specifically.
+    };
+
+    // Trigger fetch on page change (skip first render handled by mount effect)
+    useEffect(() => {
+        if (page > 1) {
+            fetchTasks(false);
+        }
+    }, [page]); // Dependencies cleaned up
 
     const handleCreate = () => {
         setTaskToEdit(null);
@@ -97,7 +133,8 @@ export default function TasksPage() {
         try {
             await taskService.deleteTask(deleteModal.taskId);
             setDeleteModal({ isOpen: false, taskId: null });
-            fetchTasks();
+            // Refresh list (reset to page 1 to ensure consistency)
+            fetchTasks(true);
             success("Objective deleted successfully");
         } catch (err) {
             console.error("Delete failed", err);
@@ -325,17 +362,35 @@ export default function TasksPage() {
                         </div>
                     )}
                 </div>
-            </Card>
+
+
+                {/* Pagination / Load More */}
+                {
+                    meta && meta.page < meta.totalPages && (
+                        <div className="p-4 border-t border-white/5 flex justify-center">
+                            <Button
+                                variant="ghost"
+                                onClick={handleLoadMore}
+                                disabled={isMoreLoading}
+                                className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30"
+                            >
+                                {isMoreLoading ? "Loading Coordinates..." : "Load Extended Objectives"}
+                            </Button>
+                        </div>
+                    )
+                }
+            </Card >
 
             <TaskModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 taskToEdit={taskToEdit}
                 onTaskSaved={() => {
-                    fetchTasks();
+                    fetchTasks(true); // Reset to page 1 to see new/updated task
                     success(taskToEdit ? "Objective updated" : "Objective initialized");
                 }}
-                categories={categories} // Pass extracted categories
+                categories={categories} // Pass fetched categories
+                onCategoryCreated={() => fetchTasks(true)} // Refresh categories if created
             />
 
             <ConfirmationModal
@@ -347,7 +402,7 @@ export default function TasksPage() {
                 confirmText="Delete Task"
                 variant="danger"
             />
-        </div>
+        </div >
     );
 }
 

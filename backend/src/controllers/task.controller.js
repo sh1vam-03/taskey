@@ -13,6 +13,9 @@ export const createTask = asyncHandler(async (req, res) => {
     const userId = req.user.id; //From JWT
     const { title, description, priority, dueDate, categoryId } = req.body;
 
+    // Sanitize categoryId (empty string -> null)
+    const sanitizedCategoryId = categoryId && categoryId !== "" ? categoryId : null;
+
     if (!title || !title.trim()) {
         throw new ApiError(400, "Title is required");
     }
@@ -21,7 +24,7 @@ export const createTask = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid priority");
     }
 
-    const task = await taskService.createTask(userId, { title, description, priority, dueDate, categoryId, userId });
+    const task = await taskService.createTask(userId, { title, description, priority, dueDate, categoryId: sanitizedCategoryId, userId });
 
     res.status(201).json(task);
 })
