@@ -70,7 +70,8 @@ export const getTasks = async (userId, query) => {
         sortBy = 'createdAt',
         sortOrder = 'desc',
         date,
-        excludeCompleted // Add param
+        excludeCompleted,
+        dueDate // Add dueDate param
     } = query;
 
     const where = {
@@ -78,7 +79,7 @@ export const getTasks = async (userId, query) => {
         deletedAt: null,
     }
 
-    if (categoryId && categoryId !== 'ALL') { // Handle 'ALL' explicit check just in case
+    if (categoryId && categoryId !== 'ALL') {
         where.categoryId = categoryId;
     }
 
@@ -88,6 +89,62 @@ export const getTasks = async (userId, query) => {
 
     if (isArchived !== undefined) {
         where.isArchived = isArchived === 'true';
+    }
+
+    // Determine Date for Completion Check
+    const completionContextDate = date ? startOfUTCDate(new Date(date)) : startOfUTCDate();
+
+    // Completion Filter
+    if (excludeCompleted === 'true') {
+        where.dailyCompletions = {
+            none: {
+                completedDate: completionContextDate
+            }
+        };
+    }
+
+    // Smart Date Filter (Scheduled + Unscheduled + Completed)
+    if (dueDate) {
+        const targetDate = startOfUTCDate(new Date(dueDate));
+        const targetEnd = new Date(targetDate);
+        targetEnd.setUTCDate(targetDate.getUTCDate() + 1);
+        const dayOfWeek = targetDate.getUTCDay();
+
+        where.OR = [
+            // 1. Unscheduled & Created on this day
+            { AND: [{ dueDate: null }, { createdAt: { gte: targetDate, lt: targetEnd } }] },
+
+            // 2. Completed on this day
+            { dailyCompletions: { some: { completedDate: targetDate } } },
+
+            // 3. Scheduled on this day (Recurrence logic)
+            {
+                schedules: {
+                    some: {
+                        OR: [
+                            // Single Occurrence on Target Date
+                            { recurrence: 'NONE', scheduleDate: { gte: targetDate, lt: targetEnd } },
+
+                            // Recurring Active
+                            {
+                                recurrence: { in: ['DAILY', 'WEEKLY', 'MONTHLY'] },
+                                scheduleDate: { lte: targetDate },
+                                AND: [
+                                    { OR: [{ repeatUntil: null }, { repeatUntil: { gte: targetDate } }] },
+                                    {
+                                        OR: [
+                                            { recurrence: 'DAILY' },
+                                            { recurrence: 'WEEKLY', repeatOnDays: { has: dayOfWeek } },
+                                            { recurrence: 'MONTHLY' }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        ];
     }
 
     if (search) {
@@ -124,9 +181,10 @@ export const getTasks = async (userId, query) => {
             },
             include: {
                 category: true,
+                schedules: true, // Fetch schedules
                 dailyCompletions: {
                     where: {
-                        completedDate: completionDate
+                        completedDate: completionContextDate
                     }
                 }
             }
@@ -134,8 +192,33 @@ export const getTasks = async (userId, query) => {
         prisma.task.count({ where })
     ]);
 
+    // Format response with Status and Schedule details
+    const formattedTasks = tasks.map(task => {
+        const primarySchedule = task.schedules && task.schedules.length > 0 ? task.schedules[0] : null;
+
+        return {
+            ...task,
+            status: task.dailyCompletions && task.dailyCompletions.length > 0 ? 'COMPLETED' : 'PENDING',
+            category: task.category ? {
+                id: task.category.id,
+                name: task.category.name,
+                color: task.category.color,
+                icon: task.category.icon
+            } : null,
+            schedule: primarySchedule ? {
+                type: primarySchedule.recurrence,
+                date: primarySchedule.scheduleDate,
+                days: primarySchedule.repeatOnDays,
+                until: primarySchedule.repeatUntil,
+                time: primarySchedule.startTime // Keep as Date object or ISO string
+            } : null,
+            dailyCompletions: undefined, // Cleanup
+            schedules: undefined // Cleanup
+        };
+    });
+
     return {
-        tasks,
+        tasks: formattedTasks,
         meta: {
             total,
             page: Number(page),

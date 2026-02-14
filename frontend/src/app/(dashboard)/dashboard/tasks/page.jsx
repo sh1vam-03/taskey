@@ -48,7 +48,7 @@ export default function TasksPage() {
     const [filterPriority, setFilterPriority] = useState('ALL');
     const [selectedCategory, setSelectedCategory] = useState('ALL');
     const [showCompleted, setShowCompleted] = useState(false);
-    const [filterDueDate, setFilterDueDate] = useState(new Date().toLocaleDateString('en-CA')); // Default to Today
+    const [filterDueDate, setFilterDueDate] = useState(''); // Default to All Tasks (empty)
     const [categories, setCategories] = useState([]);
 
     // Pagination State
@@ -72,7 +72,7 @@ export default function TasksPage() {
             const filters = {
                 page: currentPage,
                 limit: 10,
-                date: localDate,
+                date: filterDueDate || localDate, // Use filtered date for completion check if set
                 search: searchQuery,
                 priority: filterPriority,
                 categoryId: selectedCategory,
@@ -89,7 +89,7 @@ export default function TasksPage() {
             const processTasks = (tasksRaw) => {
                 return tasksRaw.map(t => ({
                     ...t,
-                    isCompleted: t.dailyCompletions && t.dailyCompletions.length > 0
+                    isCompleted: t.status === 'COMPLETED' // Map backend status to boolean (or keep status if UI supports it)
                 }));
             };
 
@@ -165,25 +165,21 @@ export default function TasksPage() {
     };
 
     const handleToggleComplete = async (task) => {
-        const today = new Date().toLocaleDateString('en-CA');
+        const completionDate = filterDueDate || new Date().toLocaleDateString('en-CA');
 
         // Optimistic Update
         const previousTasks = [...tasks];
         const updatedTasks = tasks.map(t =>
-            t.id === task.id ? { ...t, isCompleted: !t.isCompleted } : t
+            t.id === task.id ? { ...t, isCompleted: !t.isCompleted, status: !t.isCompleted ? 'COMPLETED' : 'PENDING' } : t
         );
         setTasks(updatedTasks);
 
         try {
             if (task.isCompleted) {
-                await taskService.undoCompleteTask(task.id, today);
+                await taskService.undoCompleteTask(task.id, completionDate);
             } else {
-                await taskService.completeTask(task.id, today);
+                await taskService.completeTask(task.id, completionDate);
             }
-            // Background refresh to ensure sync
-            // fetchTasks(); 
-            // Actually, usually redundant if optimistic worked, but good for consistency. 
-            // To avoid flickering, maybe skip full refetch if successful?
         } catch (err) {
             console.error("Completion toggle error", err);
             setTasks(previousTasks); // Revert
