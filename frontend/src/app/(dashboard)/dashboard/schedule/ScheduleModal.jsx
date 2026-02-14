@@ -67,8 +67,9 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
         } else if (payload.recurrence === 'DAILY') {
             payload.repeatOnDays = [];
         } else if (payload.recurrence === 'WEEKLY') {
-            // Ensure repeatOnDays is array of numbers
-            payload.repeatOnDays = (data.repeatOnDays || []).map(Number);
+            // Ensure repeatOnDays is array of numbers (handle string from hidden input edge case)
+            const days = data.repeatOnDays || [];
+            payload.repeatOnDays = (Array.isArray(days) ? days : String(days).split(',').filter(Boolean)).map(Number);
         } else if (payload.recurrence === 'MONTHLY') {
             payload.repeatOnDays = [];
         }
@@ -196,15 +197,15 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                                             type="button"
                                             onClick={() => toggleDay(day.id)}
                                             className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all ${watchRepeatOnDays?.includes(day.id)
-                                                    ? 'bg-cyan-500 text-black'
-                                                    : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                                                ? 'bg-cyan-500 text-black'
+                                                : 'bg-white/5 text-gray-500 hover:bg-white/10'
                                                 }`}
                                         >
                                             {day.label}
                                         </button>
                                     ))}
                                 </div>
-                                <input type="hidden" {...register('repeatOnDays')} />
+                                {/* repeatOnDays managed by setValue(), no hidden input needed */}
                             </div>
                         )}
 
