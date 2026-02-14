@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as scheduleService from "../../services/schedule.service.js";
+import { incrementUsage } from "../../services/usageLimit.service.js";
 
 const success = (data) => JSON.stringify({ success: true, data });
 const error = (msg) => JSON.stringify({ success: false, error: msg });
@@ -20,6 +21,7 @@ export const createScheduleTool = () => new DynamicStructuredTool({
             if (!userId) return error("User ID missing in configuration");
 
             const schedule = await scheduleService.createSchedule({ userId, ...args });
+            await incrementUsage(userId, 'schedule');
             return success(schedule);
         } catch (e) {
             return error(`Error scheduling task: ${e.message}`);

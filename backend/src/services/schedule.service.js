@@ -110,21 +110,7 @@ export const createSchedule = async (data) => {
         }
     });
 
-    // 2️⃣ Increment schedule usage
-    const { month, year } = getCurrentMonthYear();
-
-    await prisma.usageStat.update({
-        where: {
-            userId_month_year: {
-                userId,
-                month,
-                year
-            }
-        },
-        data: {
-            scheduleCount: { increment: 1 }
-        }
-    });
+    // Usage increment is handled by the controller via incrementUsage()
 
     return schedule;
 };
