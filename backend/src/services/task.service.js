@@ -63,20 +63,27 @@ export const getTasks = async (userId, query) => {
     const {
         categoryId,
         priority,
-        isArchived,
         search,
         page = 1,
         limit = 10,
         sortBy = 'createdAt',
         sortOrder = 'desc',
-        date,
+        includeArchived = 'false',
         excludeCompleted,
-        dueDate // Add dueDate param
+        date,
+        dueDate
     } = query;
 
     const where = {
         userId,
-        deletedAt: null,
+        deletedAt: null
+    };
+
+    // Archived Check
+    if (includeArchived === 'true') {
+        where.isArchived = true;
+    } else {
+        where.isArchived = false;
     }
 
     if (categoryId && categoryId !== 'ALL') {
@@ -87,15 +94,20 @@ export const getTasks = async (userId, query) => {
         where.priority = priority;
     }
 
-    if (isArchived !== undefined) {
-        where.isArchived = isArchived === 'true';
+    if (search) {
+        where.title = {
+            contains: search,
+            mode: 'insensitive'
+        };
     }
 
-    // Determine Date for Completion Check
-    const completionContextDate = date ? startOfUTCDate(new Date(date)) : startOfUTCDate();
+    // Determine Date Mode (Today/Calendar vs Master List)
+    const completionContextDate = date
+        ? startOfUTCDate(new Date(date))
+        : (dueDate ? startOfUTCDate(new Date(dueDate)) : null);
 
-    // Completion Filter
-    if (excludeCompleted === 'true') {
+    // Completion Filter (Only in Date Mode)
+    if (completionContextDate && excludeCompleted === 'true') {
         where.dailyCompletions = {
             none: {
                 completedDate: completionContextDate
@@ -103,7 +115,7 @@ export const getTasks = async (userId, query) => {
         };
     }
 
-    // Smart Date Filter (Scheduled + Unscheduled + Completed)
+    // Smart Date Filter (Only if dueDate is provided - Date Mode)
     if (dueDate) {
         const targetDate = startOfUTCDate(new Date(dueDate));
         const targetEnd = new Date(targetDate);
@@ -147,26 +159,7 @@ export const getTasks = async (userId, query) => {
         ];
     }
 
-    if (search) {
-        where.title = {
-            contains: search,
-            mode: 'insensitive'
-        };
-    }
-
-    // Determine Date for Completion Check
-    const completionDate = date ? startOfUTCDate(new Date(date)) : startOfUTCDate();
-
-    // Completion Filter
-    if (excludeCompleted === 'true') {
-        where.dailyCompletions = {
-            none: {
-                completedDate: completionDate
-            }
-        };
-    }
-
-    // pagination
+    // Pagination
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
 
@@ -181,24 +174,35 @@ export const getTasks = async (userId, query) => {
             },
             include: {
                 category: true,
-                schedules: true, // Fetch schedules
-                dailyCompletions: {
+                schedules: true,
+                dailyCompletions: completionContextDate ? {
                     where: {
                         completedDate: completionContextDate
                     }
-                }
+                } : false
             }
         }),
         prisma.task.count({ where })
     ]);
 
-    // Format response with Status and Schedule details
+    // Format response
     const formattedTasks = tasks.map(task => {
         const primarySchedule = task.schedules && task.schedules.length > 0 ? task.schedules[0] : null;
 
+        // Status Logic
+        let status = 'ACTIVE';
+        if (completionContextDate) {
+            status = task.dailyCompletions && task.dailyCompletions.length > 0 ? 'COMPLETED' : 'PENDING';
+        }
+
         return {
-            ...task,
-            status: task.dailyCompletions && task.dailyCompletions.length > 0 ? 'COMPLETED' : 'PENDING',
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            isArchived: task.isArchived,
+            createdAt: task.createdAt,
             category: task.category ? {
                 id: task.category.id,
                 name: task.category.name,
@@ -210,10 +214,9 @@ export const getTasks = async (userId, query) => {
                 date: primarySchedule.scheduleDate,
                 days: primarySchedule.repeatOnDays,
                 until: primarySchedule.repeatUntil,
-                time: primarySchedule.startTime // Keep as Date object or ISO string
+                time: primarySchedule.startTime
             } : null,
-            dailyCompletions: undefined, // Cleanup
-            schedules: undefined // Cleanup
+            status
         };
     });
 
@@ -226,7 +229,7 @@ export const getTasks = async (userId, query) => {
             totalPages: Math.ceil(total / limit)
         }
     };
-}
+};
 
 
 export const getTask = async (userId, taskId) => {
