@@ -40,8 +40,9 @@ const bulkUndo = () => {
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">
-        Tasks {selectedDate && `• ${selectedDate}`}
-      </h2>
+  Tasks {selectedDate && `• ${selectedDate}`}
+</h2>
+
 
       <TaskForm />
 

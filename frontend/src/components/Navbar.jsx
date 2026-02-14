@@ -65,7 +65,7 @@ const Navbar = () => {
             onClick={() =>
               setTheme(theme === "light" ? "dark" : "light")
             }
-            className="border px-3 py-1 rounded-md cursor-pointer"
+            className="border px-3 py-1 rounded-md cursor-pointer "
             style={{ borderColor: "var(--border)" }}
           >
             {theme === "light" ? "🌙Dark" : "☀️Light"}

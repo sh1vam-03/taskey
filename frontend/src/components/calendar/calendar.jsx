@@ -5,27 +5,38 @@ import DayView from "./DayView"
 import WeekView from "./WeekView"
 import MonthView from "./MonthView"
 
-const Calendar = () => {
+const Calendar = ({ openTasks }) => {
   const { selectedDate, setSelectedDate } = useTasks()
   const [view, setView] = useState("month")
-   const [date, setDate] = useState(new Date())
+  const [date, setDate] = useState(new Date())
 
-  const formatDate = () =>
-    date.toDateString()
+  const formatDate = () => date.toDateString()
 
   const onPrev = () => {
     const d = new Date(date)
-    d.setDate(d.getDate() - (view === "day" ? 1 : view === "week" ? 7 : 30))
+    d.setDate(
+      d.getDate() -
+      (view === "day" ? 1 : view === "week" ? 7 : 30)
+    )
     setDate(d)
   }
 
   const onNext = () => {
     const d = new Date(date)
-    d.setDate(d.getDate() + (view === "day" ? 1 : view === "week" ? 7 : 30))
+    d.setDate(
+      d.getDate() +
+      (view === "day" ? 1 : view === "week" ? 7 : 30)
+    )
     setDate(d)
   }
 
   const onToday = () => setDate(new Date())
+
+  // ✅ This is the only click handler needed
+  const handleSelect = (date) => {
+    setSelectedDate(date)
+    if (openTasks) openTasks()
+  }
 
   return (
     <div
@@ -44,24 +55,28 @@ const Calendar = () => {
         onToday={onToday}
       />
 
-      {/* View container */}
-      <div key={view} className="view-transition view-enter-active">
+      <div key={view} className="mt-4">
         {view === "day" && (
-          <DayView selectedDate={selectedDate} />
+          <DayView
+            selectedDate={selectedDate}
+            onSelect={handleSelect}
+          />
         )}
 
         {view === "week" && (
           <WeekView
             selectedDate={selectedDate}
-            onSelect={setSelectedDate}
+            onSelect={handleSelect}
           />
         )}
 
         {view === "month" && (
           <MonthView
             selectedDate={selectedDate}
-            onSelect={setSelectedDate}
+            onSelect={handleSelect}
+            currentDate={date}
           />
+
         )}
       </div>
     </div>

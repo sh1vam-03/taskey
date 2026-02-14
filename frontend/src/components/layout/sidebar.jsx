@@ -22,10 +22,10 @@ const Sidebar = ({ open, onClose, active, onNavigate }) => {
       }}
     >
       {/* Mobile close */}
-      <div className="md:hidden p-4">
+      <div className="md:hidden p-4 ">
         <button
           onClick={onClose}
-          className="px-3 py-2 border rounded-lg"
+          className="px-3 py-2 border rounded-lg cursor-pointer"
           style={{ borderColor: "var(--border)" }}
         >
           ✕ Close
