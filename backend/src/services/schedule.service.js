@@ -45,28 +45,26 @@ export const createSchedule = async (data) => {
         ? new Date(`${repeatUntil}T23:59:59`)
         : null;
 
-    // Check conflicts
-    const existingSchedule = await prisma.schedule.findMany({
-        where: {
-            userId,
-            scheduleDate: new Date(scheduleDate)
-        }
+    // Check conflicts — must check ALL schedules that expand onto this date
+    const allUserSchedules = await prisma.schedule.findMany({
+        where: { userId },
+        include: { task: { select: { title: true } } }
     });
 
     // 1. Validator Logic (AI Requirement)
-    // This will throw an error if validation fails
     validateSchedule({
         scheduleDate,
         startTime,
         endTime
     });
 
-    // 2. Conflict Check (Detailed)
-    for (const schedule of existingSchedule) {
-        if (hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
+    // 2. Conflict Check — use appliesOnDate to find schedules that actually appear on this date
+    const targetDate = new Date(scheduleDate);
+    for (const schedule of allUserSchedules) {
+        if (appliesOnDate(schedule, targetDate) && hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(
                 409,
-                `Schedule conflict with existing "${task.title}"`
+                `Schedule conflict with existing "${schedule.task?.title || 'Unknown'}"`
             );
         }
     }
@@ -334,14 +332,11 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     const normalizeRepeatUntil = repeatUntil ? new Date(`${repeatUntil}T23:59:59`) : null;
 
 
-    // Check for time conflicts
-    const existingSchedule = await prisma.schedule.findMany({
+    // Check for time conflicts — must check ALL schedules that expand onto this date
+    const allUserSchedules = await prisma.schedule.findMany({
         where: {
             userId,
-            scheduleDate: new Date(scheduleDate),
-            NOT: {
-                id: scheduleId
-            },
+            NOT: { id: scheduleId }
         },
         include: {
             task: {
@@ -350,10 +345,11 @@ export const updateSchedule = async (userId, scheduleId, data) => {
         }
     });
 
-    for (const schedule of existingSchedule) {
-        if (hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
+    const targetDate = new Date(scheduleDate);
+    for (const schedule of allUserSchedules) {
+        if (appliesOnDate(schedule, targetDate) && hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(409,
-                `Schedule conflict with existing "${schedule.task.title}" - (${schedule.startTime} - ${schedule.endTime})`);
+                `Schedule conflict with existing "${schedule.task?.title || 'Unknown'}" (${schedule.startTime} - ${schedule.endTime})`);
         }
     }
 
