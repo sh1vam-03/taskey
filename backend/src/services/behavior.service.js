@@ -3,7 +3,6 @@ import ApiError from "../utils/ApiError.js";
 import { buildDailyStatsMap } from "./dashboard.service.js";
 import { getCurrentMonthYear } from "../utils/date.utils.js";
 import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
-import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
 /* -------------------------------------------------------------------------- */
 /*                               DATE UTILS                                   */
@@ -46,12 +45,11 @@ export const upsertBehaviorLog = async (userId, payload) => {
         }
     });
 
-    // 2️⃣ Check Limits (Only if creating new)
-    if (!existing) {
-        await checkUsageLimit(userId, 'behavior');
-    }
+    const isNew = !existing;
 
-    // 3️⃣ Upsert behavior
+    // Usage limit check is handled by the controller
+
+    // 2️⃣ Upsert behavior
     const behavior = await prisma.behaviorLog.upsert({
         where: {
             userId_date: { userId, date: day }
@@ -72,14 +70,8 @@ export const upsertBehaviorLog = async (userId, payload) => {
         }
     });
 
-    /**
-     * 4️⃣ Increment usage ONLY if it's a NEW record
-     */
-    if (!existing) {
-        await incrementUsage(userId, 'behavior');
-    }
-
-    return behavior;
+    // Usage increment is handled by the controller via incrementUsage()
+    return { ...behavior, isNew };
 };
 
 

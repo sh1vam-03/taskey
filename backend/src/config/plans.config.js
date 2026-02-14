@@ -51,13 +51,13 @@ export const PLANS = {
             YEARLY: 0
         },
         credits: {
-            MONTHLY: 0,
-            YEARLY: 0
+            MONTHLY: 10,
+            YEARLY: 10
         },
         limits: {
-            task: 20,
-            schedule: 30,
-            behavior: 15
+            task: 100,
+            schedule: 300,
+            behavior: 30
         },
         rank: 0
     },
@@ -72,8 +72,8 @@ export const PLANS = {
             YEARLY: 600 // 50 * 12
         },
         limits: {
-            task: 1000,
-            schedule: 1000,
+            task: 300,
+            schedule: 600,
             behavior: 100
         },
         rank: 1
@@ -89,8 +89,8 @@ export const PLANS = {
             YEARLY: 1080 // 90 * 12
         },
         limits: {
-            task: 10000,
-            schedule: 10000,
+            task: 500,
+            schedule: 1000,
             behavior: 1000
         },
         rank: 2
