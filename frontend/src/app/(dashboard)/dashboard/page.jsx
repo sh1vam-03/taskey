@@ -312,28 +312,8 @@ export default function DashboardOverview() {
                         </Card>
 
                         <Card
-                            className="bg-linear-to-br from-cyan-900/10 to-transparent border-cyan-900/30"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-cyan-500/20 flex items-center justify-center animate-pulse">
-                                    <BrainCircuit className="h-5 w-5 text-cyan-400" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-white">System Optimizing</h4>
-                                    <p className="text-xs text-cyan-200/60 font-mono mt-1">
-                                        Analyzing usage patterns...
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Plan Summary */}
-                    <div className="lg:col-span-3">
-                        <Card
                             title="Plan Status"
                             icon={Target}
-                            className="h-full"
                         >
                             <div className="mt-4 space-y-4">
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
@@ -353,7 +333,6 @@ export default function DashboardOverview() {
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                                    были
                                     <span className="text-sm text-gray-400">Renewal</span>
                                     <span className="text-sm font-mono text-white">{subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : 'N/A'}</span>
                                 </div>

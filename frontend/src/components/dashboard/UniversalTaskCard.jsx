@@ -48,7 +48,7 @@ export default function UniversalTaskCard({
     // Extract data
     const schedule = item.schedule || {};
     const startTime = schedule.time || item.startTime;
-    const endTime = item.endTime;
+    const endTime = schedule.endTime || item.endTime;
     const recurrence = schedule.type || item.recurrence;
     const repeatDays = schedule.days || item.repeatOnDays;
     const repeatUntil = schedule.until || item.repeatUntil;
@@ -63,10 +63,18 @@ export default function UniversalTaskCard({
     // Format time
     const fmt = (t) => {
         if (!t) return null;
+
+        // If already HH:mm string
+        if (typeof t === 'string' && t.length === 5) {
+            return t;
+        }
+
         const d = new Date(t);
-        return d.toString() !== 'Invalid Date'
-            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : String(t).slice(0, 5);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        return null;
     };
 
     const fmtStart = fmt(startTime);
@@ -87,180 +95,148 @@ export default function UniversalTaskCard({
     const isScheduleType = type === 'SCHEDULE' || item.type === 'SCHEDULED';
 
     return (
-        <div className={`group/card relative flex overflow-hidden rounded-lg border transition-all duration-300 ${isCompleted
-                ? 'border-white/[0.05] bg-white/[0.015] opacity-60 hover:opacity-80'
-                : isMissed
-                    ? 'border-red-500/20 bg-red-950/[0.15] hover:border-red-500/30'
-                    : 'border-white/[0.07] bg-white/[0.025] hover:border-cyan-500/30 hover:bg-white/[0.045] hover:shadow-[0_0_20px_rgba(6,182,212,0.04)]'
-            }`}>
+        <div
+            className={`
+      relative group
+      bg-black
+      border border-white/10
+      hover:border-cyan-500/40
+      transition-all duration-200
+      px-4 py-3
+      ${isCompleted ? "opacity-60" : ""}
+      ${isMissed ? "border-red-500/40 bg-red-950/10" : ""}
+    `}
+        >
 
-            {/* Left Priority Accent Bar — always visible */}
-            <div className={`w-[3px] shrink-0 transition-all duration-300 ${isCompleted ? 'bg-green-500/40' : isMissed ? 'bg-red-500/60' : p.bar
-                } ${!isCompleted && !isMissed ? p.barGlow : ''}`} />
+            {/* Corner Brackets (smaller) */}
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20 group-hover:border-cyan-500" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20 group-hover:border-cyan-500" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20 group-hover:border-cyan-500" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 group-hover:border-cyan-500" />
 
-            {/* Main Content Area */}
-            <div className="flex items-stretch flex-1 min-w-0 p-3 pl-3.5 gap-3">
+            {/* Main Row */}
+            <div className="grid grid-cols-[80px_1fr_auto] items-start gap-3">
 
-                {/* Time / Type Block */}
-                <div className="flex items-center shrink-0">
-                    {fmtStart ? (
-                        <div className={`flex flex-col items-center justify-center w-[64px] py-2 rounded-md border font-mono transition-all duration-200 ${isCompleted
-                                ? 'bg-zinc-900/50 border-white/[0.05] text-gray-600'
-                                : isMissed
-                                    ? 'bg-red-950/40 border-red-500/20 text-red-400/80'
-                                    : 'bg-black/70 border-white/[0.08] text-cyan-400 group-hover/card:border-cyan-500/30 group-hover/card:shadow-[0_0_10px_rgba(6,182,212,0.08)]'
-                            }`}>
-                            <Clock className="h-3 w-3 opacity-40 mb-0.5" />
-                            <span className="text-[11px] font-bold leading-none">{fmtStart}</span>
-                            {fmtEnd && (
-                                <span className="text-[9px] opacity-40 mt-0.5 leading-none">{fmtEnd}</span>
-                            )}
-                        </div>
-                    ) : (
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-md border transition-all duration-200 ${isCompleted
-                                ? 'bg-zinc-900/50 border-white/[0.05]'
-                                : 'bg-black/70 border-white/[0.08] group-hover/card:border-cyan-500/20'
-                            }`}>
-                            <CheckSquare className={`h-4 w-4 ${isCompleted ? 'text-gray-600' : 'text-cyan-500/60 group-hover/card:text-cyan-400'
-                                }`} />
-                        </div>
+                {/* Time */}
+                <div className="flex flex-col font-mono leading-none">
+                    <span className="text-cyan-400 text-[20px] font-bold tracking-tight">
+                        {fmtStart || "--:--"}
+                    </span>
+                    {fmtEnd && (
+                        <span className="text-gray-500 text-[15px] font-medium mt-1">
+                            {fmtEnd}
+                        </span>
                     )}
                 </div>
 
-                {/* Center Content */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    {/* Title */}
-                    <h4 className={`text-sm font-medium truncate transition-colors duration-200 leading-snug ${isCompleted
-                            ? 'text-gray-500 line-through decoration-gray-700'
-                            : isMissed
-                                ? 'text-red-300'
-                                : 'text-gray-100 group-hover/card:text-white'
-                        }`}>
+                {/* Content */}
+                <div>
+                    <h3
+                        className={`text-sm font-semibold text-white leading-tight truncate
+            ${isCompleted ? "line-through opacity-50" : ""}
+          `}
+                    >
                         {title}
-                    </h4>
+                    </h3>
 
-                    {/* Meta Badges Row */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        {/* Priority */}
-                        <span className={`inline-flex items-center gap-0.5 h-[18px] px-1.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${p.badge} ${isCompleted ? 'opacity-40' : ''}`}>
-                            <PIcon className="h-2.5 w-2.5" />
-                            {p.label}
-                        </span>
-
-                        {/* Type Badge */}
-                        <span className={`inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[9px] font-mono uppercase tracking-wide border ${isCompleted
-                                ? 'bg-white/[0.02] border-white/[0.05] text-gray-600'
-                                : isScheduleType
-                                    ? 'bg-purple-500/10 border-purple-500/20 text-purple-400/80'
-                                    : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400/80'
-                            }`}>
-                            {isScheduleType ? (
-                                <><Timer className="h-2.5 w-2.5" /> Schedule</>
-                            ) : (
-                                <><CheckSquare className="h-2.5 w-2.5" /> Task</>
-                            )}
-                        </span>
-
-                        {/* Recurrence */}
-                        {recText && (
-                            <span className={`inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[9px] font-mono border ${isCompleted
-                                    ? 'bg-white/[0.02] border-white/[0.05] text-gray-600'
-                                    : 'bg-cyan-500/[0.06] border-cyan-500/15 text-cyan-400/60'
-                                }`}>
-                                <Repeat className="h-2.5 w-2.5" />
-                                {recText}
-                            </span>
-                        )}
-
-                        {/* Date */}
-                        {!recText && scheduleDate && (
-                            <span className={`inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[9px] font-mono border ${isCompleted
-                                    ? 'bg-white/[0.02] border-white/[0.05] text-gray-600'
-                                    : 'bg-white/[0.03] border-white/[0.06] text-gray-400'
-                                }`}>
-                                <Calendar className="h-2.5 w-2.5" />
-                                {new Date(scheduleDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </span>
-                        )}
-
-                        {/* Until */}
-                        {repeatUntil && (
-                            <span className={`inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[9px] font-mono border ${isCompleted
-                                    ? 'bg-white/[0.02] border-white/[0.05] text-gray-600'
-                                    : 'bg-white/[0.03] border-white/[0.06] text-gray-500'
-                                }`}>
-                                <span className="opacity-40">→</span>
-                                {new Date(repeatUntil).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </span>
-                        )}
-
-                        {/* Category */}
-                        {category && (
-                            <span className={`inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[9px] font-mono uppercase tracking-wide border ${isCompleted
-                                    ? 'bg-white/[0.02] border-white/[0.05] text-gray-600'
-                                    : 'bg-white/[0.03] border-white/[0.06] text-gray-400'
-                                }`}>
-                                {category.color && (
-                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: category.color }} />
-                                )}
-                                {category.name}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Description */}
                     {description && (
-                        <p className={`text-[11px] mt-1.5 line-clamp-1 leading-relaxed ${isCompleted ? 'text-gray-700' : 'text-gray-500'
-                            }`}>
-                            {description}
+                        <p
+                            className={`text-[11px] text-gray-500 font-mono mt-1 truncate
+              ${isCompleted ? "line-through opacity-40" : ""}
+            `}
+                        >
+                            {"> " + description}
                         </p>
                     )}
                 </div>
 
-                {/* Right: Actions */}
+                {/* Edit/Delete */}
                 {!hideActions && (
-                    <div className="flex items-center gap-0.5 shrink-0 self-center">
-                        {/* Hover Actions */}
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 transition-all duration-200 translate-x-1 group-hover/card:translate-x-0">
-                            {onEdit && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                                    className="p-1.5 rounded-md text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all duration-150"
-                                    title="Edit"
-                                >
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                            )}
-                            {onDelete && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onDelete(item); }}
-                                    className="p-1.5 rounded-md text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
-                                    title="Delete"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Complete Toggle */}
-                        {onComplete && (
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {onEdit && (
                             <button
-                                onClick={(e) => { e.stopPropagation(); onComplete(item); }}
-                                className={`p-1.5 rounded-md transition-all duration-200 ${isCompleted
-                                        ? 'text-green-500/60 hover:text-gray-400 hover:bg-white/5'
-                                        : 'text-gray-600 hover:text-green-400 hover:bg-green-500/10'
-                                    }`}
-                                title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+                                onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                                className="text-gray-500 hover:text-cyan-400"
                             >
-                                {isCompleted
-                                    ? <CheckCircle2 className="h-5 w-5" />
-                                    : <Circle className="h-5 w-5" />
-                                }
+                                <Edit2 size={14} />
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+                                className="text-gray-500 hover:text-red-500"
+                            >
+                                <Trash2 size={14} />
                             </button>
                         )}
                     </div>
                 )}
             </div>
+
+            {/* Bottom Meta Row (tight) */}
+            <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/5 text-[9px] font-mono uppercase tracking-wider">
+
+                {/* Left */}
+                <div className="flex items-center gap-2">
+
+                    {recText && (
+                        <span className="text-purple-400 border border-purple-500/20 px-1.5 py-[2px]">
+                            {recText}
+                        </span>
+                    )}
+
+                    {isMissed && (
+                        <span className="text-red-400 border border-red-500/30 px-1.5 py-[2px]">
+                            MISSED
+                        </span>
+                    )}
+
+                </div>
+
+                {/* Right */}
+                <div className="flex items-center gap-2">
+
+                    <span
+                        className={`px-1.5 py-[2px] border
+            ${priority === "HIGH"
+                                ? "text-red-400 border-red-500/30"
+                                : priority === "LOW"
+                                    ? "text-blue-400 border-blue-500/30"
+                                    : "text-amber-400 border-amber-500/30"
+                            }
+          `}
+                    >
+                        {priority}
+                    </span>
+
+                    <span className="text-gray-400 border border-white/10 px-1.5 py-[2px]">
+                        {isScheduleType ? "SCHEDULED" : "TASK"}
+                    </span>
+
+                    {category && (
+                        <span className="text-cyan-500 border border-cyan-900/30 px-1.5 py-[2px]">
+                            {category.name || category}
+                        </span>
+                    )}
+
+                    {onComplete && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onComplete(item); }}
+                            className={`
+              ml-1
+              ${isCompleted
+                                    ? "text-green-500"
+                                    : "text-gray-500 hover:text-green-400"
+                                }
+            `}
+                        >
+                            {isCompleted ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                        </button>
+                    )}
+
+                </div>
+            </div>
+
         </div>
     );
 }
