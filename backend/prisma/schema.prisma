@@ -282,6 +282,7 @@ model Task {
   isArchived Boolean   @default(false)
   deletedAt  DateTime?
 
+  taskDate  DateTime @default(now()) @db.Date
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

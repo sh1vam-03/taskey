@@ -1,6 +1,6 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { getCurrentMonthYear, toUTCDateOnly, startOfUTCDate, appliesOnDate } from "../utils/date.utils.js";
 import { validateSchedule } from "../ai/validators/schedule.validator.js";
 
 // Create Schedule
@@ -46,9 +46,12 @@ export const createSchedule = async (data) => {
         throw new ApiError(400, "End time must be greater than start time");
     }
 
-    const normalizeRepeatUntil = repeatUntil
-        ? new Date(`${repeatUntil}T23:59:59`)
-        : null;
+    // Parse repeatUntil as UTC end-of-day if provided
+    let normalizeRepeatUntil = null;
+    if (repeatUntil) {
+        normalizeRepeatUntil = toUTCDateOnly(repeatUntil);
+        normalizeRepeatUntil.setUTCHours(23, 59, 59, 999);
+    }
 
     // Check conflicts — must check ALL schedules that expand onto this date
     const allUserSchedules = await prisma.schedule.findMany({
@@ -64,7 +67,9 @@ export const createSchedule = async (data) => {
     });
 
     // 2. Conflict Check — use appliesOnDate to find schedules that actually appear on this date
-    const targetDate = new Date(scheduleDate);
+    // Normalize scheduleDate to UTC Midnight
+    const targetDate = toUTCDateOnly(scheduleDate);
+
     for (const schedule of allUserSchedules) {
         if (appliesOnDate(schedule, targetDate) && hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(
@@ -82,7 +87,7 @@ export const createSchedule = async (data) => {
     const duplicateWhere = {
         userId,
         taskId,
-        scheduleDate: new Date(scheduleDate),
+        scheduleDate: targetDate,
         startTime: normalizeStartTime,
         endTime: normalizeEndTime,
         recurrence,
@@ -104,7 +109,7 @@ export const createSchedule = async (data) => {
     // 1️⃣ Create schedule
     const schedule = await prisma.schedule.create({
         data: {
-            scheduleDate: new Date(scheduleDate),
+            scheduleDate: targetDate,
             startTime: normalizeStartTime,
             endTime: normalizeEndTime,
             recurrence,
@@ -121,41 +126,37 @@ export const createSchedule = async (data) => {
 };
 
 
-const startOfDay = (date) => {
-    const d = new Date(date);
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
-};
-
-const appliesOnDate = (schedule, date) => {
-    const sDate = startOfDay(schedule.scheduleDate);
-    const cDate = startOfDay(date);
-
-    if (cDate < sDate) return false;
-    if (schedule.repeatUntil && cDate > schedule.repeatUntil) return false;
-
-    switch (schedule.recurrence) {
-        case "NONE":
-            return cDate.getTime() === sDate.getTime();
-        case "DAILY":
-            return true;
-        case "WEEKLY":
-            return schedule.repeatOnDays.includes(cDate.getUTCDay());
-        case "MONTHLY":
-            return cDate.getUTCDate() === sDate.getUTCDate();
-        default:
-            return false;
-    }
-};
+// Local date helpers removed in favor of date.utils.js imports
+// startOfDay replaced by toUTCDateOnly/startOfUTCDate
+// appliesOnDate replaced by imported utility
 
 // Get All Schedules (Expanded Instances)
 export const getSchedules = async (userId, from, to, taskId) => {
     // Default to Today -> Today + 30 days if no range provided
-    const startDate = from ? new Date(from) : new Date();
-    const endDate = to ? new Date(to) : new Date(new Date().setDate(new Date().getDate() + 30));
+    const startDate = from ? toUTCDateOnly(from) : startOfUTCDate();
 
-    // Normalize to UTC start/end of day
-    startDate.setUTCHours(0, 0, 0, 0);
+    let endDate;
+    if (to) {
+        endDate = toUTCDateOnly(to);
+    } else {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        endDate = startOfUTCDate(d);
+    }
+
+    // Ensure strictly UTC midnight (toUTCDateOnly does this, but being explicit for range end)
+    // Actually toUTCDateOnly returns UTC midnight.
+    // For the range query we want to include the whole end day? 
+    // The previous code had `startDate.setUTCHours(0,0,0,0)` and didn't seem to set end of day for `endDate`.
+    // Let's look at logic.
+    // loops usually go <= endDate. 
+    // If we use < we might miss, <= is usually inclusive of 00:00:00 if strictly equal. 
+    // But let's check strict equality downstream or usage.
+    // The query uses lte: endDate.
+    // If endDate is 00:00:00, then it catches things ON that day at 00:00:00.
+    // Schedule dates are stored as UTC midnight. So `lte: 2026-02-17T00:00:00Z` matches.
+
+    // So simply normalizing to UTC midnight is correct.
     endDate.setUTCHours(23, 59, 59, 999);
 
     // 1. Fetch Definitions
@@ -171,7 +172,10 @@ export const getSchedules = async (userId, from, to, taskId) => {
                 {
                     recurrence: { not: "NONE" },
                     scheduleDate: { lte: endDate }, // Started before end of range
-                    repeatUntil: { gte: startDate } // Ends after start of range
+                    OR: [
+                        { repeatUntil: null },
+                        { repeatUntil: { gte: startDate } } // Ends after start of range
+                    ]
                 }
             ]
         },
@@ -336,7 +340,7 @@ export const updateSchedule = async (userId, scheduleId, data) => {
         }
     });
 
-    const targetDate = new Date(scheduleDate);
+    const targetDate = toUTCDateOnly(scheduleDate);
     for (const schedule of allUserSchedules) {
         if (appliesOnDate(schedule, targetDate) && hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(409,
@@ -348,7 +352,7 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     const duplicateWhere = {
         userId,
         taskId: taskId || existing.taskId,
-        scheduleDate: new Date(scheduleDate),
+        scheduleDate: targetDate,
         startTime: normalizeStartTime,
         endTime: normalizeEndTime,
         recurrence,
@@ -380,7 +384,7 @@ export const updateSchedule = async (userId, scheduleId, data) => {
             id: scheduleId,
         },
         data: {
-            scheduleDate: new Date(scheduleDate),
+            scheduleDate: targetDate,
             startTime: normalizeStartTime,
             endTime: normalizeEndTime,
             recurrence,

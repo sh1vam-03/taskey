@@ -1,9 +1,9 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear, startOfUTCDate } from "../utils/date.utils.js";
+import { getCurrentMonthYear, startOfUTCDate, toUTCDateOnly } from "../utils/date.utils.js";
 
 export const createTask = async (userId, taskData) => {
-    const { title, description, priority, dueDate, categoryId } = taskData;
+    const { title, description, priority, dueDate, taskDate, categoryId } = taskData;
 
     // Validate category if provided
     if (categoryId) {
@@ -25,7 +25,8 @@ export const createTask = async (userId, taskData) => {
             title,
             description,
             priority,
-            dueDate: dueDate ? new Date(dueDate) : null,
+            dueDate: dueDate ? toUTCDateOnly(dueDate) : null,
+            taskDate,
             categoryId,
             userId,
         },
@@ -82,8 +83,8 @@ export const getTasks = async (userId, query) => {
 
     // Determine Date Mode (Today/Calendar vs Master List)
     const completionContextDate = date
-        ? startOfUTCDate(new Date(date))
-        : (dueDate ? startOfUTCDate(new Date(dueDate)) : null);
+        ? toUTCDateOnly(date)
+        : (dueDate ? toUTCDateOnly(dueDate) : null);
 
     // Completion Filter (Only in Date Mode)
     if (completionContextDate && excludeCompleted === 'true') {
@@ -96,7 +97,7 @@ export const getTasks = async (userId, query) => {
 
     // Smart Date Filter (Only if dueDate is provided - Date Mode)
     if (dueDate) {
-        const targetDate = startOfUTCDate(new Date(dueDate));
+        const targetDate = toUTCDateOnly(dueDate);
         const targetEnd = new Date(targetDate);
         targetEnd.setUTCDate(targetDate.getUTCDate() + 1);
         const dayOfWeek = targetDate.getUTCDay();
@@ -278,7 +279,7 @@ export const updateTask = async (userId, taskId, taskData) => {
     }
 
     if (taskData.dueDate !== undefined) {
-        data.dueDate = taskData.dueDate ? new Date(taskData.dueDate) : null;
+        data.dueDate = taskData.dueDate ? toUTCDateOnly(taskData.dueDate) : null;
     }
 
     if (taskData.categoryId !== undefined) {

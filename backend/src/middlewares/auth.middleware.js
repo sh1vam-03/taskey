@@ -26,7 +26,8 @@ const authMiddleware = async (req, res, next) => {
                 role: true,
                 status: true,
                 tokenVersion: true,
-                plan: true // Add plan to user object for easy access
+                plan: true, // Add plan to user object for easy access
+                timezone: true
             },
         });
 

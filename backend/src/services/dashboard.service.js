@@ -1,7 +1,7 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
-import { startOfUTCDate, dayKey, appliesOnDate, getWeekRange } from "../utils/date.utils.js";
+import { startOfUTCDate, dayKey, appliesOnDate, getWeekRange, toUTCDateOnly } from "../utils/date.utils.js";
 
 
 export const getDashboardOverview = async (userId, dateString) => {
@@ -13,7 +13,7 @@ export const getDashboardOverview = async (userId, dateString) => {
 
     // 3. Get Behavior Score
     // We determine "today" based on the passed date or default
-    const todayDate = dateString ? startOfUTCDate(new Date(dateString)) : startOfUTCDate();
+    const todayDate = dateString ? toUTCDateOnly(dateString) : startOfUTCDate();
     const performanceData = await getDailyPerformance(userId, todayDate);
 
     const pendingCount = todayData.stats.pending;
@@ -31,7 +31,7 @@ export const getDashboardOverview = async (userId, dateString) => {
 
 export const getTodayDashboard = async (userId, dateString) => {
     // IF dateString is provided, use it. Else default to server today.
-    const today = dateString ? startOfUTCDate(new Date(dateString)) : startOfUTCDate();
+    const today = dateString ? toUTCDateOnly(dateString) : startOfUTCDate();
     const tomorrow = new Date(today);
     tomorrow.setUTCDate(today.getUTCDate() + 1);
 
@@ -80,12 +80,12 @@ export const getTodayDashboard = async (userId, dateString) => {
                 deletedAt: null,
                 schedules: { none: {} },
                 OR: [
-                    // Created today (any task created today shows today)
-                    { createdAt: { gte: today, lt: tomorrow } },
+                    // Created today (matches taskDate exactly)
+                    { taskDate: today },
                     // Due today
                     { dueDate: { gte: today, lt: tomorrow } },
                     // Multi-day: created before today AND due after today (middle days)
-                    { createdAt: { lt: today }, dueDate: { gte: tomorrow } }
+                    { taskDate: { lt: today }, dueDate: { gte: tomorrow } }
                 ]
             },
             include: { category: true }
@@ -176,7 +176,7 @@ export const getTodayDashboard = async (userId, dateString) => {
 };
 
 export const getWeeklyDashboard = async (userId, dateString) => {
-    const baseDate = startOfUTCDate(new Date(dateString));
+    const baseDate = toUTCDateOnly(dateString);
     const { weekStart, weekEnd } = getWeekRange(baseDate);
 
     /* ------------------ FETCH ONCE ------------------ */
@@ -221,7 +221,7 @@ export const getWeeklyDashboard = async (userId, dateString) => {
                 userId,
                 deletedAt: null,
                 schedules: { none: {} },
-                createdAt: { gte: weekStart, lte: weekEnd }
+                taskDate: { gte: weekStart, lte: weekEnd }
             }
         }),
 
@@ -281,7 +281,7 @@ export const getWeeklyDashboard = async (userId, dateString) => {
     /* ------------------ UNSCHEDULED ------------------ */
 
     for (const t of unscheduledTasks) {
-        const key = dayKey(startOfUTCDate(t.createdAt));
+        const key = dayKey(startOfUTCDate(t.taskDate));
         if (!days[key]) continue;
 
         days[key].total++;
@@ -363,7 +363,7 @@ export const getMonthlyDashboard = async (userId, year, month) => {
                 userId,
                 deletedAt: null,
                 schedules: { none: {} },
-                createdAt: { gte: monthStart, lte: monthEnd }
+                taskDate: { gte: monthStart, lte: monthEnd }
             }
         }),
 
@@ -423,7 +423,7 @@ export const getMonthlyDashboard = async (userId, year, month) => {
     /* ------------------ UNSCHEDULED ------------------ */
 
     for (const t of unscheduledTasks) {
-        const key = dayKey(startOfUTCDate(t.createdAt));
+        const key = dayKey(startOfUTCDate(t.taskDate));
         if (!days[key]) continue;
 
         days[key].total++;
@@ -471,9 +471,9 @@ const getMonthRange = (year, month) => {
 
 // STRICT streak engine
 export const buildPerfectDayMap = async (userId, startDate, endDate) => {
-    const start = startOfUTCDate(startDate);
+    const start = toUTCDateOnly(startDate);
 
-    const end = new Date(startOfUTCDate(endDate));
+    const end = toUTCDateOnly(endDate);
     end.setUTCHours(23, 59, 59, 999); // FULL DAY END
 
     /* ---------------- FETCH DATA ONCE ---------------- */
@@ -518,7 +518,7 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
                 userId,
                 deletedAt: null,
                 schedules: { none: {} },
-                createdAt: { gte: start, lte: end }
+                taskDate: { gte: start, lte: end }
             }
         }),
 
@@ -569,7 +569,7 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
         );
 
         const unscheduledForDay = unscheduledTasks.filter(
-            t => dayKey(startOfUTCDate(t.createdAt)) === key
+            t => dayKey(startOfUTCDate(t.taskDate)) === key
         );
 
         // No work at all → EMPTY
@@ -663,8 +663,8 @@ export const getStreakCalendar = async (userId, days = 90) => {
 
 // Performance engine
 export const buildDailyStatsMap = async (userId, startDate, endDate) => {
-    const start = startOfUTCDate(startDate);
-    const end = new Date(startOfUTCDate(endDate));
+    const start = toUTCDateOnly(startDate);
+    const end = toUTCDateOnly(endDate);
     end.setUTCHours(23, 59, 59, 999); // FULL DAY RANGE
 
     const [
@@ -794,7 +794,7 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
 
 // Daily Performance (Hourly Breakdown)
 export const getDailyPerformance = async (userId, date = new Date()) => {
-    const day = startOfUTCDate(date);
+    const day = toUTCDateOnly(date);
     const end = new Date(day);
     end.setUTCHours(23, 59, 59, 999);
 

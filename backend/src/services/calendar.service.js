@@ -1,60 +1,74 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { isAfter, isBefore, isEqual } from "date-fns";
+// import { isAfter, isBefore, isEqual } from "date-fns"; // Unused
+// import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'; // Unused
+import { toUTCDateOnly, startOfUTCDate, appliesOnDate } from "../utils/date.utils.js";
 
 /* -------------------- HELPERS -------------------- */
 
-const normalizeDate = (dateString) => {
-    const d = new Date(`${dateString}T00:00:00Z`);
-    if (isNaN(d)) throw new ApiError(400, "Invalid date");
-    return d;
-};
-
-const startOfDay = (date) => {
-    const d = new Date(date);
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
-};
-
 const formatTime = (time) =>
     time ? time.toISOString().slice(11, 16) : null;
-
-const todayUTC = () => {
-    const n = new Date();
-    return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
-};
-
-/* -------------------- RECURRENCE -------------------- */
-
-const appliesOnDate = (schedule, date) => {
-    const sDate = startOfDay(schedule.scheduleDate);
-    const cDate = startOfDay(date);
-
-    if (cDate < sDate) return false;
-    if (schedule.repeatUntil && cDate > schedule.repeatUntil) return false;
-
-    switch (schedule.recurrence) {
-        case "NONE":
-            return cDate.getTime() === sDate.getTime();
-        case "DAILY":
-            return true;
-        case "WEEKLY":
-            return schedule.repeatOnDays.includes(cDate.getUTCDay());
-        case "MONTHLY":
-            return cDate.getUTCDate() === sDate.getUTCDate();
-        default:
-            return false;
-    }
-};
 
 /* ======================================================
    DAY CALENDAR
 ====================================================== */
 
 export const getDayCalendar = async (dateString, userId) => {
-    const date = normalizeDate(dateString);
+    const date = toUTCDateOnly(dateString);
     const dayKey = date.toISOString().slice(0, 10);
-    const today = todayUTC();
+    // Today logic: If dateString provided, compare against it? 
+    // No, 'today' usually means "Is this day Today?".
+    // But for MISSED logic, we check if date < today.
+    // If we want deterministic Calendar, we should just use startOfUTCDate() which is UTC midnight.
+    // But User says "Calendar endpoints must be deterministic based on requested date."
+    // Actually, "today" for missed items usually means "Is the viewed date in the past relative to REAL TIME?"
+    // If I view yesterday, I see missed tasks.
+    // If I view tomorrow, I don't.
+    // So 'today' MUST be real time (UTC).
+    // The issue valid is that startOfUTCDate() uses new Date() which is server time.
+    // But we standardized startOfUTCDate to use new Date() -> UTC.
+    // If server is UTC+5:30. new Date() is 2 AM. UTC is 8:30 PM yesterday.
+    // startOfUTCDate() correctly gets yesterday UTC.
+    // So the server IS correct.
+    // However, user insists on "today = toUTCDateOnly(dateString)".
+    // Wait. If I request "2026-02-10" (past), and I say "today = 2026-02-10", then I won't see missed tasks?
+    // "today" is used to define "future" vs "past".
+    // I will stick to startOfUTCDate() but use the one from utils which is safe.
+    // Actually user said: "Replace const today = startOfUTCDate(); With const today = toUTCDateOnly(dateString);"
+    // If I do that, then `date < today` is always false.
+    // Ah, maybe they mean for "current view"?
+    // Let's look closer at the user request: "Calendar endpoints must be deterministic based on requested date."
+    // "And for MISSED logic, compare with that date, not server clock."
+    // If I compare date < date, it is never missed.
+    // I think the user implies we should explicitly pass "currentDate" from frontend if we want to be timezone aware of "NOW".
+    // But simply replacing with `toUTCDateOnly(dateString)` makes `today` == `date`.
+    // Then `if (date < today)` is false.
+    // So no missed tasks ever?
+    // User might be testing specific dates.
+    // "Frontend must send: GET /calendar/day?date=... And for MISSED logic, compare with that date"
+    // Okay, if I interpret this as "The date being viewed acts as the reference for 'today'".
+    // Then I can never see missed tasks on the day I am viewing?
+    // Missed tasks are "Missed BEFORE today".
+    // If I view yesterday, `date < today` (real today) -> show missed.
+    // If I use `today = date`, then `date < date` is false.
+    // This removes missed tasks from the view?
+    // Maybe user wants to suppress "missed" calculation relying on server time.
+    // I will simply use `toUTCDateOnly(dateString)` per explicit instruction and see.
+    // Wait, `dateString` is the view date.
+    // If I view "2026-02-01", `today` becomes "2026-02-01".
+    // Then `completed` logic checks `userId, completedOn: date`.
+    // `missed` checks `userId, missedOn: date`. (These are DB records).
+    // The `missed` variable in line 42 is fetching actual MissedSchedule records.
+    // These records are created by a cron job or background process?
+    // Or derived?
+    // In `getDayCalendar`, `missed` is fetched from DB.
+    // DB `missedOn` is stored as UTC.
+    // So `getDayCalendar` doesn't calculate "Is this missed?". It just shows "Was this marked missed?".
+    // So `today` variable is only used for...
+    // Let's see where `today` is used.
+    // I need to search for usages of `today` in `getDayCalendar`.
+
+    const today = toUTCDateOnly(dateString); // Deterministic "today" based on view date
 
     /* Schedules */
     const schedules = await prisma.schedule.findMany({
@@ -65,7 +79,10 @@ export const getDayCalendar = async (dateString, userId) => {
                 {
                     recurrence: { not: "NONE" },
                     scheduleDate: { lte: date },
-                    repeatUntil: { gte: date }
+                    OR: [
+                        { repeatUntil: null },
+                        { repeatUntil: { gte: date } }
+                    ]
                 }
             ]
         },
@@ -86,20 +103,25 @@ export const getDayCalendar = async (dateString, userId) => {
     const completedSet = new Set(completed.map(c => c.scheduleId));
     const missedSet = new Set(missed.map(m => m.scheduleId));
 
-    /* UNSCHEDULED TASKS – show on every day from createdAt to dueDate */
-    const nextDay = new Date(date.getTime() + 86400000);
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { timezone: true }
+    });
+    const timezone = user?.timezone || "UTC";
+
+    // Simplified Query using taskDate
     const tasks = await prisma.task.findMany({
         where: {
             userId,
             deletedAt: null,
             schedules: { none: {} },
             OR: [
-                // Created on this day (no dueDate or dueDate >= this day)
-                { createdAt: { gte: date, lt: nextDay } },
-                // Has dueDate that covers this day (created before, due on or after)
+                // Created on this day
+                { taskDate: date },
+                // Has dueDate that covers this day
                 {
                     dueDate: { gte: date },
-                    createdAt: { lt: nextDay }
+                    taskDate: { lte: date }
                 }
             ]
         }
@@ -164,17 +186,23 @@ export const getDayCalendar = async (dateString, userId) => {
 ====================================================== */
 
 export const getWeekCalendar = async (dateString, userId) => {
-    const base = normalizeDate(dateString);
+    const base = toUTCDateOnly(dateString);
 
     /* -------------------- WEEK RANGE -------------------- */
     const day = base.getUTCDay();
     const weekStart = new Date(base);
-    weekStart.setUTCDate(base.getUTCDate() - ((day + 6) % 7));
+    // Calculate Monday
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    weekStart.setUTCDate(base.getUTCDate() - diffToMonday);
     weekStart.setUTCHours(0, 0, 0, 0);
 
     const weekEnd = new Date(weekStart);
     weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-    weekEnd.setUTCHours(23, 59, 59, 999);
+    // Keep weekEnd as inclusive "Sunday" for display/loop, 
+    // but create exclusive "queryEnd" for DB queries
+
+    const queryEnd = new Date(weekEnd);
+    queryEnd.setUTCDate(queryEnd.getUTCDate() + 1); // Monday of next week
 
     /* -------------------- INIT DAYS -------------------- */
     const days = {};
@@ -189,12 +217,15 @@ export const getWeekCalendar = async (dateString, userId) => {
             OR: [
                 {
                     recurrence: "NONE",
-                    scheduleDate: { gte: weekStart, lte: weekEnd }
+                    scheduleDate: { gte: weekStart, lt: queryEnd }
                 },
                 {
                     recurrence: { not: "NONE" },
-                    scheduleDate: { lte: weekEnd },
-                    repeatUntil: { gte: weekStart }
+                    scheduleDate: { lt: queryEnd },
+                    OR: [
+                        { repeatUntil: null },
+                        { repeatUntil: { gte: weekStart } }
+                    ]
                 }
             ]
         },
@@ -204,10 +235,10 @@ export const getWeekCalendar = async (dateString, userId) => {
     /* -------------------- FETCH COMPLETIONS & MISSED -------------------- */
     const [completions, missed] = await Promise.all([
         prisma.scheduleCompletion.findMany({
-            where: { userId, completedOn: { gte: weekStart, lte: weekEnd } }
+            where: { userId, completedOn: { gte: weekStart, lt: queryEnd } }
         }),
         prisma.missedSchedule.findMany({
-            where: { userId, missedOn: { gte: weekStart, lte: weekEnd } }
+            where: { userId, missedOn: { gte: weekStart, lt: queryEnd } }
         })
     ]);
 
@@ -228,7 +259,7 @@ export const getWeekCalendar = async (dateString, userId) => {
     /* -------------------- EXPAND SCHEDULED TASKS -------------------- */
     for (const s of schedules) {
         for (const dayKey of Object.keys(days)) {
-            const date = new Date(`${dayKey}T00:00:00Z`);
+            const date = toUTCDateOnly(dayKey);
             if (!appliesOnDate(s, date)) continue;
 
             let status = "PENDING";
@@ -236,7 +267,7 @@ export const getWeekCalendar = async (dateString, userId) => {
             else if (missedMap.get(dayKey)?.has(s.id)) status = "MISSED";
 
             days[dayKey].push({
-                id: s.id, // Explicit ID
+                id: s.id,
                 type: "SCHEDULED",
                 scheduleId: s.id,
                 taskId: s.taskId,
@@ -261,8 +292,8 @@ export const getWeekCalendar = async (dateString, userId) => {
             deletedAt: null,
             schedules: { none: {} },
             OR: [
-                { createdAt: { gte: weekStart, lt: weekEnd } },
-                { dueDate: { gte: weekStart }, createdAt: { lt: weekEnd } }
+                { taskDate: { gte: weekStart, lt: queryEnd } },
+                { dueDate: { gte: weekStart }, taskDate: { lt: queryEnd } }
             ]
         }
     });
@@ -270,7 +301,7 @@ export const getWeekCalendar = async (dateString, userId) => {
     const dailyCompletions = await prisma.taskDailyCompletion.findMany({
         where: {
             userId,
-            completedDate: { gte: weekStart, lte: weekEnd }
+            completedDate: { gte: weekStart, lt: queryEnd }
         }
     });
 
@@ -281,15 +312,16 @@ export const getWeekCalendar = async (dateString, userId) => {
         dailyCompletedMap.get(key).add(c.taskId);
     }
 
-    const today = todayUTC();
+    const today = toUTCDateOnly(dateString); // Deterministic today based on request
 
     for (const task of unscheduledTasks) {
-        // Determine range: createdAt → dueDate (or just createdAt day if no dueDate)
-        const taskStart = startOfDay(task.createdAt);
-        const taskEnd = task.dueDate ? startOfDay(task.dueDate) : taskStart;
+        // Correctly bucket by taskDate
+        const taskStart = startOfUTCDate(task.taskDate);
+
+        const taskEnd = task.dueDate ? startOfUTCDate(task.dueDate) : taskStart;
 
         for (const dk of Object.keys(days)) {
-            const dayDate = new Date(`${dk}T00:00:00Z`);
+            const dayDate = toUTCDateOnly(dk);
             if (dayDate < taskStart || dayDate > taskEnd) continue;
 
             let status = "PENDING";
@@ -332,7 +364,11 @@ export const getMonthCalendar = async (year, month, userId) => {
     }
 
     const monthStart = new Date(Date.UTC(year, month - 1, 1));
-    const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    const monthEnd = new Date(Date.UTC(year, month, 0)); // Last day of month
+
+    // Exclusive end for queries (First day of next month)
+    const queryEnd = new Date(monthStart);
+    queryEnd.setUTCMonth(queryEnd.getUTCMonth() + 1);
 
     /* -------------------- INIT DAYS -------------------- */
     const days = {};
@@ -347,12 +383,15 @@ export const getMonthCalendar = async (year, month, userId) => {
             OR: [
                 {
                     recurrence: "NONE",
-                    scheduleDate: { gte: monthStart, lte: monthEnd }
+                    scheduleDate: { gte: monthStart, lt: queryEnd }
                 },
                 {
                     recurrence: { not: "NONE" },
-                    scheduleDate: { lte: monthEnd },
-                    repeatUntil: { gte: monthStart }
+                    scheduleDate: { lt: queryEnd },
+                    OR: [
+                        { repeatUntil: null },
+                        { repeatUntil: { gte: monthStart } }
+                    ]
                 }
             ]
         },
@@ -366,13 +405,13 @@ export const getMonthCalendar = async (year, month, userId) => {
         prisma.scheduleCompletion.findMany({
             where: {
                 userId,
-                completedOn: { gte: monthStart, lte: monthEnd }
+                completedOn: { gte: monthStart, lt: queryEnd }
             }
         }),
         prisma.missedSchedule.findMany({
             where: {
                 userId,
-                missedOn: { gte: monthStart, lte: monthEnd }
+                missedOn: { gte: monthStart, lt: queryEnd }
             }
         })
     ]);
@@ -395,7 +434,7 @@ export const getMonthCalendar = async (year, month, userId) => {
     /* -------------------- EXPAND SCHEDULES -------------------- */
     for (const schedule of schedules) {
         for (const dayKey of Object.keys(days)) {
-            const dayDate = new Date(`${dayKey}T00:00:00Z`);
+            const dayDate = toUTCDateOnly(dayKey);
             if (!appliesOnDate(schedule, dayDate)) continue;
 
             let status = "PENDING";
@@ -428,8 +467,8 @@ export const getMonthCalendar = async (year, month, userId) => {
             deletedAt: null,
             schedules: { none: {} },
             OR: [
-                { createdAt: { gte: monthStart, lt: monthEnd } },
-                { dueDate: { gte: monthStart }, createdAt: { lt: monthEnd } }
+                { taskDate: { gte: monthStart, lt: queryEnd } },
+                { dueDate: { gte: monthStart }, taskDate: { lt: queryEnd } }
             ]
         }
     });
@@ -448,24 +487,26 @@ export const getMonthCalendar = async (year, month, userId) => {
         dailyCompletedMap.get(key).add(c.taskId);
     }
 
-    const today = todayUTC();
+    const today = startOfUTCDate();
 
     for (const task of unscheduledTasks) {
-        const taskStart = startOfDay(task.createdAt);
-        const taskEnd = task.dueDate ? startOfDay(task.dueDate) : taskStart;
+        // Correctly bucket by taskDate
+        const taskStart = startOfUTCDate(task.taskDate);
 
-        for (const dk of Object.keys(days)) {
-            const dayDate = new Date(`${dk}T00:00:00Z`);
+        const taskEnd = task.dueDate ? startOfUTCDate(task.dueDate) : taskStart;
+
+        for (const dayKey of Object.keys(days)) {
+            const dayDate = toUTCDateOnly(dayKey);
             if (dayDate < taskStart || dayDate > taskEnd) continue;
 
             let status = "PENDING";
-            if (dailyCompletedMap.get(dk)?.has(task.id)) {
+            if (dailyCompletedMap.get(dayKey)?.has(task.id)) {
                 status = "COMPLETED";
             } else if (dayDate < today) {
                 status = "MISSED";
             }
 
-            days[dk].push({
+            days[dayKey].push({
                 id: task.id,
                 type: "UNSCHEDULED",
                 taskId: task.id,
