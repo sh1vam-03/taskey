@@ -85,30 +85,42 @@ export default function DashboardOverview() {
 
     const handleToggleItem = async (item) => {
         try {
-            // Optimistic Update (Optional: could be handled by local state, but refetch is safer for now)
+            // Optimistic Update: Immediately update UI
+            const isNowCompleted = !(item.status === 'COMPLETED' || item.isCompleted);
+            const status = isNowCompleted ? 'COMPLETED' : 'PENDING';
 
+            setOverview(prev => ({
+                ...prev,
+                timeline: prev.timeline.map(t =>
+                    t.id === item.id ? { ...t, status, isCompleted: isNowCompleted } : t
+                ),
+                todayTasksCount: isNowCompleted ? prev.todayTasksCount - 1 : prev.todayTasksCount + 1,
+                completedTasksCount: isNowCompleted ? prev.completedTasksCount + 1 : prev.completedTasksCount - 1
+            }));
+
+            // Sync with backend
             if (item.type === 'SCHEDULED') {
-                if (item.status === 'COMPLETED') {
+                if (!isNowCompleted) {
                     await scheduleService.undoCompleteSchedule(item.id);
                 } else {
                     await scheduleService.completeSchedule(item.id);
                 }
             } else {
                 // Task (UNSCHEDULED)
-                if (item.status === 'COMPLETED' || item.isCompleted) {
+                if (!isNowCompleted) {
                     await taskService.undoCompleteTask(item.id);
                 } else {
                     await taskService.completeTask(item.id);
                 }
             }
 
-            // Refetch
+            // Silent Refetch to ensure consistency (optional, can be debounced)
             const localDate = new Date().toLocaleDateString('en-CA');
             const overviewData = await dashboardService.getOverview(localDate);
             setOverview(overviewData);
         } catch (err) {
             console.error("Failed to toggle item:", err);
-            // Optionally show a toast
+            // Revert state on error (optional implementation)
         }
     };
 
