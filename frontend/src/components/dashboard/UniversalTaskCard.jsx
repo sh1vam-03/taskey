@@ -60,6 +60,8 @@ export default function UniversalTaskCard({
     const p = PRIORITY[priority] || PRIORITY.MEDIUM;
     const PIcon = p.icon;
 
+    const isScheduleType = type === 'SCHEDULE' || item.type === 'SCHEDULED';
+
     // Format time
     const fmt = (t) => {
         if (!t) return null;
@@ -82,17 +84,22 @@ export default function UniversalTaskCard({
 
     // Recurrence
     const recText = (() => {
-        if (!recurrence || recurrence === 'NONE') return null;
-        if (recurrence === 'DAILY') return 'Daily';
+        if (!isScheduleType) return null;
+        if (!recurrence || recurrence === 'NONE') return 'ONETIME';
+        if (recurrence === 'DAILY') return 'DAILY';
         if (recurrence === 'WEEKLY') {
-            if (!repeatDays?.length) return 'Weekly';
-            return [...repeatDays].sort((a, b) => a - b).map(d => DAY_NAMES[d]).join(' · ');
+            if (!repeatDays?.length) return 'WEEKLY';
+            return `WEEKLY - ${[...repeatDays].sort((a, b) => a - b).map(d => DAY_NAMES[d]).join(', ')}`;
         }
-        if (recurrence === 'MONTHLY') return 'Monthly';
+        if (recurrence === 'MONTHLY') {
+            // Extract day from scheduleDate or use today
+            const d = scheduleDate ? new Date(scheduleDate).getDate() : new Date().getDate();
+            return `MONTHLY at ${d}`;
+        }
         return recurrence;
     })();
 
-    const isScheduleType = type === 'SCHEDULE' || item.type === 'SCHEDULED';
+
 
     return (
         <div

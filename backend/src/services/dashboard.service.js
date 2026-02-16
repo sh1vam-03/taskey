@@ -79,7 +79,10 @@ export const getTodayDashboard = async (userId, dateString) => {
                 userId,
                 deletedAt: null,
                 schedules: { none: {} },
-                createdAt: { gte: today, lt: tomorrow }
+                OR: [
+                    { createdAt: { gte: today, lt: tomorrow } },
+                    { dueDate: { gte: today, lt: tomorrow } }
+                ]
             },
             include: { category: true }
         }),
