@@ -130,7 +130,7 @@ export default function UniversalTaskCard({
                 </div>
 
                 {/* Content */}
-                <div>
+                <div className="min-w-0">
                     <h3
                         className={`text-sm font-semibold text-white leading-tight truncate
             ${isCompleted ? "line-through opacity-50" : ""}
