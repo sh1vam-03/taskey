@@ -43,8 +43,8 @@ export default function CalendarPage() {
         return result;
     };
 
-    const fetchEvents = async () => {
-        setLoading(true);
+    const fetchEvents = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             let result;
             const year = currentDate.getFullYear();
@@ -64,7 +64,7 @@ export default function CalendarPage() {
         } catch (err) {
             console.error("Calendar load error:", err);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -122,10 +122,10 @@ export default function CalendarPage() {
                     await taskService.completeTask(item.id);
                 }
             }
-            fetchEvents(); // Sync
+            fetchEvents(true); // Sync silently
         } catch (err) {
             console.error("Toggle error:", err);
-            fetchEvents();
+            fetchEvents(true); // Revert silently
         }
     };
 
