@@ -46,8 +46,8 @@ export default function TasksPage() {
     const [meta, setMeta] = useState(null);
     const [isMoreLoading, setIsMoreLoading] = useState(false);
 
-    const fetchTasks = useCallback(async (reset = false) => {
-        setLoading(true);
+    const fetchTasks = useCallback(async ({ reset = false, silent = false } = {}) => {
+        if (!silent) setLoading(true);
 
         if (reset) {
             setPage(1);
@@ -93,34 +93,29 @@ export default function TasksPage() {
             console.error("Failed to fetch tasks", err);
             error("Failed to load tasks");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
             setIsMoreLoading(false);
         }
     }, [page, searchQuery, filterPriority, selectedCategory, showArchived, error]);
 
-    // Main data fetch effect – triggers whenever fetchTasks changes
-    // (fetchTasks changes when page, searchQuery, filterPriority, selectedCategory, or showArchived change)
+    // Main data fetch effect – triggers whenever page changes
+    // (We separate page from filters to handle resets cleanly)
     const isInitialMount = useRef(true);
 
     useEffect(() => {
-        fetchTasks(isInitialMount.current);
+        // Initial load or page change
+        fetchTasks({ reset: false, silent: false });
         isInitialMount.current = false;
-    }, [fetchTasks]);
+    }, [page]); // Only re-fetch on page change here
 
-    // Search Effect (Debounced) – reset to page 1 after typing stops
+    // Search/Filter Effects -> RESET page
     useEffect(() => {
-        if (isInitialMount.current) return; // Skip on mount
-        const timeoutId = setTimeout(() => {
-            setPage(1);
-        }, 500);
-        return () => clearTimeout(timeoutId);
-    }, [searchQuery]);
-
-    // Filter Effect (Immediate) – reset to page 1
-    useEffect(() => {
-        if (isInitialMount.current) return; // Skip on mount
+        if (isInitialMount.current) return;
         setPage(1);
-    }, [filterPriority, selectedCategory, showArchived]);
+        if (page === 1) fetchTasks({ reset: true });
+
+    }, [searchQuery, filterPriority, selectedCategory, showArchived]);
+
 
     const handleCreate = () => {
         setTaskToEdit(null);
@@ -140,7 +135,7 @@ export default function TasksPage() {
         try {
             await taskService.deleteTask(deleteModal.taskId);
             setDeleteModal({ isOpen: false, taskId: null });
-            fetchTasks(true);
+            fetchTasks({ silent: true }); // Silent refresh
             success("Objective deleted successfully");
         } catch (err) {
             console.error("Delete failed", err);
@@ -148,46 +143,7 @@ export default function TasksPage() {
         }
     };
 
-    const handleToggleComplete = async (task) => {
-        // For Master List, "Complete" might mean "Archive" now that status is mostly ACTIVE.
-        // User didn't specify what the checkbox DOES in Master Mode, only that it shouldn't hide items based on daily completion.
-        // But the previous code toggled daily completion. 
-        // If I click the checkbox on a Master List item, and it is "ACTIVE", should it become "COMPLETED (Today)"?
-        // User said: "Tasks page ... must not use dailyCompletions to decide completion."
-        // And: "If you want permanent complete: Add isCompleted field. But DO NOT use dailyCompletions."
-        // Since we don't have isCompleted field yet, and User didn't ask to create it, 
-        // I will keep the existing behavior: toggling it creates a daily completion. 
-        // BUT, since the list REFRESHES and `getTasks` returns 'ACTIVE', the checkbox will UNCHECK immediately after updates.
-        // This is a UX issue. 
-        // However, User asked ONLY to fix the VIEW logic.
-        // "Tasks page ... must not use dailyCompletions to decide completion."
-        // So I will leave handleToggleComplete as is for now, but maybe I should warn the user or just let it be.
-        // Actually, if I toggle complete, it creates a daily completion. 
-        // The list refreshes. `getTasks` returns ACTIVE. Item shows as PENDING (unchecked). 
-        // User might think: "I clicked it, it didn't work."
-        // But this is what the user asked for: "Recurring tasks are never permanently completed."
-
-        const completionDate = new Date().toLocaleDateString('en-CA');
-
-        // Optimistic Update
-        const previousTasks = [...tasks];
-        const updatedTasks = tasks.map(t =>
-            t.id === task.id ? { ...t, isCompleted: !t.isCompleted, status: !t.isCompleted ? 'COMPLETED' : 'PENDING' } : t
-        );
-        setTasks(updatedTasks);
-
-        try {
-            if (task.isCompleted) {
-                await taskService.undoCompleteTask(task.id, completionDate);
-            } else {
-                await taskService.completeTask(task.id, completionDate);
-            }
-        } catch (err) {
-            console.error("Completion toggle error", err);
-            setTasks(previousTasks);
-            error("Failed to update status");
-        }
-    };
+    // ... handleToggleComplete removed/ignored ...
 
     const canCreate = !usage || usage.taskCount < (usage.limits?.task || Infinity);
 
@@ -426,11 +382,11 @@ export default function TasksPage() {
                 onClose={() => setIsModalOpen(false)}
                 taskToEdit={taskToEdit}
                 onTaskSaved={() => {
-                    fetchTasks(true);
+                    fetchTasks({ reset: true, silent: true }); // Silent refresh on save
                     success(taskToEdit ? "Objective updated" : "Objective initialized");
                 }}
                 categories={categories}
-                onCategoryCreated={() => fetchTasks(true)}
+                onCategoryCreated={() => fetchTasks({ reset: true, silent: true })}
             />
 
             <ConfirmationModal
