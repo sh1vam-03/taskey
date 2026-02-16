@@ -103,15 +103,7 @@ export default function TodayDashboardPage() {
             setIsAddingTask(true);
             await taskService.createTask({
                 title: newTaskTitle,
-                priority: "MEDIUM",
-                // Due date today (Local Date YYYY-MM-DD -> Backend treats as UTC 00:00:00 of that day)
-                dueDate: (() => {
-                    const d = new Date();
-                    const year = d.getFullYear();
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                })()
+                priority: "MEDIUM"
             });
             setNewTaskTitle("");
             fetchData();
