@@ -333,7 +333,7 @@ export default function TasksPage() {
                                                 key={task.id}
                                                 item={task}
                                                 type="TASK"
-                                                onComplete={() => handleToggleComplete(task)}
+                                                // onComplete removed
                                                 onEdit={() => handleEdit(task)}
                                                 onDelete={() => confirmDelete(task)}
                                             />
@@ -355,7 +355,7 @@ export default function TasksPage() {
                                                 key={task.id}
                                                 item={task}
                                                 type="TASK"
-                                                onComplete={() => handleToggleComplete(task)}
+                                                // onComplete removed
                                                 onEdit={() => handleEdit(task)}
                                                 onDelete={() => confirmDelete(task)}
                                             />
