@@ -146,6 +146,7 @@ export const getTodayDashboard = async (userId, dateString) => {
             description: t.description,
             priority: t.priority,
             category: t.category,
+            dueDate: t.dueDate,
             startTime: null,
             endTime: null,
             status: completedTaskSet.has(t.id) ? "COMPLETED" : "PENDING"

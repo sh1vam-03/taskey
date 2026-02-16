@@ -41,6 +41,7 @@ const calendarService = {
                     date: dateStr,
                     startTime: item.startTime,
                     endTime: item.endTime,
+                    dueDate: item.dueDate || null,
                     type: item.type === "SCHEDULED" ? "SCHEDULE" : "TASK",
                     status: item.status,
                     color: item.type === "SCHEDULED" ? "cyan" : "red",

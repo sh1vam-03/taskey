@@ -86,16 +86,22 @@ export const getDayCalendar = async (dateString, userId) => {
     const completedSet = new Set(completed.map(c => c.scheduleId));
     const missedSet = new Set(missed.map(m => m.scheduleId));
 
-    /* UNSCHEDULED TASKS – ONLY CREATED DAY */
+    /* UNSCHEDULED TASKS – show on every day from createdAt to dueDate */
+    const nextDay = new Date(date.getTime() + 86400000);
     const tasks = await prisma.task.findMany({
         where: {
             userId,
             deletedAt: null,
             schedules: { none: {} },
-            createdAt: {
-                gte: date,
-                lt: new Date(date.getTime() + 86400000)
-            }
+            OR: [
+                // Created on this day (no dueDate or dueDate >= this day)
+                { createdAt: { gte: date, lt: nextDay } },
+                // Has dueDate that covers this day (created before, due on or after)
+                {
+                    dueDate: { gte: date },
+                    createdAt: { lt: nextDay }
+                }
+            ]
         }
     });
 
@@ -111,7 +117,7 @@ export const getDayCalendar = async (dateString, userId) => {
                 ...schedules
                     .filter(s => appliesOnDate(s, date))
                     .map(s => ({
-                        id: s.id, // Explicit ID
+                        id: s.id,
                         type: "SCHEDULED",
                         scheduleId: s.id,
                         taskId: s.taskId,
@@ -119,6 +125,7 @@ export const getDayCalendar = async (dateString, userId) => {
                         priority: s.task.priority,
                         startTime: formatTime(s.startTime),
                         endTime: formatTime(s.endTime),
+                        dueDate: null,
                         status: completedSet.has(s.id)
                             ? "COMPLETED"
                             : missedSet.has(s.id)
@@ -127,11 +134,12 @@ export const getDayCalendar = async (dateString, userId) => {
                     })),
 
                 ...tasks.map(t => ({
-                    id: t.id, // Explicit ID
+                    id: t.id,
                     type: "UNSCHEDULED",
                     taskId: t.id,
                     title: t.title,
                     priority: t.priority,
+                    dueDate: t.dueDate,
                     startTime: null,
                     endTime: null,
                     status: dailyCompletedSet.has(t.id)
@@ -236,16 +244,16 @@ export const getWeekCalendar = async (dateString, userId) => {
         }
     }
 
-    /* -------------------- UNSCHEDULED TASKS -------------------- */
+    /* -------------------- UNSCHEDULED TASKS (multi-day range) -------------------- */
     const unscheduledTasks = await prisma.task.findMany({
         where: {
             userId,
             deletedAt: null,
             schedules: { none: {} },
-            createdAt: {
-                gte: weekStart,
-                lt: weekEnd
-            }
+            OR: [
+                { createdAt: { gte: weekStart, lt: weekEnd } },
+                { dueDate: { gte: weekStart }, createdAt: { lt: weekEnd } }
+            ]
         }
     });
 
@@ -266,26 +274,33 @@ export const getWeekCalendar = async (dateString, userId) => {
     const today = todayUTC();
 
     for (const task of unscheduledTasks) {
-        const dayKey = startOfDay(task.createdAt).toISOString().slice(0, 10);
-        if (!days[dayKey]) continue;
+        // Determine range: createdAt → dueDate (or just createdAt day if no dueDate)
+        const taskStart = startOfDay(task.createdAt);
+        const taskEnd = task.dueDate ? startOfDay(task.dueDate) : taskStart;
 
-        let status = "PENDING";
-        if (dailyCompletedMap.get(dayKey)?.has(task.id)) {
-            status = "COMPLETED";
-        } else if (new Date(dayKey) < today) {
-            status = "MISSED";
+        for (const dk of Object.keys(days)) {
+            const dayDate = new Date(`${dk}T00:00:00Z`);
+            if (dayDate < taskStart || dayDate > taskEnd) continue;
+
+            let status = "PENDING";
+            if (dailyCompletedMap.get(dk)?.has(task.id)) {
+                status = "COMPLETED";
+            } else if (dayDate < today) {
+                status = "MISSED";
+            }
+
+            days[dk].push({
+                id: task.id,
+                type: "UNSCHEDULED",
+                taskId: task.id,
+                title: task.title,
+                priority: task.priority,
+                dueDate: task.dueDate,
+                startTime: null,
+                endTime: null,
+                status
+            });
         }
-
-        days[dayKey].push({
-            id: task.id, // Explicit ID
-            type: "UNSCHEDULED",
-            taskId: task.id,
-            title: task.title,
-            priority: task.priority,
-            startTime: null,
-            endTime: null,
-            status
-        });
     }
 
     return {
@@ -391,16 +406,16 @@ export const getMonthCalendar = async (year, month, userId) => {
         }
     }
 
-    /* -------------------- UNSCHEDULED TASKS -------------------- */
+    /* -------------------- UNSCHEDULED TASKS (multi-day range) -------------------- */
     const unscheduledTasks = await prisma.task.findMany({
         where: {
             userId,
             deletedAt: null,
             schedules: { none: {} },
-            createdAt: {
-                gte: monthStart,
-                lt: monthEnd
-            }
+            OR: [
+                { createdAt: { gte: monthStart, lt: monthEnd } },
+                { dueDate: { gte: monthStart }, createdAt: { lt: monthEnd } }
+            ]
         }
     });
 
@@ -421,26 +436,32 @@ export const getMonthCalendar = async (year, month, userId) => {
     const today = todayUTC();
 
     for (const task of unscheduledTasks) {
-        const key = startOfDay(task.createdAt).toISOString().slice(0, 10);
-        if (!days[key]) continue;
+        const taskStart = startOfDay(task.createdAt);
+        const taskEnd = task.dueDate ? startOfDay(task.dueDate) : taskStart;
 
-        let status = "PENDING";
-        if (dailyCompletedMap.get(key)?.has(task.id)) {
-            status = "COMPLETED";
-        } else if (new Date(key) < today) {
-            status = "MISSED";
+        for (const dk of Object.keys(days)) {
+            const dayDate = new Date(`${dk}T00:00:00Z`);
+            if (dayDate < taskStart || dayDate > taskEnd) continue;
+
+            let status = "PENDING";
+            if (dailyCompletedMap.get(dk)?.has(task.id)) {
+                status = "COMPLETED";
+            } else if (dayDate < today) {
+                status = "MISSED";
+            }
+
+            days[dk].push({
+                id: task.id,
+                type: "UNSCHEDULED",
+                taskId: task.id,
+                title: task.title,
+                priority: task.priority,
+                dueDate: task.dueDate,
+                startTime: null,
+                endTime: null,
+                status
+            });
         }
-
-        days[key].push({
-            id: task.id, // Explicit ID
-            type: "UNSCHEDULED",
-            taskId: task.id,
-            title: task.title,
-            priority: task.priority,
-            startTime: null,
-            endTime: null,
-            status
-        });
     }
 
 

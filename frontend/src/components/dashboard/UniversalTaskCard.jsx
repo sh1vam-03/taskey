@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Priority styling config
 const PRIORITY = {
@@ -97,6 +98,32 @@ export default function UniversalTaskCard({
             return `MONTHLY at ${d}`;
         }
         return recurrence;
+    })();
+
+    // Smart due date label
+    const dueDateLabel = (() => {
+        const raw = item.dueDate;
+        if (!raw) return null;
+        const due = new Date(raw);
+        if (isNaN(due.getTime())) return null;
+
+        const now = new Date();
+        const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dueLocal = new Date(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+
+        if (dueLocal.getTime() === todayLocal.getTime()) return 'TODAY';
+
+        const dueDay = dueLocal.getDate();
+        const dueMonth = MONTH_NAMES[dueLocal.getMonth()];
+        const dueYear = String(dueLocal.getFullYear()).slice(-2);
+
+        if (dueLocal.getFullYear() === now.getFullYear() && dueLocal.getMonth() === now.getMonth()) {
+            return `END at ${dueDay}`;
+        }
+        if (dueLocal.getFullYear() === now.getFullYear()) {
+            return `END at ${dueDay} ${dueMonth}`;
+        }
+        return `END at ${dueDay} ${dueMonth} ${dueYear}`;
     })();
 
 
@@ -195,6 +222,15 @@ export default function UniversalTaskCard({
                     {recText && (
                         <span className="text-purple-400 border border-purple-500/20 px-1.5 py-[2px]">
                             {recText}
+                        </span>
+                    )}
+
+                    {dueDateLabel && (
+                        <span className={`border px-1.5 py-[2px] ${dueDateLabel === 'TODAY'
+                                ? 'text-green-400 border-green-500/20'
+                                : 'text-orange-400 border-orange-500/20'
+                            }`}>
+                            {dueDateLabel}
                         </span>
                     )}
 
