@@ -121,11 +121,21 @@ export default function UniversalTaskCard({
     })();
 
     // Smart due date label
+    // Rules:
+    // - Scheduled items → NEVER show due date label (they show recurrence label)
+    // - Unscheduled with dueDate → show smart label (TODAY, END at X)
+    // - Unscheduled without dueDate → show TODAY
     const dueDateLabel = (() => {
+        // Scheduled items don't get due date labels
+        if (isScheduleType) return null;
+
         const raw = item.dueDate;
-        if (!raw) return null;
+
+        // No due date on unscheduled task → default to TODAY
+        if (!raw) return 'TODAY';
+
         const due = new Date(raw);
-        if (isNaN(due.getTime())) return null;
+        if (isNaN(due.getTime())) return 'TODAY';
 
         const now = new Date();
         const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());

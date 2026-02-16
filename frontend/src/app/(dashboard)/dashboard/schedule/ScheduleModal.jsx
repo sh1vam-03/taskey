@@ -26,7 +26,11 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
 
     useEffect(() => {
         if (isOpen) {
-            taskService.getTasks().then(data => setTasks(data.tasks || [])).catch(console.error);
+            taskService.getTasks().then(data => {
+                // Only show tasks without dueDate (tasks with dueDate can't be scheduled)
+                const schedulable = (data.tasks || []).filter(t => !t.dueDate);
+                setTasks(schedulable);
+            }).catch(console.error);
 
             if (scheduleToEdit) {
                 // EDIT MODE

@@ -28,6 +28,11 @@ export const createSchedule = async (data) => {
         throw new ApiError(404, "Task not found");
     }
 
+    // Tasks with a due date cannot be scheduled
+    if (task.dueDate) {
+        throw new ApiError(400, "This task cannot be scheduled because it has a due date. To schedule a task, please create one without a due date.");
+    }
+
     // Normalize time
     // Normalize time (Force UTC to ensure consistent comparison)
     const normalizeStartTime = new Date(`1970-01-01T${startTime}:00Z`);

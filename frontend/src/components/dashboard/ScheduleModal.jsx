@@ -25,7 +25,11 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
     // Fetch tasks for dropdown
     useEffect(() => {
         if (isOpen) {
-            taskService.getTasks().then(setTasks).catch(console.error);
+            taskService.getTasks().then(data => {
+                // Only show tasks without dueDate (tasks with dueDate can't be scheduled)
+                const schedulable = (data.tasks || []).filter(t => !t.dueDate);
+                setTasks(schedulable);
+            }).catch(console.error);
         }
     }, [isOpen]);
 
