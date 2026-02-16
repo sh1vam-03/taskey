@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import taskService from '@/services/task.service';
 import usageService from '@/services/usage.service';
 import categoryService from '@/services/category.service';
@@ -98,30 +98,29 @@ export default function TasksPage() {
         }
     }, [page, searchQuery, filterPriority, selectedCategory, showArchived, error]);
 
-    // Initial Load
-    useEffect(() => {
-        fetchTasks(true);
-    }, []);
+    // Main data fetch effect – triggers whenever fetchTasks changes
+    // (fetchTasks changes when page, searchQuery, filterPriority, selectedCategory, or showArchived change)
+    const isInitialMount = useRef(true);
 
-    // Search Effect (Debounced)
     useEffect(() => {
+        fetchTasks(isInitialMount.current);
+        isInitialMount.current = false;
+    }, [fetchTasks]);
+
+    // Search Effect (Debounced) – reset to page 1 after typing stops
+    useEffect(() => {
+        if (isInitialMount.current) return; // Skip on mount
         const timeoutId = setTimeout(() => {
-            fetchTasks(true);
+            setPage(1);
         }, 500);
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
-    // Filter Effect (Immediate)
+    // Filter Effect (Immediate) – reset to page 1
     useEffect(() => {
-        fetchTasks(true);
+        if (isInitialMount.current) return; // Skip on mount
+        setPage(1);
     }, [filterPriority, selectedCategory, showArchived]);
-
-    // Pagination
-    useEffect(() => {
-        // When page changes, fetch that page (unless it was a reset, which handles itself)
-        // We use a ref or just allow potential double fetch for simplicity in maintaining state sync
-        fetchTasks(false);
-    }, [page]);
 
     const handleCreate = () => {
         setTaskToEdit(null);

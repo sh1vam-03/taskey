@@ -61,27 +61,47 @@ export default function UniversalTaskCard({
     const p = PRIORITY[priority] || PRIORITY.MEDIUM;
     const PIcon = p.icon;
 
-    const isScheduleType = type === 'SCHEDULE' || item.type === 'SCHEDULED';
+    const isScheduleType = type === 'SCHEDULE' || item.type === 'SCHEDULED' || !!item.schedule?.type || !!item.recurrence;
 
-    // Format time
+    // Format time → returns { time: '9:00', period: 'am' } or null
     const fmt = (t) => {
         if (!t) return null;
 
-        // If already HH:mm string
-        if (typeof t === 'string' && t.length === 5) {
-            return t;
+        let hours, minutes;
+
+        // "HH:mm" string from backend
+        if (typeof t === 'string' && /^\d{2}:\d{2}$/.test(t)) {
+            [hours, minutes] = t.split(':').map(Number);
+        } else {
+            const d = new Date(t);
+            if (isNaN(d.getTime())) return null;
+            hours = d.getHours();
+            minutes = d.getMinutes();
         }
 
-        const d = new Date(t);
-        if (!isNaN(d.getTime())) {
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        return null;
+        const period = hours >= 12 ? 'pm' : 'am';
+        const h12 = hours % 12 || 12;
+        return { time: `${h12}:${String(minutes).padStart(2, '0')}`, period };
     };
 
     const fmtStart = fmt(startTime);
     const fmtEnd = fmt(endTime);
+
+    // Helper to render time with inline period
+    const TimeDisplay = ({ data, size = 'lg' }) => {
+        if (!data) return null;
+        const isLg = size === 'lg';
+        return (
+            <span className="inline-flex items-baseline gap-[2px] whitespace-nowrap">
+                <span className={isLg ? 'text-[20px] font-bold' : 'text-[15px] font-medium'}>
+                    {data.time}
+                </span>
+                <span className={`${isLg ? 'text-[11px]' : 'text-[10px]'} font-medium uppercase opacity-60`}>
+                    {data.period}
+                </span>
+            </span>
+        );
+    };
 
     // Recurrence
     const recText = (() => {
@@ -149,13 +169,13 @@ export default function UniversalTaskCard({
             <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 group-hover:border-cyan-500" />
 
             {/* Main Row */}
-            <div className="grid grid-cols-[80px_1fr_auto] items-start gap-3">
+            <div className="grid grid-cols-[100px_1fr_auto] items-start gap-3">
 
                 {/* Time */}
                 <div className="flex flex-col font-mono leading-none">
                     {fmtStart ? (
-                        <span className="text-cyan-400 text-[20px] font-bold tracking-tight">
-                            {fmtStart}
+                        <span className="text-cyan-400 tracking-tight">
+                            <TimeDisplay data={fmtStart} size="lg" />
                         </span>
                     ) : (
                         <span className="text-white/30 text-[13px] font-bold tracking-widest uppercase">
@@ -163,8 +183,8 @@ export default function UniversalTaskCard({
                         </span>
                     )}
                     {fmtEnd && (
-                        <span className="text-gray-500 text-[15px] font-medium mt-1">
-                            {fmtEnd}
+                        <span className="text-gray-500 mt-1">
+                            <TimeDisplay data={fmtEnd} size="sm" />
                         </span>
                     )}
                 </div>
@@ -227,8 +247,8 @@ export default function UniversalTaskCard({
 
                     {dueDateLabel && (
                         <span className={`border px-1.5 py-[2px] ${dueDateLabel === 'TODAY'
-                                ? 'text-green-400 border-green-500/20'
-                                : 'text-orange-400 border-orange-500/20'
+                            ? 'text-green-400 border-green-500/20'
+                            : 'text-orange-400 border-orange-500/20'
                             }`}>
                             {dueDateLabel}
                         </span>
