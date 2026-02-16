@@ -3,7 +3,7 @@ import React from "react";
 export default function Card({ children, className = "", title, description, icon: Icon, action }) {
     return (
         <div
-            className={`bg-black border border-white/10 rounded-xl p-6 shadow-sm hover:border-white/20 transition-all duration-300 relative group overflow-hidden ${className}`}
+            className={`bg-black border border-white/10 rounded-xl p-6 shadow-sm hover:border-white/20 transition-all duration-300 relative group flex flex-col ${className}`}
         >
             {/* Tech Decorators (Corner +) similar to Bento */}
             <div className="absolute top-2 left-2 text-[8px] text-white/10 font-mono opacity-0 group-hover:opacity-100 transition-opacity duration-300">+</div>
@@ -28,7 +28,7 @@ export default function Card({ children, className = "", title, description, ico
                 </div>
             )}
 
-            <div className="relative z-10">
+            <div className="relative z-10 flex-1 flex flex-col">
                 {children}
             </div>
         </div>

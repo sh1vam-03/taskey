@@ -188,10 +188,13 @@ export default function DashboardOverview() {
                     <Card
                         title="Today Tasks"
                         icon={CheckSquare}
+                        className="min-h-[140px]"
                     >
-                        <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-3xl font-bold text-white">{overview?.todayTasksCount || 0}</span>
-                            <span className="text-sm text-gray-500">/ {overview?.todayTasksTotal || 0}</span>
+                        <div className="flex-1 flex items-center">
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl font-bold text-white">{overview?.todayTasksCount || 0}</span>
+                                <span className="text-sm text-gray-500">/ {overview?.todayTasksTotal || 0}</span>
+                            </div>
                         </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Pending Actions
@@ -202,8 +205,11 @@ export default function DashboardOverview() {
                     <Card
                         title="Completed"
                         icon={Trophy}
+                        className="min-h-[140px]"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.completedTasksCount || 0}</div>
+                        <div className="flex-1 flex items-center">
+                            <div className="text-3xl font-bold text-white">{overview?.completedTasksCount || 0}</div>
+                        </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Tasks Finished
                         </p>
@@ -211,11 +217,23 @@ export default function DashboardOverview() {
 
                     {/* Productivity Score */}
                     <Card
-                        title="Productivity Score"
+                        title={
+                            <div className="flex items-center gap-2">
+                                <span>Productivity Score</span>
+                                <div className="group relative">
+                                    <Activity className="h-4 w-4 text-gray-500 hover:text-cyan-400 cursor-help transition-colors" />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-cyan-100 bg-cyan-950/90 border border-cyan-500/20 rounded shadow-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                        Tasks (70%) + Lifestyle (30%)
+                                    </div>
+                                </div>
+                            </div>
+                        }
                         icon={BrainCircuit}
-                        description="Tasks (70%) + Lifestyle (30%)"
+                        className="min-h-[140px]"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.productivityScore || 0}</div>
+                        <div className="flex-1 flex items-center">
+                            <div className="text-3xl font-bold text-white">{overview?.productivityScore || 0}</div>
+                        </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Daily Efficiency Index
                         </p>
@@ -225,8 +243,11 @@ export default function DashboardOverview() {
                     <Card
                         title="Current Streak"
                         icon={TrendingUp}
+                        className="min-h-[140px]"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.currentStreak || 0}</div>
+                        <div className="flex-1 flex items-center">
+                            <div className="text-3xl font-bold text-white">{overview?.currentStreak || 0}</div>
+                        </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Day Streak
                         </p>
