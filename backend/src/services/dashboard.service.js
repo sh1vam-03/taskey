@@ -134,6 +134,8 @@ export const getTodayDashboard = async (userId, dateString) => {
             priority: s.task.priority,
             category: s.task.category,
             recurrence: s.recurrence,
+            repeatOnDays: s.repeatOnDays,
+            scheduleDate: s.scheduleDate,
             startTime: s.startTime?.toISOString().slice(11, 16),
             endTime: s.endTime?.toISOString().slice(11, 16),
             status

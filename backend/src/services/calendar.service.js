@@ -69,7 +69,7 @@ export const getDayCalendar = async (dateString, userId) => {
                 }
             ]
         },
-        include: { task: true },
+        include: { task: { include: { category: true } } },
         orderBy: { startTime: "asc" }
     });
 
@@ -122,7 +122,12 @@ export const getDayCalendar = async (dateString, userId) => {
                         scheduleId: s.id,
                         taskId: s.taskId,
                         title: s.task.title,
+                        description: s.task.description,
                         priority: s.task.priority,
+                        category: s.task.category,
+                        recurrence: s.recurrence,
+                        repeatOnDays: s.repeatOnDays,
+                        scheduleDate: s.scheduleDate,
                         startTime: formatTime(s.startTime),
                         endTime: formatTime(s.endTime),
                         dueDate: null,
@@ -193,7 +198,7 @@ export const getWeekCalendar = async (dateString, userId) => {
                 }
             ]
         },
-        include: { task: true }
+        include: { task: { include: { category: true } } }
     });
 
     /* -------------------- FETCH COMPLETIONS & MISSED -------------------- */
@@ -236,7 +241,12 @@ export const getWeekCalendar = async (dateString, userId) => {
                 scheduleId: s.id,
                 taskId: s.taskId,
                 title: s.task.title,
+                description: s.task.description,
                 priority: s.task.priority,
+                category: s.task.category,
+                recurrence: s.recurrence,
+                repeatOnDays: s.repeatOnDays,
+                scheduleDate: s.scheduleDate,
                 startTime: formatTime(s.startTime),
                 endTime: formatTime(s.endTime),
                 status
@@ -347,7 +357,7 @@ export const getMonthCalendar = async (year, month, userId) => {
             ]
         },
         include: {
-            task: true
+            task: { include: { category: true } }
         }
     });
 
@@ -398,7 +408,12 @@ export const getMonthCalendar = async (year, month, userId) => {
                 scheduleId: schedule.id,
                 taskId: schedule.taskId,
                 title: schedule.task.title,
+                description: schedule.task.description,
                 priority: schedule.task.priority,
+                category: schedule.task.category,
+                recurrence: schedule.recurrence,
+                repeatOnDays: schedule.repeatOnDays,
+                scheduleDate: schedule.scheduleDate,
                 startTime: formatTime(schedule.startTime),
                 endTime: formatTime(schedule.endTime),
                 status

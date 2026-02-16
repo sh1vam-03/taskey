@@ -193,7 +193,8 @@ export const getTasks = async (userId, query) => {
                 date: primarySchedule.scheduleDate,
                 days: primarySchedule.repeatOnDays,
                 until: primarySchedule.repeatUntil,
-                time: primarySchedule.startTime
+                time: primarySchedule.startTime,
+                endTime: primarySchedule.endTime
             } : null,
             status
         };
