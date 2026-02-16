@@ -98,24 +98,25 @@ export default function DashboardOverview() {
                 completedTasksCount: isNowCompleted ? prev.completedTasksCount + 1 : prev.completedTasksCount - 1
             }));
 
-            // Sync with backend
+            // Sync with background
+            const localDate = new Date().toLocaleDateString('en-CA');
+
             if (item.type === 'SCHEDULED') {
                 if (!isNowCompleted) {
-                    await scheduleService.undoCompleteSchedule(item.id);
+                    await scheduleService.undoCompleteSchedule(item.id, localDate);
                 } else {
-                    await scheduleService.completeSchedule(item.id);
+                    await scheduleService.completeSchedule(item.id, localDate);
                 }
             } else {
                 // Task (UNSCHEDULED)
                 if (!isNowCompleted) {
-                    await taskService.undoCompleteTask(item.id);
+                    await taskService.undoCompleteTask(item.id, localDate);
                 } else {
-                    await taskService.completeTask(item.id);
+                    await taskService.completeTask(item.id, localDate);
                 }
             }
 
             // Silent Refetch to ensure consistency (optional, can be debounced)
-            const localDate = new Date().toLocaleDateString('en-CA');
             const overviewData = await dashboardService.getOverview(localDate);
             setOverview(overviewData);
         } catch (err) {

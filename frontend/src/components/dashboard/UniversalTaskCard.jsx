@@ -119,9 +119,15 @@ export default function UniversalTaskCard({
 
                 {/* Time */}
                 <div className="flex flex-col font-mono leading-none">
-                    <span className="text-cyan-400 text-[20px] font-bold tracking-tight">
-                        {fmtStart || "--:--"}
-                    </span>
+                    {fmtStart ? (
+                        <span className="text-cyan-400 text-[20px] font-bold tracking-tight">
+                            {fmtStart}
+                        </span>
+                    ) : (
+                        <span className="text-white/30 text-[13px] font-bold tracking-widest uppercase">
+                            ANYTIME
+                        </span>
+                    )}
                     {fmtEnd && (
                         <span className="text-gray-500 text-[15px] font-medium mt-1">
                             {fmtEnd}

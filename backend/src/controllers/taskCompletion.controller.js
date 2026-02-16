@@ -1,5 +1,6 @@
 import asyncHandler from "../utils/asyncHandler.js";
-import * as     taskCompletionService from "../services/taskCompletion.service.js";
+import * as taskCompletionService from "../services/taskCompletion.service.js";
+import ApiError from "../utils/ApiError.js";
 
 
 /**
