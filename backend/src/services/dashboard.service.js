@@ -80,8 +80,12 @@ export const getTodayDashboard = async (userId, dateString) => {
                 deletedAt: null,
                 schedules: { none: {} },
                 OR: [
+                    // Created today (any task created today shows today)
                     { createdAt: { gte: today, lt: tomorrow } },
-                    { dueDate: { gte: today, lt: tomorrow } }
+                    // Due today
+                    { dueDate: { gte: today, lt: tomorrow } },
+                    // Multi-day: created before today AND due after today (middle days)
+                    { createdAt: { lt: today }, dueDate: { gte: tomorrow } }
                 ]
             },
             include: { category: true }

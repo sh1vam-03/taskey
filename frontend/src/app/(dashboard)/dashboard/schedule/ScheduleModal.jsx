@@ -141,6 +141,7 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                         <input
                             type="date"
                             {...register('scheduleDate', { required: true })}
+                            min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm scheme-dark"
                         />
                     </div>

@@ -197,6 +197,7 @@ export default function ScheduleModal({ isOpen, onClose, scheduleToEdit = null, 
                             type="date"
                             value={scheduleDate}
                             onChange={(e) => setScheduleDate(e.target.value)}
+                            min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
                             required
                         />
                     </div>

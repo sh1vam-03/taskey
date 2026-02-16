@@ -25,6 +25,17 @@ export const createTask = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid priority");
     }
 
+    // Validate dueDate is not in the past
+    if (dueDate) {
+        const dueDateObj = new Date(dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        dueDateObj.setHours(0, 0, 0, 0);
+        if (dueDateObj < today) {
+            throw new ApiError(400, "Due date cannot be in the past");
+        }
+    }
+
     // Check Limit
     await checkUsageLimit(userId, 'task');
 
