@@ -56,7 +56,7 @@ export const createSchedule = async (data) => {
     // Check conflicts — must check ALL schedules that expand onto this date
     const allUserSchedules = await prisma.schedule.findMany({
         where: { userId },
-        include: { task: { select: { title: true } } }
+        include: { task: { select: { id: true, title: true, dueDate: true } } }
     });
 
     // 1. Validator Logic (AI Requirement)
@@ -179,6 +179,7 @@ export const getSchedules = async (userId, from, to, taskId) => {
                 }
             ]
         },
+        orderBy: { startTime: 'asc' },
         include: {
             task: {
                 select: {
@@ -186,9 +187,7 @@ export const getSchedules = async (userId, from, to, taskId) => {
                     title: true,
                     description: true,
                     priority: true,
-                    category: {
-                        select: { id: true, name: true, color: true }
-                    }
+                    dueDate: true
                 }
             }
         }

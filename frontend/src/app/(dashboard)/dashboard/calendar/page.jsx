@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import calendarService from "@/services/calendar.service";
 import scheduleService from "@/services/schedule.service";
 import taskService from "@/services/task.service";
-import ScheduleModal from "@/components/dashboard/ScheduleModal";
+import ScheduleModal from "@/app/(dashboard)/dashboard/schedule/ScheduleModal";
 import SkeletonLoader from "@/components/dashboard/SkeletonLoader";
 import { FaChevronLeft, FaChevronRight, FaPlus, FaCheckCircle, FaClock, FaCalendarDay, FaCalendarWeek, FaCalendarAlt } from "react-icons/fa";
 import { useToast } from "@/context/ToastContext";

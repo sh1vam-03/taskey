@@ -411,15 +411,19 @@ export default function SchedulePage() {
                 </Card>
             )}
 
-            <ScheduleModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                scheduleToEdit={scheduleToEdit}
-                onScheduleSaved={() => {
-                    fetchSchedules(false);
-                    success(scheduleToEdit ? "Schedule updated" : "Schedule created");
-                }}
-            />
+            {isModalOpen && (
+                <ScheduleModal
+                    key={scheduleToEdit ? scheduleToEdit.id + scheduleToEdit.scheduleDate : 'new'}
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    scheduleToEdit={scheduleToEdit}
+                    selectedDate={formatDateParam(selectedDate)}
+                    onScheduleSaved={() => {
+                        fetchSchedules(false);
+                        success(scheduleToEdit ? "Schedule updated" : "Schedule created");
+                    }}
+                />
+            )}
 
             <ConfirmationModal
                 isOpen={deleteModal.isOpen}
