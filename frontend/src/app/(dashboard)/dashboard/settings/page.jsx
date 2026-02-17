@@ -25,7 +25,6 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
 
     // Modals
-    const [logoutModal, setLogoutModal] = useState(false);
     const [logoutAllModal, setLogoutAllModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
 
@@ -48,18 +47,10 @@ export default function SettingsPage() {
     const [isPwdOtpSent, setIsPwdOtpSent] = useState(false);
     const [pwdError, setPwdError] = useState("");
 
-    // AI Preferences (Local State)
-    const [aiPrefs, setAiPrefs] = useState({
-        voiceAutoStart: false,
-        responseStyle: 'PROFESSIONAL',
-        dailyDigest: true,
-        streakReminders: true
-    });
+
 
     useEffect(() => {
         const loadData = async () => {
-            const savedPrefs = localStorage.getItem('taskey_ai_prefs');
-            if (savedPrefs) setAiPrefs(JSON.parse(savedPrefs));
 
             try {
                 const subData = await billingService.getCurrentSubscription();
@@ -158,16 +149,6 @@ export default function SettingsPage() {
         } catch (err) {
             setDeleteError(err.response?.data?.message || "Failed to delete account");
         }
-    };
-
-    const updatePref = (key, value) => {
-        const newPrefs = { ...aiPrefs, [key]: value };
-        setAiPrefs(newPrefs);
-        localStorage.setItem('taskey_ai_prefs', JSON.stringify(newPrefs));
-    };
-
-    const handleLogout = async () => {
-        await logout();
     };
 
     const handleLogoutAll = async () => {
@@ -291,15 +272,15 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between pointer-events-none opacity-60">
                                 <div className="space-y-0.5">
-                                    <label className="text-sm font-medium text-gray-200">Response Style</label>
+                                    <label className="text-sm font-medium text-gray-200 flex items-center gap-2">Response Style <Lock className="w-3 h-3 text-gray-500" /></label>
                                     <p className="text-xs text-gray-500">Adjust the personality of your AI assistant.</p>
                                 </div>
                                 <select
-                                    className="bg-black/20 border border-white/10 rounded-md text-sm text-gray-300 focus:ring-cyan-500 focus:border-cyan-500 p-2"
-                                    value={aiPrefs.responseStyle}
-                                    onChange={(e) => updatePref('responseStyle', e.target.value)}
+                                    className="bg-black/20 border border-white/10 rounded-md text-sm text-gray-300 p-2 w-64"
+                                    disabled
+                                    value="PROFESSIONAL"
                                 >
                                     <option value="PROFESSIONAL">Professional (Concise)</option>
                                     <option value="MOTIVATIONAL">Motivational (Supportive)</option>
@@ -308,12 +289,15 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="border-t border-white/5 pt-4">
-                                <Toggle
-                                    label="Voice Mode Auto-Start"
-                                    checked={aiPrefs.voiceAutoStart}
-                                    onChange={(val) => updatePref('voiceAutoStart', val)}
-                                />
-                                <p className="text-xs text-gray-500 mt-1 ml-1">Automatically activate voice input when opening the AI assistant.</p>
+                                <div className="pointer-events-none opacity-60">
+                                    <Toggle
+                                        label={<span className="flex items-center gap-2">Voice Mode Auto-Start <Lock className="w-3 h-3 text-gray-500" /></span>}
+                                        checked={false}
+                                        onChange={() => { }}
+                                        disabled={true}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1 ml-1">Automatically activate voice input when opening the AI assistant.</p>
+                                </div>
                             </div>
                         </div>
                     </Card>
@@ -326,16 +310,20 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <Toggle
-                                label="Daily Briefing"
-                                checked={aiPrefs.dailyDigest}
-                                onChange={(val) => updatePref('dailyDigest', val)}
-                            />
-                            <Toggle
-                                label="Streak Maintenance Reminders"
-                                checked={aiPrefs.streakReminders}
-                                onChange={(val) => updatePref('streakReminders', val)}
-                            />
+                            <div className="space-y-4 pointer-events-none opacity-60">
+                                <Toggle
+                                    label={<span className="flex items-center gap-2">Daily Briefing <Lock className="w-3 h-3 text-gray-500" /></span>}
+                                    checked={false}
+                                    onChange={() => { }}
+                                    disabled={true}
+                                />
+                                <Toggle
+                                    label={<span className="flex items-center gap-2">Streak Maintenance Reminders <Lock className="w-3 h-3 text-gray-500" /></span>}
+                                    checked={false}
+                                    onChange={() => { }}
+                                    disabled={true}
+                                />
+                            </div>
                         </div>
                     </Card>
 
@@ -421,12 +409,6 @@ export default function SettingsPage() {
                                 Delete Information
                             </button>
 
-                            <button
-                                className="w-full flex items-center justify-center px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
-                                onClick={() => setLogoutModal(true)}
-                            >
-                                Log Out Current Session
-                            </button>
                         </div>
                     </Card>
 
@@ -503,16 +485,7 @@ export default function SettingsPage() {
                 </div>
             </ConfirmationModal>
 
-            {/* Logout Modals */}
-            <ConfirmationModal
-                isOpen={logoutModal}
-                onClose={() => setLogoutModal(false)}
-                onConfirm={handleLogout}
-                title="Disconnect Session"
-                message="Are you sure you want to terminate your current neural session?"
-                confirmText="Log Out"
-                variant="danger"
-            />
+
 
             <ConfirmationModal
                 isOpen={logoutAllModal}
