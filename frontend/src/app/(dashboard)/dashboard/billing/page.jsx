@@ -85,7 +85,7 @@ export default function BillingPage() {
     const [usage, setUsage] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState(false);
+    const [processingId, setProcessingId] = useState(null);
     const [cancelModal, setCancelModal] = useState(false);
 
     useEffect(() => {
@@ -111,7 +111,7 @@ export default function BillingPage() {
 
     const handleSubscribe = async (planId) => {
         if (planId === 'FREE') return;
-        setProcessing(true);
+        setProcessingId(planId);
         try {
             const data = await billingService.subscribe(planId, 'MONTHLY');
 
@@ -126,7 +126,7 @@ export default function BillingPage() {
                 },
                 modal: {
                     ondismiss: function () {
-                        setProcessing(false);
+                        setProcessingId(null);
                     }
                 },
                 theme: { color: "#06b6d4" }
@@ -137,7 +137,7 @@ export default function BillingPage() {
         } catch (err) {
             console.error(err);
             error("Subscription initialization failed. Check console.");
-            setProcessing(false);
+            setProcessingId(null);
         }
     };
 
@@ -154,7 +154,7 @@ export default function BillingPage() {
     };
 
     const handleDowngrade = async (newPlanId) => {
-        setProcessing(true);
+        setProcessingId(newPlanId);
         try {
             await billingService.downgradePlan(newPlanId);
             success(`Plan downgraded to ${newPlanId.replace('_', ' ')}. Effective next cycle.`);
@@ -162,12 +162,12 @@ export default function BillingPage() {
         } catch (err) {
             console.error(err);
             error("Downgrade failed. Please try again.");
-            setProcessing(false);
+            setProcessingId(null);
         }
     };
 
     const handleTopUp = async (packId) => {
-        setProcessing(true);
+        setProcessingId(packId);
         try {
             const orderData = await billingService.createTopUp(packId);
             // orderData contains: orderId, key, pack details...
@@ -191,12 +191,12 @@ export default function BillingPage() {
                     } catch (err) {
                         console.error("Verification failed", err);
                         error("Payment verification failed. Please contact support.");
-                        setProcessing(false);
+                        setProcessingId(null);
                     }
                 },
                 modal: {
                     ondismiss: function () {
-                        setProcessing(false);
+                        setProcessingId(null);
                     }
                 },
                 theme: { color: "#06b6d4" }
@@ -207,7 +207,7 @@ export default function BillingPage() {
         } catch (err) {
             console.error(err);
             error("Top-up initialization failed.");
-            setProcessing(false);
+            setProcessingId(null);
         }
     };
 
@@ -352,7 +352,10 @@ export default function BillingPage() {
                             <div className="h-full w-full bg-cyan-500/20 animate-pulse" />
                         </div>
                         <p className="text-[10px] text-gray-500 mt-2 text-right">
-                            Monthly Allocation: {currentSub?.usageLimit || 0}
+                            {currentPlanId === 'FREE'
+                                ? `FREE CREDITS: ${currentSub?.usageLimit || 10}`
+                                : `Monthly Allocation: ${currentSub?.usageLimit || 0}`
+                            }
                         </p>
                     </div>
                 </Card>
@@ -419,11 +422,16 @@ export default function BillingPage() {
                                         else if (isDowngrade) handleDowngrade(plan.id);
                                         else handleSubscribe(plan.id);
                                     }}
-                                    disabled={isCurrent || processing}
+                                    disabled={isCurrent || (processingId !== null)}
+                                    // Make "processing" only if THIS button is processing
                                     variant={isCurrent ? "ghost" : (plan.recommended ? "scanline" : "primary")}
                                     className={`w-full ${isCurrent ? 'opacity-50' : ''}`}
                                 >
-                                    {isCurrent ? 'SYSTEM ACTIVE' : (plan.id === 'FREE' ? 'DOWNGRADE TO FREE' : (isDowngrade ? 'DOWNGRADE' : (processing ? 'INITIALIZING...' : 'UPGRADE')))}
+                                    {/* Show loader only if processingId matches this plan.id */}
+                                    {processingId === plan.id
+                                        ? 'PROCESSING...'
+                                        : (isCurrent ? 'SYSTEM ACTIVE' : (plan.id === 'FREE' ? 'DOWNGRADE TO FREE' : (isDowngrade ? 'DOWNGRADE' : 'UPGRADE')))
+                                    }
                                 </Button>
                             </div>
                         </Card>
@@ -461,11 +469,11 @@ export default function BillingPage() {
 
                                 <Button
                                     onClick={() => handleTopUp(pack.id)}
-                                    disabled={processing}
+                                    disabled={processingId !== null}
                                     variant="outline"
                                     className="mt-auto border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
                                 >
-                                    {processing ? 'PROCESSING...' : 'INSTANT TOP-UP'}
+                                    {processingId === pack.id ? 'PROCESSING...' : 'INSTANT TOP-UP'}
                                 </Button>
                             </div>
                         </Card>
