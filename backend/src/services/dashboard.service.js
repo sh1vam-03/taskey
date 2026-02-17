@@ -623,24 +623,29 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
 
         // Any missed schedule kills the streak
         const missedCount = missedScheduleMap.get(key)?.size ?? 0;
+
         if (missedCount > 0) {
             perfectMap[key] = "MISSED";
             continue;
         }
 
-        // Scheduled tasks must ALL be completed
+        // Scheduled tasks must ALL be completed (Specific Check)
         if (applicableSchedules.length > 0) {
-            const completed = completedScheduleMap.get(key)?.size ?? 0;
-            if (completed !== applicableSchedules.length) {
+            const completedIds = completedScheduleMap.get(key) || new Set();
+            const allDone = applicableSchedules.every(s => completedIds.has(s.id));
+
+            if (!allDone) {
                 perfectMap[key] = "MISSED";
                 continue;
             }
         }
 
-        // Unscheduled tasks must ALL be completed
+        // Unscheduled tasks must ALL be completed (Specific Check)
         if (unscheduledForDay.length > 0) {
-            const completed = completedTaskMap.get(key)?.size ?? 0;
-            if (completed !== unscheduledForDay.length) {
+            const completedIds = completedTaskMap.get(key) || new Set();
+            const allDone = unscheduledForDay.every(t => completedIds.has(t.id));
+
+            if (!allDone) {
                 perfectMap[key] = "MISSED";
                 continue;
             }
@@ -663,10 +668,30 @@ export const getStreakOverview = async (userId) => {
     const map = await buildPerfectDayMap(userId, start, today);
     const keys = Object.keys(map).sort();
 
+    // Calulate Current Streak (Backwards Date Iteration)
+    const todayKey = dayKey(today);
     let current = 0;
-    for (let i = keys.length - 1; i >= 0; i--) {
-        if (map[keys[i]] !== "PERFECT") break;
+
+    // 1. Check Today (If perfect, count it)
+    if (map[todayKey] === "PERFECT") {
         current++;
+    }
+
+    // 2. Check History (Iterate backwards from Yesterday)
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - 1); // Start from yesterday
+
+    while (true) {
+        const k = dayKey(d);
+        if (map[k] === "PERFECT") {
+            current++;
+            d.setUTCDate(d.getUTCDate() - 1); // Go back one day
+        } else {
+            break; // Stop at first non-perfect day
+        }
+
+        // Safety break
+        if (d < start) break;
     }
 
     let longest = 0;
