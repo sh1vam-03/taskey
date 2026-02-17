@@ -272,41 +272,43 @@ export default function DashboardOverview() {
                 {/* Overview Section */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
                     {/* Today's Timeline */}
-                    <Card
-                        className="lg:col-span-4 min-h-[400px]"
-                        title="Temporal Timeline"
-                        icon={Activity}
-                        description="Scheduled blocks for the current cycle."
-                    >
-                        <div className="space-y-4 mt-6">
-                            {overview?.timeline?.length > 0 ? (
-                                overview.timeline.map((item, i) => (
-                                    <UniversalTaskCard
-                                        key={i}
-                                        item={item}
-                                        type={item.type === 'SCHEDULED' ? 'SCHEDULE' : 'TASK'}
-                                        onComplete={() => handleToggleItem(item)}
-                                    />
-                                ))
+                    <div className="lg:col-span-4 lg:relative min-h-[500px] lg:min-h-[500px]">
+                        <Card
+                            className="h-full flex flex-col overflow-hidden lg:absolute lg:inset-0"
+                            title="Temporal Timeline"
+                            icon={Activity}
+                            description="Scheduled blocks for the current cycle."
+                        >
+                            <div className="space-y-4 mt-6 flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                                {overview?.timeline?.length > 0 ? (
+                                    overview.timeline.map((item, i) => (
+                                        <UniversalTaskCard
+                                            key={i}
+                                            item={item}
+                                            type={item.type === 'SCHEDULED' ? 'SCHEDULE' : 'TASK'}
+                                            onComplete={() => handleToggleItem(item)}
+                                        />
+                                    ))
 
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                                        <Calendar className="h-8 w-8 text-gray-600" />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-center">
+                                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                            <Calendar className="h-8 w-8 text-gray-600" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-white mb-1">Timeline Clear</h3>
+                                        <p className="text-gray-500 text-sm max-w-sm mb-6">
+                                            No temporal blocks allocated for this cycle. Initialize a schedule to begin.
+                                        </p>
+                                        <Link href="/dashboard/schedule">
+                                            <Button variant="secondary" size="sm">
+                                                Initialize Schedule
+                                            </Button>
+                                        </Link>
                                     </div>
-                                    <h3 className="text-lg font-medium text-white mb-1">Timeline Clear</h3>
-                                    <p className="text-gray-500 text-sm max-w-sm mb-6">
-                                        No temporal blocks allocated for this cycle. Initialize a schedule to begin.
-                                    </p>
-                                    <Link href="/dashboard/schedule">
-                                        <Button variant="secondary" size="sm">
-                                            Initialize Schedule
-                                        </Button>
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
+                                )}
+                            </div>
+                        </Card>
+                    </div>
 
                     {/* Quick Actions / Recent */}
                     <div className="lg:col-span-3 space-y-6">

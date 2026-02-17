@@ -28,7 +28,7 @@ export default function Card({ children, className = "", title, description, ico
                 </div>
             )}
 
-            <div className="relative z-10 flex-1 flex flex-col">
+            <div className="relative z-10 flex-1 flex flex-col min-h-0">
                 {children}
             </div>
         </div>
