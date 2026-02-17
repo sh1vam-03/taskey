@@ -880,7 +880,7 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
         })
     ]);
 
-    const timezone = user?.timezone || "UTC";
+    const timezone = user?.timezone || "Asia/Kolkata";
 
     /* ------------------ HOURLY BREAKDOWN ------------------ */
 
@@ -903,7 +903,9 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
     const todaySchedules = schedules.filter(s => appliesOnDate(s, day));
     todaySchedules.forEach(s => {
         if (s.startTime) {
-            const hour = getLocalHour(s.startTime);
+            // Schedule startTime is stored as "Abstract Time" in UTC (e.g. 09:00Z means 9 AM intended)
+            // So we use getUTCHours() directly to preserve the intended hour, regardless of timezone.
+            const hour = new Date(s.startTime).getUTCHours();
             if (hourly[hour]) hourly[hour].total++;
         }
     });
