@@ -21,12 +21,21 @@ export default function StreaksPage() {
 
                 // Transform { "YYYY-MM-DD": "PERFECT"|"MISSED"|"EMPTY" } to Array<{ date, count }>
                 const calendarArray = Object.entries(calendar || {}).map(([date, status]) => {
-                    let count = 0;
-                    if (status === "PERFECT") count = 4;
-                    else if (status === "MISSED") count = 2; // Show failed attempt as low intensity
-                    // EMPTY remains 0
+                    // Fallback for old string format
+                    if (typeof status === 'string') {
+                        let count = 0;
+                        if (status === "PERFECT") count = 4;
+                        else if (status === "MISSED") count = 2;
+                        return { date, count, score: count === 4 ? 100 : 0, total: count > 0 ? 1 : 0 };
+                    }
 
-                    return { date, count };
+                    const completed = status.completed || 0;
+                    const total = status.total || 0;
+                    const score = status.score || 0;
+                    const activity = status.totalActivity || completed;
+
+                    // count = activity for heatmap intensity
+                    return { date, count: activity, score, total };
                 }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
                 setCalendarData(calendarArray);
@@ -57,7 +66,9 @@ export default function StreaksPage() {
         const dayCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }; // Sun-Sat
 
         calendarData.forEach(d => {
-            if (d.count >= 4) {
+            // Count as perfect if Score is 100% and had tasks
+            // Or fallback if count >= 4 (old logic with no score)
+            if ((d.score === 100 && d.total > 0) || (d.score === undefined && d.count >= 4)) {
                 perfectCount++;
                 const dayOfWeek = new Date(d.date).getDay();
                 dayCounts[dayOfWeek]++;
@@ -113,7 +124,7 @@ export default function StreaksPage() {
                 ) : (
                     <>
                         {/* Current Streak */}
-                        <div className="bg-gradient-to-br from-orange-900/40 to-black border border-orange-500/20 rounded-xl p-6 relative overflow-hidden group shadow-[0_0_30px_rgba(249,115,22,0.1)]">
+                        <div className="bg-linear-to-br from-orange-900/40 to-black border border-orange-500/20 rounded-xl p-6 relative overflow-hidden group shadow-[0_0_30px_rgba(249,115,22,0.1)]">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity animate-pulse">
                                 <FaFire className="w-24 h-24 text-orange-500" />
                             </div>

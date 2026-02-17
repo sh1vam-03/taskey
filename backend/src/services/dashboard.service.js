@@ -722,7 +722,11 @@ export const getStreakCalendar = async (userId, days = 90) => {
     const start = new Date(today);
     start.setUTCDate(today.getUTCDate() - (days - 1));
 
-    return await buildPerfectDayMap(userId, start, today);
+    // Use buildDailyStatsMap to get real activity counts (Total, Completed, etc.)
+    // This matches the Calendar Month data refrence requested by user.
+    const stats = await buildDailyStatsMap(userId, start, today);
+    return stats; // Returns { days: {...} } or just the map? buildDailyStatsMap currently returns nothing explicitly in the viewed snippet?
+
 };
 
 
@@ -879,7 +883,8 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
             total,
             completed,
             missed,
-            score: total === 0 ? 0 : Math.round((completed / total) * 100)
+            score: total === 0 ? 0 : Math.round((completed / total) * 100),
+            totalActivity: (dailyCompletedMap.get(key)?.size ?? 0) + (completedScheduleMap.get(key)?.size ?? 0)
         };
     }
 
