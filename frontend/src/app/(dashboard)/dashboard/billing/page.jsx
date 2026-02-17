@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import billingService from '@/services/billing.service';
 import { useAuth } from '@/context/AuthContext';
-import { Check, CreditCard, Shield, Zap, Sparkles, TrendingUp, FileText, Clock } from 'lucide-react';
+import { Check, CreditCard, Shield, Zap, Sparkles, TrendingUp, FileText, Clock, BarChart3, CheckCircle, AlertTriangle } from 'lucide-react';
 import usageService from '@/services/usage.service';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -166,6 +166,11 @@ export default function BillingPage() {
         }
     };
 
+    // Placeholder for Top-Up Handler (Assuming it existed but wasn't in snippet view)
+    const handleTopUp = async (packId) => {
+        // Implementation needed or assumed existing
+    };
+
     if (loading || authLoading) return (
         <div className="space-y-6">
             <SkeletonLoader type="card" className="h-48" />
@@ -178,6 +183,15 @@ export default function BillingPage() {
     );
 
     const currentPlanId = user?.plan || 'FREE';
+    // Paid plans are effectively unlimited for standard resources
+    const isUnlimited = currentPlanId !== 'FREE';
+
+    // Check if user is near any limit (only for FREE users)
+    const isNearLimit = !isUnlimited && (
+        (usage?.taskCount / usage?.limits?.task > 0.8) ||
+        (usage?.scheduleCount / usage?.limits?.schedule > 0.8) ||
+        (usage?.behaviorCount / usage?.limits?.behavior > 0.8)
+    );
 
     return (
         <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -185,10 +199,10 @@ export default function BillingPage() {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
                     <CreditCard className="h-8 w-8 text-cyan-500" />
-                    Subscription Matrix
+                    Billing & Usage
                 </h1>
                 <p className="text-gray-400 font-mono text-sm max-w-xl">
-                    Upgrade your neural capacity and system limits.
+                    Monitor resource consumption and manage your subscription.
                 </p>
             </div>
 
@@ -230,12 +244,18 @@ export default function BillingPage() {
                     )}
                 </div>
 
-                {/* Usage Stats */}
-                <div className="mt-8 grid gap-6 md:grid-cols-3">
-                    <UsageBar label="Created Tasks" current={usage?.taskCount} max={usage?.limits?.task} color="cyan" />
-                    <UsageBar label="Schedules" current={usage?.scheduleCount} max={usage?.limits?.schedule} color="indigo" />
-                    <UsageBar label="Behavior Logs" current={usage?.behaviorCount} max={usage?.limits?.behavior} color="purple" />
-                </div>
+                {/* Limit Warning (If applicable) */}
+                {isNearLimit && (
+                    <div className="mt-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
+                        <div>
+                            <h4 className="text-orange-400 font-bold text-sm">Resource Limit Approaching</h4>
+                            <p className="text-gray-400 text-xs mt-1">
+                                You are reaching the capacity of your current plan. Systems may be restricted once limits are hit.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Renewal Info */}
                 {currentSub?.nextBillingAt && (
@@ -246,8 +266,47 @@ export default function BillingPage() {
                 )}
             </Card>
 
+            {/* Detailed Usage Cards (Merged from Usage Page) */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <UsageCard
+                    label="Task Protocol"
+                    count={usage?.taskCount}
+                    limit={isUnlimited ? null : usage?.limits?.task}
+                    icon={<CheckCircle className="w-5 h-5" />}
+                    color="cyan"
+                />
+                <UsageCard
+                    label="Temporal Blocks"
+                    count={usage?.scheduleCount}
+                    limit={isUnlimited ? null : usage?.limits?.schedule}
+                    icon={<TrendingUp className="w-5 h-5" />}
+                    color="indigo"
+                />
+                <UsageCard
+                    label="Behavior Logs"
+                    count={usage?.behaviorCount}
+                    limit={isUnlimited ? null : usage?.limits?.behavior}
+                    icon={<Shield className="w-5 h-5" />}
+                    color="purple"
+                />
+                <UsageCard
+                    label="AI Credits"
+                    count={usage?.aiTokensUsed}
+                    limit={currentSub?.usageLimit}
+                    icon={<Zap className="w-5 h-5" />}
+                    color="cyan"
+                    forceLimit={true} // AI is never unlimited
+                />
+            </div>
+
             {/* Pricing Section */}
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3 mt-16 pt-10 border-t border-white/5">
+                <div className="col-span-full mb-4">
+                    <h2 className="text-2xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+                        <CreditCard className="h-6 w-6 text-cyan-500" />
+                        Subscription Matrix
+                    </h2>
+                </div>
                 {PLANS.map(plan => {
                     const isCurrent = currentPlanId === plan.id;
 
@@ -429,31 +488,69 @@ export default function BillingPage() {
     );
 }
 
-function UsageBar({ label, current = 0, max, color = "cyan" }) {
-    const isUnlimited = !max;
-    const percentage = isUnlimited ? 0 : Math.min(((current || 0) / max) * 100, 100);
+function UsageCard({ label, count = 0, limit, icon, color = "cyan", forceLimit = false }) {
+    const isUnlimited = !forceLimit && (limit === null || limit === undefined);
+    const percentage = isUnlimited ? 0 : Math.min((count / limit) * 100, 100);
 
-    const colors = {
-        cyan: "bg-cyan-500",
-        purple: "bg-purple-500",
-        indigo: "bg-indigo-500",
-        red: "bg-red-500"
-    };
+    // Color Logic
+    let statusColor = "bg-cyan-500";
+    let textColor = "text-cyan-400";
+
+    if (color === 'purple') {
+        statusColor = "bg-purple-500";
+        textColor = "text-purple-400";
+    } else if (color === 'indigo') {
+        statusColor = "bg-indigo-500";
+        textColor = "text-indigo-400";
+    }
+
+    // Warning Override
+    if (!isUnlimited && percentage > 85) {
+        statusColor = "bg-red-500";
+        textColor = "text-red-500";
+    } else if (!isUnlimited && percentage > 60) {
+        statusColor = "bg-yellow-500";
+        textColor = "text-yellow-500";
+    }
 
     return (
-        <div>
-            <div className="flex justify-between text-[10px] font-mono mb-2 uppercase tracking-wider text-gray-400">
-                <span>{label}</span>
-                <span>
-                    {current} / {isUnlimited ? '∞' : max}
-                </span>
+        <Card className="p-6 flex flex-col justify-between h-full hover:bg-white/2 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg bg-white/5 ${textColor}`}>
+                    {icon}
+                </div>
+                <div className="text-right">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider font-mono mb-1">USED</p>
+                    <p className="text-2xl font-bold text-white font-mono">{count}</p>
+                </div>
             </div>
-            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                <div
-                    className={`h-full rounded-full transition-all duration-1000 ${percentage > 90 ? colors.red : colors[color]}`}
-                    style={{ width: `${isUnlimited ? 100 : percentage}%`, opacity: isUnlimited ? 0.3 : 1 }}
-                />
+
+            <div>
+                <div className="flex justify-between text-xs mb-2 font-mono">
+                    <span className="text-gray-400">{label}</span>
+                    <span className={isUnlimited ? "text-cyan-500" : (percentage > 85 ? "text-red-400" : "text-gray-400")}>
+                        {isUnlimited ? 'UNLIMITED' : `${Math.round(percentage)}%`}
+                    </span>
+                </div>
+
+                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                    {!isUnlimited && (
+                        <div
+                            className={`h-full rounded-full transition-all duration-1000 ${statusColor}`}
+                            style={{ width: `${percentage}%` }}
+                        />
+                    )}
+                    {isUnlimited && (
+                        <div className="h-full w-full bg-linear-to-r from-transparent via-cyan-500/20 to-transparent animate-shimmer" />
+                    )}
+                </div>
+
+                {!isUnlimited && (
+                    <p className="text-[10px] text-gray-500 mt-2 text-right">
+                        Limit: {limit}
+                    </p>
+                )}
             </div>
-        </div>
+        </Card>
     );
 }

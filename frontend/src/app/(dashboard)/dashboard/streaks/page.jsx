@@ -77,10 +77,16 @@ export default function StreaksPage() {
 
         const insights = [];
 
-        // Consistency
-        const consistency = Math.round((perfectCount / calendarData.length) * 100) || 0;
-        if (consistency > 80) insights.push("You are unstoppable! Extremely consistent.");
-        else if (consistency > 50) insights.push("Building good habits. Keep it up!");
+        // Find the first day with any activity (total > 0) to start the consistency window
+        const firstActiveIndex = calendarData.findIndex(d => d.total > 0 || d.count > 0);
+        const relevantData = firstActiveIndex !== -1 ? calendarData.slice(firstActiveIndex) : [];
+        const divider = relevantData.length || 1; // Avoid division by zero
+
+        // Consistency based on active window
+        const consistency = Math.round((perfectCount / divider) * 100) || 0;
+
+        if (consistency >= 80) insights.push("You are unstoppable! Extremely consistent.");
+        else if (consistency >= 50) insights.push("Building good habits. Keep it up!");
         else insights.push("Try to perform tasks at least 3 days a week.");
 
         // Best Day

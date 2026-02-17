@@ -57,7 +57,7 @@ export const PLANS = {
         limits: {
             task: 100,
             schedule: 300,
-            behavior: 30
+            behavior: 45
         },
         rank: 0
     },
