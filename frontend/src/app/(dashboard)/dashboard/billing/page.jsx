@@ -118,7 +118,7 @@ export default function BillingPage() {
             const options = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 subscription_id: data.subscriptionId,
-                name: "Taskey AI",
+                name: "TASKTIME",
                 description: `${planId.replace('_', ' ')} Subscription`,
                 handler: async function (response) {
                     success("Payment Successful! System upgrading...");
@@ -176,7 +176,7 @@ export default function BillingPage() {
                 key: orderData.data.key, // Ensure backend returns key in data.key or just key
                 amount: orderData.data.price * 100,
                 currency: "INR",
-                name: "Taskey AI",
+                name: "TASKTIME",
                 description: `Credit Top-Up: ${orderData.data.label}`,
                 order_id: orderData.data.orderId,
                 handler: async function (response) {
