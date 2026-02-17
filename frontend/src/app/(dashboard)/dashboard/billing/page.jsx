@@ -363,13 +363,16 @@ export default function BillingPage() {
 
             {/* Pricing Section */}
             <div className="grid gap-6 lg:grid-cols-3 mt-16 pt-10 border-t border-white/5">
-                <div className="col-span-full mb-4">
-                    <h2 className="text-2xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
-                        <CreditCard className="h-6 w-6 text-cyan-500" />
-                        Subscription Matrix
-                    </h2>
+                <div className="col-span-full mb-8 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-6">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tighter text-white mb-2">Subscription Matrix</h2>
+                        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
+                            // SYSTEM_ACCESS_LEVELS
+                        </p>
+                    </div>
                 </div>
-                {PLANS.map(plan => {
+
+                {PLANS.map((plan, index) => {
                     const isCurrent = currentPlanId === plan.id;
 
                     // Determine Plan Rank for Logic
@@ -380,61 +383,71 @@ export default function BillingPage() {
                     const isUpgrade = thisRank > currentRank;
                     const isDowngrade = thisRank < currentRank;
 
-                    const Icon = plan.icon;
+                    // Cyberpunk Styling Logic
+                    const isHighlight = plan.recommended || isCurrent;
+                    const borderColor = isHighlight ? 'border-cyan-500/50' : 'border-white/10';
+                    const bgColor = isHighlight ? 'bg-cyan-950/10' : 'bg-black';
+                    const titleColor = isHighlight ? 'text-cyan-400' : 'text-white';
+                    const tierLabel = `TIER.0${index + 1}`;
+
                     return (
-                        <Card
+                        <div
                             key={plan.id}
-                            className={`flex flex-col relative transition-all duration-300 hover:-translate-y-1 ${plan.color} ${isCurrent ? 'bg-white/5' : ''}`}
+                            className={`p-8 relative transition-all duration-300 group ${bgColor} border ${borderColor} hover:border-white/30 flex flex-col`}
                         >
-                            {plan.recommended && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-black text-[10px] px-3 py-1 rounded-sm font-bold font-mono tracking-wider shadow-[0_0_10px_rgba(6,182,212,0.5)]">
-                                    RECOMMENDED
+                            {/* Corner Brackets */}
+                            <div className={`absolute top-0 left-0 w-3 h-3 border-t border-l transition-colors ${isHighlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+                            <div className={`absolute top-0 right-0 w-3 h-3 border-t border-r transition-colors ${isHighlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+                            <div className={`absolute bottom-0 left-0 w-3 h-3 border-b border-l transition-colors ${isHighlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+                            <div className={`absolute bottom-0 right-0 w-3 h-3 border-b border-r transition-colors ${isHighlight ? 'border-cyan-500' : 'border-white/20 group-hover:border-white/60'}`} />
+
+                            <div className="flex justify-between items-start mb-8">
+                                <div>
+                                    <div className="font-mono text-[10px] text-gray-500 mb-1">[{tierLabel}]</div>
+                                    <h3 className={`text-xl font-bold mb-1 ${titleColor}`}>{plan.name}</h3>
+                                    <div className="text-[10px] font-mono text-cyan-600 border border-cyan-900/30 px-2 py-0.5 inline-block rounded-sm bg-cyan-950/20">
+                                        {plan.id === 'FREE' ? 'BASIC ACCESS' : (plan.id === 'PRO' ? 'FULL ACCESS' : 'ELITE ACCESS')}
+                                    </div>
                                 </div>
-                            )}
-
-                            <div className="p-6 flex-1">
-                                <div className="flex items-center justify-between mb-4">
-                                    <Icon className={`h-8 w-8 ${plan.id === 'FREE' ? 'text-gray-400' : plan.id === 'PRO' ? 'text-cyan-400' : 'text-purple-400'}`} />
-                                    {isCurrent && <div className="text-[10px] font-mono text-green-400 border border-green-500/30 px-2 py-0.5 rounded bg-green-500/10">ACTIVE</div>}
-                                </div>
-
-                                <h3 className="font-bold text-xl text-white font-mono">{plan.name}</h3>
-                                <div className="mt-2 text-3xl font-bold text-white tracking-tight">{plan.price}</div>
-                                <p className="text-xs text-gray-500 font-mono mb-6 uppercase tracking-wider">/ monthly cycle</p>
-
-                                <ul className="space-y-4">
-                                    {plan.features.map((feat, i) => (
-                                        <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
-                                            <div className="mt-0.5 p-0.5 rounded-full bg-cyan-500/20 text-cyan-400">
-                                                <Check className="h-3 w-3" />
-                                            </div>
-                                            <span>{feat}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                {isCurrent && (
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        <span className="text-[10px] font-mono text-green-500">ACTIVE</span>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="p-6 pt-0 mt-auto">
-                                <Button
-                                    onClick={() => {
-                                        if (isCurrent) return;
-                                        if (plan.id === 'FREE') setCancelModal(true); // Downgrade to Free = Cancel
-                                        else if (isDowngrade) handleDowngrade(plan.id);
-                                        else handleSubscribe(plan.id);
-                                    }}
-                                    disabled={isCurrent || (processingId !== null)}
-                                    // Make "processing" only if THIS button is processing
-                                    variant={isCurrent ? "ghost" : (plan.recommended ? "scanline" : "primary")}
-                                    className={`w-full ${isCurrent ? 'opacity-50' : ''}`}
-                                >
-                                    {/* Show loader only if processingId matches this plan.id */}
-                                    {processingId === plan.id
-                                        ? 'PROCESSING...'
-                                        : (isCurrent ? 'SYSTEM ACTIVE' : (plan.id === 'FREE' ? 'DOWNGRADE TO FREE' : (isDowngrade ? 'DOWNGRADE' : 'UPGRADE')))
-                                    }
-                                </Button>
+                            <div className="mb-8 border-b border-white/5 pb-8 flex-1">
+                                <span className="text-4xl font-bold text-white tracking-tighter">{plan.price}</span>
+                                {plan.id !== 'FREE' && <span className="text-gray-500 text-sm ml-2 font-mono">/mo</span>}
                             </div>
-                        </Card>
+
+                            <div className="space-y-4 mb-8">
+                                {plan.features.map((feat, j) => (
+                                    <div key={j} className="flex items-start gap-3 text-sm text-gray-400 font-mono">
+                                        <span className={`w-1 h-1 mt-1.5 shrink-0 ${isHighlight ? 'bg-cyan-500' : 'bg-gray-600'}`} />
+                                        {feat}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <Button
+                                onClick={() => {
+                                    if (isCurrent) return;
+                                    if (plan.id === 'FREE') setCancelModal(true);
+                                    else if (isDowngrade) handleDowngrade(plan.id);
+                                    else handleSubscribe(plan.id);
+                                }}
+                                disabled={isCurrent || (processingId !== null)}
+                                variant={isHighlight ? "scanline" : "ghost"}
+                                className="w-full"
+                            >
+                                {processingId === plan.id
+                                    ? 'PROCESSING...'
+                                    : (isCurrent ? 'SYSTEM_ACTIVE' : (plan.id === 'FREE' ? 'DOWNGRADE_TO_FREE' : (isDowngrade ? 'DOWNGRADE_SYSTEM' : 'INITIALIZE_UPGRADE')))
+                                }
+                            </Button>
+                        </div>
                     );
                 })}
             </div>
@@ -447,36 +460,41 @@ export default function BillingPage() {
                         Neural Credit Top-Up
                     </h2>
                     <p className="text-gray-400 font-mono text-sm max-w-xl">
-                        Run out of monthly credits? Boost your balance instantly. One-time purchase, never expires.
+                        // INSTANT_CAPACITY_INJECTION
                     </p>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-3">
                     {TOP_UP_PACKS.map((pack) => (
-                        <Card key={pack.id} className="p-6 relative overflow-hidden group hover:border-yellow-500/30 transition-colors">
-                            <div className="absolute top-0 right-0 p-24 bg-yellow-500/5 rounded-full blur-2xl group-hover:bg-yellow-500/10 transition-colors" />
+                        <div key={pack.id} className="p-6 relative transition-all duration-300 group bg-black border border-white/10 hover:border-yellow-500/50 flex flex-col">
+                            {/* Corner Brackets (Yellow) */}
+                            <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-white/20 group-hover:border-yellow-500 transition-colors" />
+                            <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-white/20 group-hover:border-yellow-500 transition-colors" />
+                            <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-white/20 group-hover:border-yellow-500 transition-colors" />
+                            <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-white/20 group-hover:border-yellow-500 transition-colors" />
 
                             <div className="relative z-10 flex flex-col h-full">
                                 <div className="mb-4">
+                                    <div className="font-mono text-[10px] text-gray-500 mb-1">[{pack.id}]</div>
                                     <h3 className="text-lg font-bold text-white font-mono">{pack.label}</h3>
-                                    <div className="text-3xl font-bold text-yellow-400 mt-1">{pack.price}</div>
+                                    <div className="text-3xl font-bold text-yellow-400 mt-2 tracking-tighter">{pack.price}</div>
                                 </div>
 
-                                <div className="flex items-center gap-2 mb-6 text-yellow-500/80 font-mono text-sm">
+                                <div className="flex items-center gap-2 mb-8 text-yellow-500/80 font-mono text-sm border border-yellow-500/20 bg-yellow-500/5 p-2 rounded-sm self-start">
                                     <Zap className="h-4 w-4" />
-                                    <span>{pack.credits} Credits</span>
+                                    <span>{pack.credits} CREDITS</span>
                                 </div>
 
                                 <Button
                                     onClick={() => handleTopUp(pack.id)}
                                     disabled={processingId !== null}
-                                    variant="outline"
-                                    className="mt-auto border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                                    variant="ghost"
+                                    className="mt-auto border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 w-full"
                                 >
-                                    {processingId === pack.id ? 'PROCESSING...' : 'INSTANT TOP-UP'}
+                                    {processingId === pack.id ? 'PROCESSING...' : 'INITIATE_TOP_UP'}
                                 </Button>
                             </div>
-                        </Card>
+                        </div>
                     ))}
                 </div>
             </div>

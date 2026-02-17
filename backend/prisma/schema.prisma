@@ -27,6 +27,7 @@ enum Mood {
 enum OtpPurpose {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+  SECURITY_ACTION
 }
 
 enum RecurrenceType {

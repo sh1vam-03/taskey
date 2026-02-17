@@ -54,8 +54,27 @@ const authService = {
     },
 
     // Delete Account
-    deleteAccount: async () => {
-        await api.delete('/auth/me');
+    deleteAccount: async (otp) => {
+        const response = await api.delete('/auth/me', { data: { otp } });
+        return response.data;
+    },
+
+    // Update Profile
+    updateProfile: async (data) => {
+        const response = await api.put('/auth/me', data);
+        return response.data;
+    },
+
+    // Change Password
+    changePassword: async (oldPassword, newPassword, otp) => {
+        const response = await api.post('/auth/change-password', { oldPassword, newPassword, otp });
+        return response.data;
+    },
+
+    // Request Security OTP
+    requestSecurityOtp: async (password = null) => {
+        const response = await api.post('/auth/request-security-otp', { password });
+        return response.data;
     },
 };
 

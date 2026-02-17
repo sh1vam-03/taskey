@@ -192,20 +192,6 @@ export const resetPassword = asyncHandler(async (req, res) => {
 });
 
 /* =========================
-   DELETE ACCOUNT
-========================= */
-export const deleteMyAccount = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-
-    const result = await authService.deleteMyAccount(userId);
-
-    res.status(200).json({
-        success: true,
-        message: result.message,
-    });
-});
-
-/* =========================
    GET PROFILE
 ========================= */
 export const getMyProfile = asyncHandler(async (req, res) => {
@@ -294,5 +280,74 @@ export const logoutAll = asyncHandler(async (req, res) => {
     res.status(200).json({
         success: true,
         message: "Logged out from all devices",
+    });
+});
+
+/* =========================
+   REQUEST SECURITY OTP
+========================= */
+export const requestSecurityOtp = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { password } = req.body; // Optional password for pre-validation
+    const result = await authService.requestSecurityOtp(userId, password);
+    res.status(200).json({ success: true, message: result.message });
+});
+
+/* =========================
+   UPDATE PROFILE
+========================= */
+export const updateProfile = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { name, timezone } = req.body;
+
+    // We allow name OR timezone or both.
+    if (!name && !timezone) throw new ApiError(400, "Nothing to update");
+
+    const updatedUser = await authService.updateProfile(userId, { name, timezone });
+
+    res.status(200).json({
+        success: true,
+        message: "Profile updated",
+        data: updatedUser,
+    });
+});
+
+/* =========================
+   CHANGE PASSWORD
+========================= */
+export const changePassword = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { oldPassword, newPassword, otp } = req.body;
+
+    if (!oldPassword || !newPassword || !otp) {
+        throw new ApiError(400, "Passwords and Security OTP are required");
+    }
+
+    if (newPassword.length < 6) {
+        throw new ApiError(400, "New password must be at least 6 characters");
+    }
+
+    const result = await authService.changePassword(userId, oldPassword, newPassword, otp);
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/* =========================
+   DELETE ACCOUNT
+========================= */
+export const deleteMyAccount = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { otp } = req.body;
+
+    if (!otp) throw new ApiError(400, "Security OTP is required to delete account");
+
+    const result = await authService.deleteMyAccount(userId, otp);
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
     });
 });

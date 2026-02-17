@@ -85,17 +85,17 @@ export default function Button({
 
                     {/* Scanline Fill */}
                     {variant === 'scanline' && (
-                        <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+                        <span className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
                     )}
 
                     {/* Ghost Fill (Cyan Match) */}
                     {variant === 'ghost' && (
-                        <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
+                        <span className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
                     )}
 
                     {/* Tech Corners (Static - Color Change Only) */}
-                    <div className={`absolute top-0 left-0 ${activeCorner.tl} ${variant === 'ghost' ? 'border-white/20' : 'border-black'} group-hover:border-white transition-colors duration-300 z-20`} />
-                    <div className={`absolute bottom-0 right-0 ${activeCorner.br} ${variant === 'ghost' ? 'border-white/20' : 'border-black'} group-hover:border-white transition-colors duration-300 z-20`} />
+                    <span className={`absolute top-0 left-0 ${activeCorner.tl} ${variant === 'ghost' ? 'border-white/20' : 'border-black'} group-hover:border-white transition-colors duration-300 z-20`} />
+                    <span className={`absolute bottom-0 right-0 ${activeCorner.br} ${variant === 'ghost' ? 'border-white/20' : 'border-black'} group-hover:border-white transition-colors duration-300 z-20`} />
                 </>
             ) : (
                 children

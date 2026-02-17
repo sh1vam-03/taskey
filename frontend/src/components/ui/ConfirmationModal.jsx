@@ -13,7 +13,8 @@ export default function ConfirmationModal({
     confirmText = "Confirm",
     cancelText = "Cancel",
     variant = "danger", // danger | warning | info
-    isLoading = false
+    isLoading = false,
+    children
 }) {
     const modalRef = useRef(null);
 
@@ -73,6 +74,7 @@ export default function ConfirmationModal({
                             <div className="text-gray-400 text-sm leading-relaxed">
                                 {message}
                             </div>
+                            {children && <div className="mt-4">{children}</div>}
                         </div>
                     </div>
                 </div>
