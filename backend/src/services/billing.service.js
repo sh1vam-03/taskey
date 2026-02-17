@@ -1,8 +1,9 @@
 import Razorpay from "razorpay";
+import crypto from "crypto";
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { PLANS, TOP_UP_PLANS, getPlanRank } from "../config/plans.config.js"; // New Import
-import { PaymentPurpose, RazorpayEntity } from "@prisma/client";
+import { PaymentPurpose, RazorpayEntity, CreditSource } from "@prisma/client";
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -141,7 +142,7 @@ export const createTopUpOrder = async (userId, topUpId) => {
     const options = {
         amount: pack.price * 100, // paise
         currency: "INR",
-        receipt: `topup_${userId}_${Date.now()}`,
+        receipt: `topup_${userId.slice(0, 8)}_${Date.now()}`,
         payment_capture: 1
     };
 
@@ -151,7 +152,7 @@ export const createTopUpOrder = async (userId, topUpId) => {
     await prisma.payment.create({
         data: {
             userId,
-            entity: RazorpayEntity.TOP_UP, // Ensure this enum exists or use 'TOP_UP' string if enum is String
+            entity: RazorpayEntity.PAYMENT,
             purpose: PaymentPurpose.TOP_UP,
             amount: pack.price * 100,
             currency: "INR",
@@ -178,4 +179,74 @@ export const getPaymentHistory = async (userId) => {
         take: 20
     });
     return history;
+};
+
+export const verifyTopUpPayment = async (userId, paymentId, orderId, signature) => {
+    // 1. Verify Signature
+    const body = orderId + "|" + paymentId;
+    const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+        .update(body.toString())
+        .digest("hex");
+
+    if (expectedSignature !== signature) {
+        throw new ApiError(400, "Invalid payment signature");
+    }
+
+    // 2. Find Payment Record
+    const payment = await prisma.payment.findFirst({
+        where: { razorpayOrderId: orderId }
+    });
+
+    if (!payment) {
+        throw new ApiError(404, "Payment record not found");
+    }
+
+    if (payment.status === "PAID") {
+        return { message: "Payment already verified", status: "PAID" };
+    }
+
+    // 3. Mark Payment as PAID
+    await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+            status: "PAID",
+            razorpayPaymentId: paymentId,
+            razorpaySignature: signature
+        }
+    });
+
+    // 4. Add Credits to User
+    // Determine credits from amount (reverse lookup from TOP_UP_PLANS)
+    // Or store credits in metadata? Schema might not have metadata.
+    // Let's find the pack by price.
+    const pack = Object.values(TOP_UP_PLANS).find(p => Math.abs(p.price * 100 - payment.amount) < 1);
+
+    // Fallback or Error if pack not found? 
+    // If pack not found, maybe just log? But we must give credits!
+    // Let's assume strict price matching.
+    const creditsToAdd = pack ? pack.credits : 0;
+
+    if (creditsToAdd > 0) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                aiCreditBalance: { increment: creditsToAdd },
+                creditLedger: {
+                    create: {
+                        credits: creditsToAdd,
+                        source: CreditSource.TOP_UP,
+                        reason: `Top-Up: ${pack?.label || 'Credits'}`,
+                        paymentId: payment.id
+                    }
+                }
+            }
+        });
+    }
+
+    return {
+        success: true,
+        creditsAdded: creditsToAdd,
+        newBalance: (await prisma.user.findUnique({ where: { id: userId } })).aiCreditBalance
+    };
 };

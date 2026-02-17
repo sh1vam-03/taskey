@@ -7,6 +7,8 @@ import {
     generateJti,
 } from "../utils/jwt.js";
 import { generateOtp, hashOtp } from "../utils/otp.js";
+import { PLANS } from "../config/plans.config.js";
+import { PlanType } from "@prisma/client";
 import { sendOtpEmail, sendPasswordResetEmail } from "./email.service.js"; // Import Email Service
 import { addMinutes, addDays } from "date-fns";
 import {
@@ -35,6 +37,7 @@ export const signup = async (name, email, password) => {
             name,
             email,
             password: hashedPassword,
+            aiCreditBalance: PLANS[PlanType.FREE].credits.MONTHLY || 0 // Initialize with Free Tier credits
         },
     });
 

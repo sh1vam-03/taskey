@@ -6,9 +6,6 @@ const authMiddleware = async (req, res, next) => {
     try {
         const token = req.cookies?.accessToken;
 
-        // DEBUG LOGGING
-        // console.log("Auth Middleware - Token Present:", !!token);
-
         if (!token) {
             console.log("Auth Middleware: No access token in cookies");
             return res.status(401).json({ message: "Unauthorized access" });

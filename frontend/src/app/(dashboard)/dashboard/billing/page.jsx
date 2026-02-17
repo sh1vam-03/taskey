@@ -166,9 +166,49 @@ export default function BillingPage() {
         }
     };
 
-    // Placeholder for Top-Up Handler (Assuming it existed but wasn't in snippet view)
     const handleTopUp = async (packId) => {
-        // Implementation needed or assumed existing
+        setProcessing(true);
+        try {
+            const orderData = await billingService.createTopUp(packId);
+            // orderData contains: orderId, key, pack details...
+
+            const options = {
+                key: orderData.data.key, // Ensure backend returns key in data.key or just key
+                amount: orderData.data.price * 100,
+                currency: "INR",
+                name: "Taskey AI",
+                description: `Credit Top-Up: ${orderData.data.label}`,
+                order_id: orderData.data.orderId,
+                handler: async function (response) {
+                    try {
+                        await billingService.verifyTopUp({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+                        success("Credits added successfully!");
+                        setTimeout(() => window.location.reload(), 1500);
+                    } catch (err) {
+                        console.error("Verification failed", err);
+                        error("Payment verification failed. Please contact support.");
+                        setProcessing(false);
+                    }
+                },
+                modal: {
+                    ondismiss: function () {
+                        setProcessing(false);
+                    }
+                },
+                theme: { color: "#06b6d4" }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch (err) {
+            console.error(err);
+            error("Top-up initialization failed.");
+            setProcessing(false);
+        }
     };
 
     if (loading || authLoading) return (
@@ -289,14 +329,33 @@ export default function BillingPage() {
                     icon={<Shield className="w-5 h-5" />}
                     color="purple"
                 />
-                <UsageCard
-                    label="AI Credits"
-                    count={usage?.aiTokensUsed}
-                    limit={currentSub?.usageLimit}
-                    icon={<Zap className="w-5 h-5" />}
-                    color="cyan"
-                    forceLimit={true} // AI is never unlimited
-                />
+
+                {/* AI Credit Balance Card (Wallet Style) */}
+                <Card className="p-6 flex flex-col justify-between h-full bg-gradient-to-br from-cyan-900/10 to-transparent hover:bg-cyan-900/20 transition-colors border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.05)]">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400">
+                            <Zap className="h-6 w-6" />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-cyan-400/80 uppercase tracking-wider font-mono mb-1">AVAILABLE</p>
+                            <p className="text-3xl font-bold text-white font-mono text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+                                {user?.aiCreditBalance || 0}
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex justify-between text-xs mb-2 font-mono">
+                            <span className="text-gray-400">Neural Credits</span>
+                            <span className="text-cyan-500">Active</span>
+                        </div>
+                        <div className="h-2 w-full bg-cyan-950/50 rounded-full overflow-hidden border border-cyan-500/20">
+                            <div className="h-full w-full bg-cyan-500/20 animate-pulse" />
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-2 text-right">
+                            Monthly Base: {currentSub?.usageLimit || 0}
+                        </p>
+                    </div>
+                </Card>
             </div>
 
             {/* Pricing Section */}

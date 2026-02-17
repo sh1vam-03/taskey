@@ -46,6 +46,14 @@ const billingService = {
     },
 
     /**
+     * Verify Top-Up Payment
+     */
+    async verifyTopUp(paymentData) {
+        const response = await api.post("/billing/top-up/verify", paymentData);
+        return response.data;
+    },
+
+    /**
      * Get payment history
      */
     async getHistory() {
