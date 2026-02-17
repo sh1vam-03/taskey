@@ -259,28 +259,34 @@ export default function BehaviorPage() {
                         </div>
 
                         <div className="grid grid-cols-5 gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
-                            {Array.from({ length: 5 }).map((_, i) => {
-                                const date = subDays(new Date(), 4 - i);
-                                const dateStr = format(date, 'yyyy-MM-dd');
-                                const isSelected = selectedDate === dateStr;
-                                const isToday = isSameDay(date, new Date());
+                            {(() => {
+                                // Calculate 5-day window centered on selected date, but clamped to Today
+                                const today = new Date();
+                                let endWindow = addDays(parseISO(selectedDate), 2);
+                                if (endWindow > today) endWindow = today;
 
-                                return (
-                                    <button
-                                        key={dateStr}
-                                        onClick={() => handleDateSelect(dateStr)}
-                                        className={`
+                                return Array.from({ length: 5 }).map((_, i) => {
+                                    const date = subDays(endWindow, 4 - i);
+                                    const dateStr = format(date, 'yyyy-MM-dd');
+                                    const isSelected = selectedDate === dateStr;
+
+                                    return (
+                                        <button
+                                            key={dateStr}
+                                            onClick={() => handleDateSelect(dateStr)}
+                                            className={`
                                             flex flex-col items-center p-2 rounded-lg border transition-all min-w-[60px]
                                             ${isSelected
-                                                ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                                                : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'}
+                                                    ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                                                    : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'}
                                         `}
-                                    >
-                                        <span className="text-[10px] uppercase font-bold">{isToday ? 'TDY' : format(date, 'EEE')}</span>
-                                        <span className={`text-lg font-mono ${isSelected ? 'text-blue-400' : ''}`}>{format(date, 'd')}</span>
-                                    </button>
-                                );
-                            })}
+                                        >
+                                            <span className="text-[10px] uppercase font-bold">{format(date, 'EEE')}</span>
+                                            <span className={`text-lg font-mono ${isSelected ? 'text-blue-400' : ''}`}>{format(date, 'd')}</span>
+                                        </button>
+                                    );
+                                });
+                            })()}
                         </div>
                     </Card>
 
