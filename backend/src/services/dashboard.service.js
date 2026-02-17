@@ -2,7 +2,7 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
 import { startOfUTCDate, dayKey, appliesOnDate, getWeekRange, toUTCDateOnly } from "../utils/date.utils.js";
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 
 export const getDashboardOverview = async (userId, dateString) => {
@@ -726,7 +726,8 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
                     { taskDate: { gte: start, lt: queryEnd } },
                     { dueDate: { gte: start }, taskDate: { lt: queryEnd } }
                 ]
-            }
+            },
+            include: { dailyCompletions: { select: { completedDate: true } } }
         }),
 
         prisma.taskDailyCompletion.findMany({
@@ -763,6 +764,7 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
     /* ==================== BUILD STATS PER DAY ==================== */
 
     const statsMap = {};
+    const todayForStats = toUTCDateOnly(new Date());
 
     for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
         const key = dayKey(d);
@@ -797,10 +799,17 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
             ? [...dayCompletedTasks].filter(id => unscheduledIds.has(id)).length
             : 0;
 
+        // Calculate Missed Unscheduled (Calendar Logic: pending && date < today)
+        let missedUnscheduled = 0;
+        if (dayDate < todayForStats) {
+            const completedIds = dayCompletedTasks ? new Set([...dayCompletedTasks]) : new Set();
+            missedUnscheduled = unscheduledForDay.filter(t => t.dailyCompletions.length === 0).length;
+        }
+
         // --- Totals ---
         const total = scheduledTotal + unscheduledTotal;
         const completed = completedScheduled + completedUnscheduled;
-        const missed = missedScheduled;
+        const missed = missedScheduled + missedUnscheduled;
 
         statsMap[key] = {
             total,
@@ -822,9 +831,7 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
 
     /* ------------------ FETCH ------------------ */
 
-    /* ------------------ FETCH ------------------ */
-
-    const [user, behaviorLog, dailyCompletions, statsMap, schedules, scheduleCompletions, unscheduledTasks] = await Promise.all([
+    const [user, behaviorLog, dailyCompletions, statsMap, schedules, scheduleCompletions, unscheduledTasks, missedSchedules] = await Promise.all([
         prisma.user.findUnique({
             where: { id: userId },
             select: { timezone: true }
@@ -876,7 +883,15 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
                     { dueDate: { gte: day }, taskDate: { lte: end } }
                 ]
             },
-            select: { id: true, createdAt: true, taskDate: true, dueDate: true }
+            select: { id: true, createdAt: true, taskDate: true, dueDate: true, dailyCompletions: { select: { completedDate: true } } }
+        }),
+        // Fetch missed schedules for hourly breakdown
+        prisma.missedSchedule.findMany({
+            where: {
+                userId,
+                missedOn: day
+            },
+            include: { schedule: { select: { endTime: true } } }
         })
     ]);
 
@@ -887,7 +902,8 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
     const hourly = Array.from({ length: 24 }, (_, i) => ({
         time: `${String(i).padStart(2, '0')}:00`,
         completed: 0,
-        total: 0
+        total: 0,
+        missed: 0
     }));
 
     // Helper to get local hour (0-23)
@@ -913,6 +929,7 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
     // Populate hourly totals from Unscheduled tasks
     // Logic: If created today -> show at creation time. If created before -> show at 09:00.
     const dayDate = toUTCDateOnly(day);
+    const todayForStats = toUTCDateOnly(new Date());
     // Filter unscheduled tasks for today (same logic as buildDailyStatsMap loop)
     const unscheduledForDay = [];
     for (const task of unscheduledTasks) {
@@ -937,6 +954,61 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
 
         if (hourly[hour]) hourly[hour].total++;
     });
+
+    // Populate hourly MISSED from Scheduled tasks (Dynamic Calculation)
+    // Logic: If schedule is NOT completed AND (day < today OR (day == today && endTime < now)) -> Missed
+    const currentLocalTime = toZonedTime(new Date(), timezone);
+    const isToday = day.getTime() === todayForStats.getTime();
+    const isPastDay = day < todayForStats;
+
+    const completedScheduleIds = new Set();
+    scheduleCompletions.forEach(c => completedScheduleIds.add(c.scheduleId));
+
+    todaySchedules.forEach(s => {
+        if (!completedScheduleIds.has(s.id)) {
+            // It is pending. Check if missed.
+            if (s.endTime) {
+                const endHour = new Date(s.endTime).getUTCHours();
+                const endMinute = new Date(s.endTime).getUTCMinutes();
+
+                let isMissed = false;
+                if (isPastDay) {
+                    isMissed = true;
+                } else if (isToday) {
+                    // Check if end time passed
+                    const currentHour = currentLocalTime.getHours();
+                    const currentMinute = currentLocalTime.getMinutes();
+
+                    if (endHour < currentHour || (endHour === currentHour && endMinute < currentMinute)) {
+                        isMissed = true;
+                    }
+                }
+
+                if (isMissed) {
+                    // Show at end time
+                    if (hourly[endHour]) hourly[endHour].missed++;
+                }
+            }
+        }
+    });
+
+    // Populate hourly MISSED from Unscheduled tasks
+    // Logic: If date < today AND not completed -> Show at 00:00 (Midnight)
+    // Logic: If date < today AND not completed -> Show at 00:00 (Midnight)
+    if (dayDate < todayForStats) {
+        const completedUnscheduledIds = new Set();
+        dailyCompletions.forEach(c => {
+            completedUnscheduledIds.add(c.taskId);
+        });
+
+        unscheduledForDay.forEach(t => {
+            if (t.dailyCompletions.length === 0) {
+                // It is missed on this day.
+                // Show at 00:00 per user request.
+                if (hourly[0]) hourly[0].missed++;
+            }
+        });
+    }
 
     // Deduplicate completions by taskId per hour (prevents re-toggle inflation)
     const seenTaskIds = new Set();
