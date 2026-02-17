@@ -175,11 +175,14 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         logsMap.set(log.date.toISOString().slice(0, 10), log);
     });
 
+    // ⚡ OPTIMIZATION: Fetch stats for the ENTIRE range once, instead of inside the loop
+    const statsMap = await buildDailyStatsMap(userId, start, end);
+
     // Iterate through EACH day in the range to build history (filling gaps)
     const loopDate = new Date(start);
     while (loopDate <= end) {
         const key = loopDate.toISOString().slice(0, 10);
-        const dayDate = new Date(loopDate);
+        // const dayDate = new Date(loopDate); // No longer needed for individual fetch
         const log = logsMap.get(key);
 
         let behaviorScore = 0;
@@ -187,7 +190,7 @@ export const getBehaviorSummary = async (userId, days = 7) => {
 
         if (log) {
             // Calculate score for existing log
-            const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate);
+            // const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate); // OLD SLOW WAY
             const stats = statsMap[key] ?? { total: 0, completed: 0, missed: 0 };
 
             const bScore = calculateBehaviorScore({

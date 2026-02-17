@@ -26,29 +26,37 @@ const dashboardService = {
     },
 
     // Streaks
-    getStreaks: async () => {
-        const response = await api.get('/dashboard/streaks');
+    getStreaks: async (date) => {
+        const params = date ? { date } : {};
+        const response = await api.get('/dashboard/streaks', { params });
         return response.data.data;
     },
 
-    getStreakCalendar: async () => {
-        const response = await api.get('/dashboard/streak-calendar');
+    getStreakCalendar: async (date) => {
+        const params = date ? { date } : {};
+        const response = await api.get('/dashboard/streak-calendar', { params });
         return response.data.data;
     },
 
     // Performance
-    getDailyPerformance: async () => {
-        const response = await api.get('/dashboard/performance/daily');
+    getDailyPerformance: async (date) => {
+        const params = date ? { date } : {};
+        const response = await api.get('/dashboard/performance/daily', { params });
         return response.data.data;
     },
 
-    getWeeklyPerformance: async () => {
-        const response = await api.get('/dashboard/performance/weekly');
+    getWeeklyPerformance: async (date) => {
+        const params = date ? { date } : {};
+        const response = await api.get('/dashboard/performance/weekly', { params });
         return response.data.data;
     },
 
-    getMonthlyPerformance: async () => {
-        const response = await api.get('/dashboard/performance/monthly');
+    getMonthlyPerformance: async (year, month, date) => {
+        const params = {};
+        if (year) params.year = year;
+        if (month) params.month = month;
+        if (date) params.date = date;
+        const response = await api.get('/dashboard/performance/monthly', { params });
         return response.data.data;
     }
 };

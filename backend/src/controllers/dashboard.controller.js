@@ -94,8 +94,12 @@ export const getMonthlyDashboard = asyncHandler(async (req, res) => {
  */
 export const getStreakOverview = asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    const { date } = req.query;
 
-    const data = await dashboardService.getStreakOverview(userId);
+    const data = await dashboardService.getStreakOverview(
+        userId,
+        date ? toUTCDateOnly(date) : undefined
+    );
 
     res.status(200).json({
         success: true,
@@ -112,8 +116,13 @@ export const getStreakOverview = asyncHandler(async (req, res) => {
 export const getStreakCalendar = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const days = Number(req.query.days) || 90;
+    const { date } = req.query;
 
-    const data = await dashboardService.getStreakCalendar(userId, days);
+    const data = await dashboardService.getStreakCalendar(
+        userId,
+        days,
+        date ? toUTCDateOnly(date) : undefined
+    );
 
     res.status(200).json({
         success: true,
@@ -171,7 +180,7 @@ export const getWeeklyPerformance = asyncHandler(async (req, res) => {
  */
 export const getMonthlyPerformance = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    let { year, month } = req.query;
+    let { year, month, date } = req.query;
 
     // Use UTC-based current month/year if not provided
     const current = getCurrentMonthYear();
@@ -181,7 +190,8 @@ export const getMonthlyPerformance = asyncHandler(async (req, res) => {
     const data = await dashboardService.getMonthlyPerformance(
         userId,
         Number(year),
-        Number(month)
+        Number(month),
+        date ? toUTCDateOnly(date) : undefined
     );
 
     res.status(200).json({

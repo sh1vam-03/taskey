@@ -661,8 +661,8 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
 
 // Current Streak (Based on Activity > 0)
 // Streak Metrics: Current (Perfect), Best (Perfect), Active (Attendance)
-export const getStreakOverview = async (userId) => {
-    const today = startOfUTCDate();
+export const getStreakOverview = async (userId, date) => {
+    const today = date ? toUTCDateOnly(date) : startOfUTCDate();
     const todayKey = dayKey(today);
 
     // 1. Determine Start Date (User Creation)
@@ -775,8 +775,8 @@ export const getStreakOverview = async (userId) => {
 };
 
 // Streak Calender
-export const getStreakCalendar = async (userId, days = 90) => {
-    const today = startOfUTCDate();
+export const getStreakCalendar = async (userId, days = 90, endDate) => {
+    const today = endDate ? toUTCDateOnly(endDate) : startOfUTCDate();
     const start = new Date(today);
     start.setUTCDate(today.getUTCDate() - (days - 1));
 
@@ -1257,10 +1257,10 @@ export const getWeeklyPerformance = async (userId, date = new Date()) => {
 };
 
 // Monthly Performance (History Trend)
-export const getMonthlyPerformance = async (userId, year, month) => {
+export const getMonthlyPerformance = async (userId, year, month, currentDate) => {
     const start = new Date(Date.UTC(year, month - 1, 1));
     const end = new Date(Date.UTC(year, month, 0, 23, 59, 59));
-    const today = startOfUTCDate();
+    const today = currentDate ? toUTCDateOnly(currentDate) : startOfUTCDate();
     const effectiveEnd = end > today ? today : end;
 
     const map = await buildDailyStatsMap(userId, start, effectiveEnd);

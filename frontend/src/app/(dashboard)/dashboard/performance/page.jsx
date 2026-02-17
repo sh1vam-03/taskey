@@ -25,12 +25,14 @@ export default function PerformancePage() {
             setError(null);
             try {
                 let result;
+                const localDate = new Date().toLocaleDateString('en-CA');
                 if (view === "daily") {
-                    result = await dashboardService.getDailyPerformance();
+                    result = await dashboardService.getDailyPerformance(localDate);
                 } else if (view === "weekly") {
-                    result = await dashboardService.getWeeklyPerformance();
+                    result = await dashboardService.getWeeklyPerformance(localDate);
                 } else if (view === "monthly") {
-                    result = await dashboardService.getMonthlyPerformance();
+                    const d = new Date();
+                    result = await dashboardService.getMonthlyPerformance(d.getFullYear(), d.getMonth() + 1, localDate);
                 }
 
                 setData(result);

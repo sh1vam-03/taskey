@@ -13,9 +13,10 @@ export default function StreaksPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const localDate = new Date().toLocaleDateString('en-CA');
                 const [streaks, calendar] = await Promise.all([
-                    dashboardService.getStreaks(),
-                    dashboardService.getStreakCalendar()
+                    dashboardService.getStreaks(localDate),
+                    dashboardService.getStreakCalendar(localDate)
                 ]);
                 setStreakData(streaks);
 

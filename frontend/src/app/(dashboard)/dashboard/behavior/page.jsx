@@ -220,11 +220,15 @@ export default function BehaviorPage() {
                                 <PerformanceChart
                                     key={chartPeriod}
                                     data={summary?.history || []}
-                                    type="area"
-                                    dataKey="behaviorScore"
+                                    dataKeys={[
+                                        {
+                                            key: 'behaviorScore',
+                                            name: 'Behavior Score',
+                                            color: chartPeriod === 7 ? "#06b6d4" : "#a855f7"
+                                        }
+                                    ]}
                                     xAxisKey="date"
                                     height={250}
-                                    color={chartPeriod === 7 ? "#06b6d4" : "#a855f7"}
                                 />
                             )}
                         </div>
