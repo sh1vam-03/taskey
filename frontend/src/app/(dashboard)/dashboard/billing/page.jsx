@@ -352,7 +352,7 @@ export default function BillingPage() {
                             <div className="h-full w-full bg-cyan-500/20 animate-pulse" />
                         </div>
                         <p className="text-[10px] text-gray-500 mt-2 text-right">
-                            Monthly Base: {currentSub?.usageLimit || 0}
+                            Monthly Allocation: {currentSub?.usageLimit || 0}
                         </p>
                     </div>
                 </Card>
