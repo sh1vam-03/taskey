@@ -136,52 +136,59 @@ export default function BehaviorPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Score Gauge */}
-                <Card className="flex flex-col items-center justify-center relative overflow-hidden min-h-[400px]">
+                <Card className="relative overflow-hidden min-h-[420px]">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                         <BrainCircuit className="w-64 h-64" />
                     </div>
 
-                    <h2 className="text-gray-400 text-sm font-mono font-bold uppercase tracking-widest mb-8">
-                        Behavior Score
-                    </h2>
+                    <div className="flex flex-col h-full justify-between items-center z-10 relative">
+                        {/* Top: Title */}
+                        <h2 className="text-gray-400 text-sm font-mono font-bold uppercase tracking-widest mt-2">
+                            Behavior Score
+                        </h2>
 
-                    {loading ? (
-                        <div className="w-48 h-48 rounded-full border-4 border-white/5 animate-spin border-t-cyan-500 flex items-center justify-center">
-                            <span className="text-cyan-500 font-mono text-xs animate-pulse">CALCULATING...</span>
-                        </div>
-                    ) : (
-                        <div className="relative group">
-                            <div className={`
+                        {/* Center: Gauge */}
+                        <div className="flex-1 flex items-center justify-center py-6">
+                            {loading ? (
+                                <div className="w-48 h-48 rounded-full border-4 border-white/5 animate-spin border-t-cyan-500 flex items-center justify-center">
+                                    <span className="text-cyan-500 font-mono text-xs animate-pulse">CALCULATING...</span>
+                                </div>
+                            ) : (
+                                <div className="relative group">
+                                    <div className={`
                                 w-56 h-56 rounded-full border-8 flex items-center justify-center transition-all duration-1000
                                 ${getScoreColor(currentScore).replace('text-', 'border-')} 
                                 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-black/50 backdrop-blur-sm
                             `}>
-                                <div className="text-center z-10">
-                                    <span className={`text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
-                                        {detailsLoading ? (
-                                            <span className="text-4xl animate-pulse">...</span>
-                                        ) : (
-                                            currentScore || 0
-                                        )}
-                                    </span>
-                                    <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
-                                        {selectedDate === new Date().toLocaleDateString('en-CA') ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
+                                        <div className="text-center z-10">
+                                            <span className={`text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
+                                                {detailsLoading ? (
+                                                    <span className="text-4xl animate-pulse">...</span>
+                                                ) : (
+                                                    currentScore || 0
+                                                )}
+                                            </span>
+                                            <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
+                                                {selectedDate === new Date().toLocaleDateString('en-CA') ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {/* Decorative rings */}
+                                    <div className="absolute inset-0 rounded-full border border-white/5 scale-110 animate-pulse-slow" />
+                                    <div className="absolute inset-0 rounded-full border border-white/5 scale-125 opacity-30" />
                                 </div>
-                            </div>
-
-                            {/* Decorative rings */}
-                            <div className="absolute inset-0 rounded-full border border-white/5 scale-110 animate-pulse-slow" />
-                            <div className="absolute inset-0 rounded-full border border-white/5 scale-125 opacity-30" />
+                            )}
                         </div>
-                    )}
 
-                    <div className="mt-10 text-center max-w-md bg-white/5 p-4 rounded-lg border border-white/5 backdrop-blur-sm">
-                        <div className="flex items-start justify-center gap-3 text-gray-300 text-sm">
-                            <Lightbulb className="text-yellow-500 shrink-0 mt-0.5 h-4 w-4" />
-                            <p className="font-mono text-xs leading-relaxed">
-                                {loading || detailsLoading ? "ANALYZING NEURAL PATTERNS..." : explanation}
-                            </p>
+                        {/* Bottom: Explanation */}
+                        <div className="text-center w-full max-w-md bg-white/5 p-4 rounded-lg border border-white/5 backdrop-blur-sm">
+                            <div className="flex items-start justify-center gap-3 text-gray-300 text-sm">
+                                <Lightbulb className="text-yellow-500 shrink-0 mt-0.5 h-4 w-4" />
+                                <p className="font-mono text-xs leading-relaxed">
+                                    {loading || detailsLoading ? "ANALYZING NEURAL PATTERNS..." : explanation}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </Card>
