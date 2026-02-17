@@ -2,6 +2,7 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
 import { startOfUTCDate, dayKey, appliesOnDate, getWeekRange, toUTCDateOnly } from "../utils/date.utils.js";
+import { formatInTimeZone } from 'date-fns-tz';
 
 
 export const getDashboardOverview = async (userId, dateString) => {
@@ -661,11 +662,16 @@ export const getStreakCalendar = async (userId, days = 90) => {
 };
 
 
-// Performance engine
+// Performance engine — mirrors calendar.service.js logic exactly
 export const buildDailyStatsMap = async (userId, startDate, endDate) => {
     const start = toUTCDateOnly(startDate);
     const end = toUTCDateOnly(endDate);
-    end.setUTCHours(23, 59, 59, 999); // FULL DAY RANGE
+
+    // Exclusive end for DB queries (day after end)
+    const queryEnd = new Date(end);
+    queryEnd.setUTCDate(queryEnd.getUTCDate() + 1);
+
+    /* ==================== FETCH (same as calendar) ==================== */
 
     const [
         schedules,
@@ -675,14 +681,23 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
         dailyCompletions
     ] = await Promise.all([
 
-        /* ---------- Scheduled ---------- */
+        // Schedules — same query as getWeekCalendar / getMonthCalendar
         prisma.schedule.findMany({
             where: {
                 userId,
-                scheduleDate: { lte: end },
                 OR: [
-                    { repeatUntil: null },
-                    { repeatUntil: { gte: start } }
+                    {
+                        recurrence: "NONE",
+                        scheduleDate: { gte: start, lt: queryEnd }
+                    },
+                    {
+                        recurrence: { not: "NONE" },
+                        scheduleDate: { lt: queryEnd },
+                        OR: [
+                            { repeatUntil: null },
+                            { repeatUntil: { gte: start } }
+                        ]
+                    }
                 ]
             }
         }),
@@ -690,36 +705,39 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
         prisma.scheduleCompletion.findMany({
             where: {
                 userId,
-                completedOn: { gte: start, lte: end }
+                completedOn: { gte: start, lt: queryEnd }
             }
         }),
 
         prisma.missedSchedule.findMany({
             where: {
                 userId,
-                missedOn: { gte: start, lte: end }
+                missedOn: { gte: start, lt: queryEnd }
             }
         }),
 
-        /* ---------- Unscheduled (FIXED) ---------- */
+        // Unscheduled — same query as calendar
         prisma.task.findMany({
             where: {
                 userId,
                 deletedAt: null,
                 schedules: { none: {} },
-                createdAt: { gte: start, lte: end } // STRICT RANGE
+                OR: [
+                    { taskDate: { gte: start, lt: queryEnd } },
+                    { dueDate: { gte: start }, taskDate: { lt: queryEnd } }
+                ]
             }
         }),
 
         prisma.taskDailyCompletion.findMany({
             where: {
                 userId,
-                completedDate: { gte: start, lte: end }
+                completedDate: { gte: start, lt: queryEnd }
             }
         })
     ]);
 
-    /* ---------- Index maps ---------- */
+    /* ==================== INDEX MAPS ==================== */
 
     const completedScheduleMap = new Map();
     scheduleCompletions.forEach(c => {
@@ -735,62 +753,66 @@ export const buildDailyStatsMap = async (userId, startDate, endDate) => {
         missedScheduleMap.get(k).add(m.scheduleId);
     });
 
-    const completedTaskMap = new Map();
+    const dailyCompletedMap = new Map();
     dailyCompletions.forEach(c => {
         const k = dayKey(c.completedDate);
-        if (!completedTaskMap.has(k)) completedTaskMap.set(k, new Set());
-        completedTaskMap.get(k).add(c.taskId);
+        if (!dailyCompletedMap.has(k)) dailyCompletedMap.set(k, new Set());
+        dailyCompletedMap.get(k).add(c.taskId);
     });
 
-    /* ---------- Stats ---------- */
+    /* ==================== BUILD STATS PER DAY ==================== */
 
     const statsMap = {};
 
-    for (
-        let d = new Date(start);
-        d <= end;
-        d.setUTCDate(d.getUTCDate() + 1)
-    ) {
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
         const key = dayKey(d);
+        const dayDate = toUTCDateOnly(key);
 
-        const applicableSchedules = schedules.filter(s =>
-            appliesOnDate(s, d)
-        );
-
-        const unscheduledForDay = unscheduledTasks.filter(
-            t => dayKey(startOfUTCDate(t.createdAt)) === key
-        );
-
+        // --- Scheduled items (same as calendar: appliesOnDate) ---
+        const applicableSchedules = schedules.filter(s => appliesOnDate(s, dayDate));
         const scheduledTotal = applicableSchedules.length;
+
+        const completedScheduled = applicableSchedules.filter(
+            s => completedScheduleMap.get(key)?.has(s.id)
+        ).length;
+
+        const missedScheduled = applicableSchedules.filter(
+            s => missedScheduleMap.get(key)?.has(s.id)
+        ).length;
+
+        // --- Unscheduled items (same multi-day bucketing as calendar) ---
+        const unscheduledForDay = [];
+        for (const task of unscheduledTasks) {
+            const taskStart = startOfUTCDate(task.taskDate);
+            const taskEnd = task.dueDate ? startOfUTCDate(task.dueDate) : taskStart;
+            if (dayDate >= taskStart && dayDate <= taskEnd) {
+                unscheduledForDay.push(task);
+            }
+        }
+
         const unscheduledTotal = unscheduledForDay.length;
+        const unscheduledIds = new Set(unscheduledForDay.map(t => t.id));
+        const dayCompletedTasks = dailyCompletedMap.get(key);
+        const completedUnscheduled = dayCompletedTasks
+            ? [...dayCompletedTasks].filter(id => unscheduledIds.has(id)).length
+            : 0;
 
-        const completedScheduled =
-            completedScheduleMap.get(key)?.size ?? 0;
-
-        const completedUnscheduled =
-            completedTaskMap.get(key)?.size ?? 0;
-
-        const missed =
-            missedScheduleMap.get(key)?.size ?? 0;
-
+        // --- Totals ---
         const total = scheduledTotal + unscheduledTotal;
-        const completed = Math.min(
-            completedScheduled + completedUnscheduled,
-            total
-        );
+        const completed = completedScheduled + completedUnscheduled;
+        const missed = missedScheduled;
 
         statsMap[key] = {
             total,
             completed,
             missed,
-            score: total === 0
-                ? 0
-                : Math.round((completed / total) * 100)
+            score: total === 0 ? 0 : Math.round((completed / total) * 100)
         };
     }
 
     return statsMap;
 };
+
 
 // Daily Performance (Hourly Breakdown)
 export const getDailyPerformance = async (userId, date = new Date()) => {
@@ -800,7 +822,13 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
 
     /* ------------------ FETCH ------------------ */
 
-    const [behaviorLog, dailyCompletions, statsMap] = await Promise.all([
+    /* ------------------ FETCH ------------------ */
+
+    const [user, behaviorLog, dailyCompletions, statsMap, schedules, scheduleCompletions, unscheduledTasks] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: userId },
+            select: { timezone: true }
+        }),
         prisma.behaviorLog.findUnique({
             where: { userId_date: { userId, date: day } }
         }),
@@ -809,21 +837,123 @@ export const getDailyPerformance = async (userId, date = new Date()) => {
                 userId,
                 completedDate: day
             },
-            select: { completedAt: true }
+            select: { taskId: true, completedAt: true }
         }),
-        buildDailyStatsMap(userId, day, day)
+        buildDailyStatsMap(userId, day, day),
+        // Fetch schedules for today (same pattern as calendar)
+        prisma.schedule.findMany({
+            where: {
+                userId,
+                OR: [
+                    { recurrence: "NONE", scheduleDate: day },
+                    {
+                        recurrence: { not: "NONE" },
+                        scheduleDate: { lte: day },
+                        OR: [
+                            { repeatUntil: null },
+                            { repeatUntil: { gte: day } }
+                        ]
+                    }
+                ]
+            }
+        }),
+        // Fetch schedule completions for hourly breakdown
+        prisma.scheduleCompletion.findMany({
+            where: {
+                userId,
+                completedOn: day
+            },
+            select: { scheduleId: true, completedAt: true }
+        }),
+        // Fetch unscheduled tasks for today (same as buildDailyStatsMap)
+        prisma.task.findMany({
+            where: {
+                userId,
+                deletedAt: null,
+                schedules: { none: {} },
+                OR: [
+                    { taskDate: { gte: day, lte: end } },
+                    { dueDate: { gte: day }, taskDate: { lte: end } }
+                ]
+            },
+            select: { id: true, createdAt: true, taskDate: true, dueDate: true }
+        })
     ]);
+
+    const timezone = user?.timezone || "UTC";
 
     /* ------------------ HOURLY BREAKDOWN ------------------ */
 
     const hourly = Array.from({ length: 24 }, (_, i) => ({
         time: `${String(i).padStart(2, '0')}:00`,
-        completed: 0
+        completed: 0,
+        total: 0
     }));
 
+    // Helper to get local hour (0-23)
+    const getLocalHour = (date) => {
+        try {
+            return parseInt(formatInTimeZone(date, timezone, 'H'), 10);
+        } catch (e) {
+            return new Date(date).getUTCHours(); // Fallback
+        }
+    };
+
+    // Populate hourly totals from schedules that apply today
+    const todaySchedules = schedules.filter(s => appliesOnDate(s, day));
+    todaySchedules.forEach(s => {
+        if (s.startTime) {
+            const hour = getLocalHour(s.startTime);
+            if (hourly[hour]) hourly[hour].total++;
+        }
+    });
+
+    // Populate hourly totals from Unscheduled tasks
+    // Logic: If created today -> show at creation time. If created before -> show at 09:00.
+    const dayDate = toUTCDateOnly(day);
+    // Filter unscheduled tasks for today (same logic as buildDailyStatsMap loop)
+    const unscheduledForDay = [];
+    for (const task of unscheduledTasks) {
+        const taskStart = startOfUTCDate(task.taskDate);
+        const taskEnd = task.dueDate ? startOfUTCDate(task.dueDate) : taskStart;
+        if (dayDate >= taskStart && dayDate <= taskEnd) {
+            unscheduledForDay.push(task);
+        }
+    }
+
+    const startOfDay = new Date(day);
+    const endOfDay = new Date(day);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    unscheduledForDay.forEach(t => {
+        let hour = 9; // Default to 09:00 for pre-existing tasks
+
+        // If created TODAY, use creation time
+        if (t.createdAt >= startOfDay && t.createdAt <= endOfDay) {
+            hour = getLocalHour(t.createdAt);
+        }
+
+        if (hourly[hour]) hourly[hour].total++;
+    });
+
+    // Deduplicate completions by taskId per hour (prevents re-toggle inflation)
+    const seenTaskIds = new Set();
     dailyCompletions.forEach(c => {
-        const hour = new Date(c.completedAt).getHours(); // Local or UTC? Prisma returns UTC usually but let's assume consistent
-        if (hourly[hour]) hourly[hour].completed++;
+        if (!seenTaskIds.has(c.taskId)) {
+            seenTaskIds.add(c.taskId);
+            const hour = getLocalHour(c.completedAt);
+            if (hourly[hour]) hourly[hour].completed++;
+        }
+    });
+
+    // Add schedule completions (deduplicate by scheduleId)
+    const seenScheduleIds = new Set();
+    scheduleCompletions.forEach(c => {
+        if (!seenScheduleIds.has(c.scheduleId) && c.completedAt) {
+            seenScheduleIds.add(c.scheduleId);
+            const hour = getLocalHour(c.completedAt);
+            if (hourly[hour]) hourly[hour].completed++;
+        }
     });
 
     /* ------------------ SCORE ------------------ */
@@ -907,7 +1037,9 @@ export const getWeeklyPerformance = async (userId, date = new Date()) => {
         daily.push({
             day: days[d.getUTCDay()],
             date: key,
+            total: dayStat.total,
             completed: dayStat.completed,
+            missed: dayStat.missed,
             score,
             behaviorScore
         });
@@ -981,7 +1113,9 @@ export const getMonthlyPerformance = async (userId, year, month) => {
         history.push({
             date: key,
             completionRate: dayStat.total > 0 ? Math.round((dayStat.completed / dayStat.total) * 100) : 0,
+            total: dayStat.total,
             completed: dayStat.completed,
+            missed: dayStat.missed,
             score,
             behaviorScore
         });

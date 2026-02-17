@@ -169,25 +169,33 @@ export default function PerformancePage() {
                                 {view === 'daily' && (
                                     <PerformanceChart
                                         data={data?.hourly || []}
-                                        type="bar"
                                         xAxisKey="time"
+                                        dataKeys={[
+                                            { key: 'total', name: 'Assigned', color: '#8b5cf6' },
+                                            { key: 'completed', name: 'Completed', color: '#06b6d4' }
+                                        ]}
                                         height={400}
                                     />
                                 )}
                                 {view === 'weekly' && (
                                     <PerformanceChart
                                         data={data?.daily || []}
-                                        type="bar"
                                         xAxisKey="day"
+                                        dataKeys={[
+                                            { key: 'total', name: 'Assigned', color: '#8b5cf6' },
+                                            { key: 'completed', name: 'Completed', color: '#06b6d4' }
+                                        ]}
                                         height={400}
                                     />
                                 )}
                                 {view === 'monthly' && (
                                     <PerformanceChart
                                         data={data?.history || []}
-                                        type="area"
-                                        dataKey="completionRate"
                                         xAxisKey="date"
+                                        dataKeys={[
+                                            { key: 'total', name: 'Assigned', color: '#8b5cf6' },
+                                            { key: 'completed', name: 'Completed', color: '#06b6d4' }
+                                        ]}
                                         height={400}
                                     />
                                 )}
@@ -207,8 +215,8 @@ export default function PerformancePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {getInsights().map((insight, idx) => (
                             <div key={idx} className={`p-4 rounded-lg border flex items-start gap-4 ${insight.type === 'positive' ? 'bg-green-500/10 border-green-500/20 text-green-200' :
-                                    insight.type === 'attention' ? 'bg-red-500/10 border-red-500/20 text-red-200' :
-                                        'bg-blue-500/10 border-blue-500/20 text-blue-200'
+                                insight.type === 'attention' ? 'bg-red-500/10 border-red-500/20 text-red-200' :
+                                    'bg-blue-500/10 border-blue-500/20 text-blue-200'
                                 }`}>
                                 <div className="mt-1">
                                     {insight.type === 'positive' && <FaChartLine className="text-green-400" />}
