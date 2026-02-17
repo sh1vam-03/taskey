@@ -6,6 +6,7 @@ import dashboardService from '@/services/dashboard.service';
 import usageService from '@/services/usage.service';
 import billingService from '@/services/billing.service';
 import behaviorService from '@/services/behavior.service';
+import BehaviorLogModal from '@/components/dashboard/BehaviorLogModal';
 import scheduleService from '@/services/schedule.service';
 import { Zap, CheckSquare, Trophy, BrainCircuit, TrendingUp, Activity, Calendar, ArrowRight, Bot, Target } from 'lucide-react';
 import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
@@ -29,29 +30,30 @@ export default function DashboardOverview() {
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const behaviorLogged = useRef(false);
+    const [showBehaviorModal, setShowBehaviorModal] = useState(false);
 
     // 1. Behavior Update (Once on Load)
+    // 1. Check Behavior Log (Once on Load)
     useEffect(() => {
-        const logBehavior = async () => {
-            if (behaviorLogged.current) return;
-            behaviorLogged.current = true;
+        const checkBehaviorLog = async () => {
+            if (!user) return;
             try {
-                // Call behavior update silently
-                await behaviorService.upsertBehavior({
-                    date: new Date().toISOString().split('T')[0],
-                    mood: "NEUTRAL", // Default to NEUTRAL for auto-log
-                    notes: "Daily Dashboard Check-in"
-                });
+                // Get local date (YYYY-MM-DD)
+                const localDate = new Date().toLocaleDateString('en-CA');
+
+                // Check if log exists for today
+                const log = await behaviorService.getBehaviorByDate(localDate);
+
+                if (!log) {
+                    // No log found for today -> Open Modal
+                    setShowBehaviorModal(true);
+                }
             } catch (err) {
-                // Silent fail for behavior log
-                console.warn("Behavior log failed:", err);
+                console.error("Failed to check behavior log:", err);
             }
         };
 
-        if (user) {
-            logBehavior();
-        }
+        checkBehaviorLog();
     }, [user]);
 
     // 2. Fetch Overview Data
@@ -375,6 +377,16 @@ export default function DashboardOverview() {
                     </div>
                 </div>
             </div>
+
+            <BehaviorLogModal
+                isOpen={showBehaviorModal}
+                onClose={() => setShowBehaviorModal(false)}
+                onLogSaved={() => {
+                    // Refresh data after log
+                    const localDate = new Date().toLocaleDateString('en-CA');
+                    dashboardService.getOverview(localDate).then(setOverview);
+                }}
+            />
         </ErrorBoundary>
     );
 }

@@ -24,7 +24,10 @@ export const upsertBehaviorLog = async (userId, payload) => {
     if (!day) throw new ApiError(400, "Invalid date");
 
     const today = startOfUTCDate();
-    if (day > today) {
+    const maxDate = new Date(today);
+    maxDate.setUTCDate(today.getUTCDate() + 1); // Allow 1 day buffer for timezone differences
+
+    if (day > maxDate) {
         throw new ApiError(400, "Future dates are not allowed");
     }
 
@@ -138,7 +141,10 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         throw new ApiError(400, "Days must be between 1 and 90");
     }
 
+    // End date includes tomorrow (buffer for timezone)
     const end = startOfUTCDate();
+    end.setUTCDate(end.getUTCDate() + 1);
+
     const start = new Date(end);
     start.setUTCDate(end.getUTCDate() - (days - 1));
 

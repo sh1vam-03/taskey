@@ -45,6 +45,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
 
         try {
             await behaviorService.upsertBehavior({
+                date: new Date().toLocaleDateString('en-CA'),
                 mood,
                 sleepHours: Number(sleepHours),
                 exercise,

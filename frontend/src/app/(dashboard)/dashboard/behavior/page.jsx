@@ -13,7 +13,7 @@ export default function BehaviorPage() {
     const { success } = useToast();
     const [summary, setSummary] = useState(null);
     const [todayLog, setTodayLog] = useState(null); // Keeps track of today specifically for logging
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const [dayDetails, setDayDetails] = useState(null); // Data for the selected date
     const [explanation, setExplanation] = useState("");
     const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function BehaviorPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA');
             const [summaryData, logData, explainData, latestData] = await Promise.all([
                 behaviorService.getSummary(chartPeriod),
                 behaviorService.getBehaviorByDate(today).catch(() => null),
@@ -165,7 +165,7 @@ export default function BehaviorPage() {
                                         )}
                                     </span>
                                     <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
-                                        {selectedDate === new Date().toISOString().split('T')[0] ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
+                                        {selectedDate === new Date().toLocaleDateString('en-CA') ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
                                     </div>
                                 </div>
                             </div>
@@ -246,7 +246,7 @@ export default function BehaviorPage() {
                                 </span>
                                 <button
                                     onClick={handleNextDay}
-                                    disabled={selectedDate >= new Date().toISOString().split('T')[0]}
+                                    disabled={selectedDate >= new Date().toLocaleDateString('en-CA')}
                                     className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <ChevronRight className="h-4 w-4" />
