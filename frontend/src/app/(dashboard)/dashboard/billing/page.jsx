@@ -129,7 +129,7 @@ export default function BillingPage() {
                         setProcessingId(null);
                     }
                 },
-                theme: { color: "#06b6d4" }
+                theme: { color: "#000000" }
             };
 
             const rzp = new window.Razorpay(options);
@@ -199,7 +199,7 @@ export default function BillingPage() {
                         setProcessingId(null);
                     }
                 },
-                theme: { color: "#06b6d4" }
+                theme: { color: "#000000" }
             };
 
             const rzp = new window.Razorpay(options);
