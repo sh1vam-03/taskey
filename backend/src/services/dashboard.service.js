@@ -659,60 +659,118 @@ export const buildPerfectDayMap = async (userId, startDate, endDate) => {
 };
 
 
-// Current Streak
+// Current Streak (Based on Activity > 0)
+// Streak Metrics: Current (Perfect), Best (Perfect), Active (Attendance)
 export const getStreakOverview = async (userId) => {
     const today = startOfUTCDate();
-    const start = new Date(today);
-    start.setUTCDate(today.getUTCDate() - 364);
-
-    const map = await buildPerfectDayMap(userId, start, today);
-    const keys = Object.keys(map).sort();
-
-    // Calulate Current Streak (Backwards Date Iteration)
     const todayKey = dayKey(today);
-    let current = 0;
 
-    // 1. Check Today (If perfect, count it)
-    if (map[todayKey] === "PERFECT") {
-        current++;
-    }
+    // 1. Determine Start Date (User Creation)
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { createdAt: true }
+    });
+    const start = user ? startOfUTCDate(user.createdAt) : new Date(today.setFullYear(today.getFullYear() - 1));
 
-    // 2. Check History (Iterate backwards from Yesterday)
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - 1); // Start from yesterday
+    // 2. Fetch Daily Stats (For Perfect Streak Logic)
+    // "Current Streak: Complete all task" implies Perfect Day (completed === total && total > 0)
+    const statsMap = await buildDailyStatsMap(userId, start, today);
+    const sortedKeys = Object.keys(statsMap).sort();
 
-    while (true) {
-        const k = dayKey(d);
-        if (map[k] === "PERFECT") {
-            current++;
-            d.setUTCDate(d.getUTCDate() - 1); // Go back one day
-        } else {
-            break; // Stop at first non-perfect day
+    // 3. Fetch All Activity Dates (For Active Streak Logic - "Login/Activity")
+    const [
+        taskCreations,
+        taskCompletions,
+        scheduleCompletions,
+        sessions,
+        behaviorLogs
+    ] = await Promise.all([
+        prisma.task.findMany({ where: { userId }, select: { createdAt: true } }),
+        prisma.taskDailyCompletion.findMany({ where: { userId }, select: { completedDate: true } }),
+        prisma.scheduleCompletion.findMany({ where: { userId }, select: { completedOn: true } }),
+        prisma.session.findMany({ where: { userId }, select: { createdAt: true } }),
+        prisma.behaviorLog.findMany({ where: { userId }, select: { date: true } })
+    ]);
+
+    const activeDates = new Set();
+    const addDate = (d) => activeDates.add(dayKey(new Date(d)));
+
+    taskCreations.forEach(x => addDate(x.createdAt));
+    taskCompletions.forEach(x => addDate(x.completedDate));
+    scheduleCompletions.forEach(x => addDate(x.completedOn));
+    sessions.forEach(x => addDate(x.createdAt));
+    behaviorLogs.forEach(x => addDate(x.date));
+
+    // ================= CALCULATION =================
+
+    // Helper: Is Perfect Day?
+    const isPerfect = (k) => {
+        const s = statsMap[k];
+        if (!s) return false;
+        // Require total > 0 and 100% completion (or completed >= total)
+        // Also check if missed > 0? Strictly if completed >= total, missed implies extra/duplicate?
+        // Let's use score === 100 AND total > 0.
+        return s.total > 0 && s.score === 100;
+    };
+
+    // Helper: Calculate Streak based on specific check function
+    const calculateStreak = (checkFn) => {
+        let current = 0;
+        let best = 0;
+        let run = 0;
+
+        // Best Streak (All Time)
+        // Iterate form start to today
+        let dIter = new Date(start);
+        while (dIter <= today) {
+            const k = dayKey(dIter);
+            if (checkFn(k)) {
+                run++;
+            } else {
+                run = 0;
+            }
+            best = Math.max(best, run);
+            dIter.setUTCDate(dIter.getUTCDate() + 1);
         }
 
-        // Safety break
-        if (d < start) break;
-    }
+        // Current Streak (Backwards from Today)
+        let dCurr = new Date(today); // Check Today
+        const kToday = dayKey(dCurr);
 
-    let longest = 0;
-    let run = 0;
-    let totalActiveDays = 0;
-
-    for (const k of keys) {
-        if (map[k] === "PERFECT") {
-            run++;
-            longest = Math.max(longest, run);
-            totalActiveDays++;
-        } else {
-            run = 0;
+        // If today is NOT perfect/active, check if yesterday was.
+        // If today IS perfect/active, start counting from today.
+        if (!checkFn(kToday)) {
+            dCurr.setUTCDate(dCurr.getUTCDate() - 1);
         }
-    }
+
+        while (true) {
+            if (dCurr < start) break;
+            const k = dayKey(dCurr);
+            if (checkFn(k)) {
+                current++;
+                dCurr.setUTCDate(dCurr.getUTCDate() - 1);
+            } else {
+                break;
+            }
+        }
+        return { current, best };
+    };
+
+    // A. Perfect Streak (Current & Best)
+    const perfectStats = calculateStreak(isPerfect);
+
+    // B. Active Streak (Attendance - "Active Streak")
+    // User requested "Active Streak" to be the consecutive run using Login logic.
+    // We treat this as the "Active Streak" value.
+    const isActiveDate = (k) => activeDates.has(k);
+    const activeStats = calculateStreak(isActiveDate);
 
     return {
-        currentStreak: current,
-        longestStreak: longest,
-        totalActiveDays,
-        isActive: current > 0
+        currentStreak: perfectStats.current,
+        longestStreak: perfectStats.best, // "Best Streak: Longest run of Current Streak"
+        activeStreak: activeStats.current, // "Active Streak: increase when user login..."
+        totalActiveDays: activeDates.size, // Keep metric available
+        isActive: perfectStats.current > 0
     };
 };
 
@@ -1265,7 +1323,7 @@ export const getMonthlyPerformance = async (userId, year, month) => {
     }
 
     return {
-        month: `${year}-${String(month).padStart(2, "0")}`,
+        month: `${year} -${String(month).padStart(2, "0")} `,
         history,
         completionRate: totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0,
         totalCompleted,

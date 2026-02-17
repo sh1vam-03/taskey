@@ -168,10 +168,10 @@ export default function StreaksPage() {
                                 <div className="p-2 bg-cyan-500/20 rounded-lg">
                                     <FaCalendarCheck className="w-5 h-5 text-cyan-500" />
                                 </div>
-                                <h3 className="text-gray-400 font-medium">Total Active Days</h3>
+                                <h3 className="text-gray-400 font-medium">Active Streak</h3>
                             </div>
                             <div className="text-4xl font-bold text-white mb-1">
-                                {streakData?.totalActiveDays || 0}
+                                {streakData?.activeStreak || 0}
                             </div>
                             <p className="text-xs text-gray-500">Consistency is key</p>
                         </div>
