@@ -184,7 +184,8 @@ export default function PerformancePage() {
                                         xAxisKey="day"
                                         dataKeys={[
                                             { key: 'total', name: 'Assigned', color: '#8b5cf6' },
-                                            { key: 'completed', name: 'Completed', color: '#06b6d4' }
+                                            { key: 'completed', name: 'Completed', color: '#06b6d4' },
+                                            { key: 'missed', name: 'Missed', color: '#f43f5e' }
                                         ]}
                                         height={400}
                                     />
@@ -195,7 +196,8 @@ export default function PerformancePage() {
                                         xAxisKey="date"
                                         dataKeys={[
                                             { key: 'total', name: 'Assigned', color: '#8b5cf6' },
-                                            { key: 'completed', name: 'Completed', color: '#06b6d4' }
+                                            { key: 'completed', name: 'Completed', color: '#06b6d4' },
+                                            { key: 'missed', name: 'Missed', color: '#f43f5e' }
                                         ]}
                                         height={400}
                                     />

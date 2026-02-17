@@ -223,7 +223,8 @@ export const getWeeklyDashboard = async (userId, dateString) => {
                 deletedAt: null,
                 schedules: { none: {} },
                 taskDate: { gte: weekStart, lte: weekEnd }
-            }
+            },
+            include: { dailyCompletions: { select: { completedDate: true } } }
         }),
 
         prisma.taskDailyCompletion.findMany({
@@ -243,12 +244,8 @@ export const getWeeklyDashboard = async (userId, dateString) => {
         completedMap.get(k).add(c.scheduleId);
     });
 
-    const missedMap = new Map();
-    missedSchedules.forEach(m => {
-        const k = dayKey(m.missedOn);
-        if (!missedMap.has(k)) missedMap.set(k, new Set());
-        missedMap.get(k).add(m.scheduleId);
-    });
+    // MissedMap is no longer used for dynamic calculation, but we keep the variable if needed or remove it.
+    // We will calculate dynamic missed in the loop.
 
     const dailyCompletedMap = new Map();
     dailyCompletions.forEach(c => {
@@ -260,6 +257,8 @@ export const getWeeklyDashboard = async (userId, dateString) => {
     /* ------------------ INIT DAYS ------------------ */
 
     const days = {};
+    const todayDynamic = toUTCDateOnly(new Date());
+
     for (let d = new Date(weekStart); d <= weekEnd; d.setUTCDate(d.getUTCDate() + 1)) {
         days[dayKey(d)] = { total: 0, completed: 0, missed: 0, pending: 0 };
     }
@@ -273,9 +272,17 @@ export const getWeeklyDashboard = async (userId, dateString) => {
 
             days[key].total++;
 
-            if (completedMap.get(key)?.has(s.id)) days[key].completed++;
-            else if (missedMap.get(key)?.has(s.id)) days[key].missed++;
-            else days[key].pending++;
+            const isDone = completedMap.get(key)?.has(s.id);
+            if (isDone) {
+                days[key].completed++;
+            } else {
+                // Dynamic Missed Check
+                if (d < todayDynamic) {
+                    days[key].missed++;
+                } else {
+                    days[key].pending++;
+                }
+            }
         }
     }
 
@@ -286,11 +293,29 @@ export const getWeeklyDashboard = async (userId, dateString) => {
         if (!days[key]) continue;
 
         days[key].total++;
+        const d = new Date(`${key}T00:00:00Z`);
 
-        if (dailyCompletedMap.get(key)?.has(t.id)) {
+        // Check if completed specifically on this day (via dailyCompletedMap)
+        // OR check if completed EVER (via t.dailyCompletions.length > 0) to avoid showing as missed?
+        // Logic: If completed on THIS day -> Completed.
+        // If not completed on THIS day:
+        //    If d < today:
+        //        If completed EVER (t.dailyCompletions.length > 0) -> Not Missed (it was done).
+        //        Else -> Missed.
+
+        const isCompletedOnDay = dailyCompletedMap.get(key)?.has(t.id);
+
+        if (isCompletedOnDay) {
             days[key].completed++;
         } else {
-            days[key].pending++;
+            if (d < todayDynamic) {
+                // Only count as missed if never completed
+                if (t.dailyCompletions.length === 0) {
+                    days[key].missed++;
+                }
+            } else {
+                days[key].pending++;
+            }
         }
     }
 
@@ -365,7 +390,8 @@ export const getMonthlyDashboard = async (userId, year, month) => {
                 deletedAt: null,
                 schedules: { none: {} },
                 taskDate: { gte: monthStart, lte: monthEnd }
-            }
+            },
+            include: { dailyCompletions: { select: { completedDate: true } } }
         }),
 
         prisma.taskDailyCompletion.findMany({
@@ -385,12 +411,7 @@ export const getMonthlyDashboard = async (userId, year, month) => {
         completedMap.get(k).add(c.scheduleId);
     });
 
-    const missedMap = new Map();
-    missedSchedules.forEach(m => {
-        const k = dayKey(m.missedOn);
-        if (!missedMap.has(k)) missedMap.set(k, new Set());
-        missedMap.get(k).add(m.scheduleId);
-    });
+    // MissedMap no longer used for dynamic calculation.
 
     const dailyCompletedMap = new Map();
     dailyCompletions.forEach(c => {
@@ -402,6 +423,8 @@ export const getMonthlyDashboard = async (userId, year, month) => {
     /* ------------------ INIT DAYS ------------------ */
 
     const days = {};
+    const todayDynamic = toUTCDateOnly(new Date());
+
     for (let d = new Date(monthStart); d <= monthEnd; d.setUTCDate(d.getUTCDate() + 1)) {
         days[dayKey(d)] = { total: 0, completed: 0, missed: 0, pending: 0 };
     }
@@ -415,9 +438,16 @@ export const getMonthlyDashboard = async (userId, year, month) => {
 
             days[key].total++;
 
-            if (completedMap.get(key)?.has(s.id)) days[key].completed++;
-            else if (missedMap.get(key)?.has(s.id)) days[key].missed++;
-            else days[key].pending++;
+            const isDone = completedMap.get(key)?.has(s.id);
+            if (isDone) {
+                days[key].completed++;
+            } else {
+                if (d < todayDynamic) {
+                    days[key].missed++;
+                } else {
+                    days[key].pending++;
+                }
+            }
         }
     }
 
@@ -428,11 +458,20 @@ export const getMonthlyDashboard = async (userId, year, month) => {
         if (!days[key]) continue;
 
         days[key].total++;
+        const d = new Date(`${key}T00:00:00Z`);
 
-        if (dailyCompletedMap.get(key)?.has(t.id)) {
+        const isCompletedOnDay = dailyCompletedMap.get(key)?.has(t.id);
+
+        if (isCompletedOnDay) {
             days[key].completed++;
         } else {
-            days[key].pending++;
+            if (d < todayDynamic) {
+                if (t.dailyCompletions.length === 0) {
+                    days[key].missed++;
+                }
+            } else {
+                days[key].pending++;
+            }
         }
     }
 
