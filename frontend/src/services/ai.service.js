@@ -83,6 +83,14 @@ const aiService = {
     },
 
     /**
+     * Update conversation title
+     */
+    async updateConversation(conversationId, title) {
+        const response = await api.put(`/ai/conversations/${conversationId}`, { title });
+        return response.data;
+    },
+
+    /**
      * Delete a conversation
      */
     async deleteConversation(conversationId) {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Menu, X, Plus, MessageSquare, Trash2, ArrowLeft } from 'lucide-react';
+import { LogOut, Menu, X, Plus, MessageSquare, Trash2, ArrowLeft, Pencil, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAi } from '@/context/AiContext';
 import { useState } from 'react';
@@ -11,9 +11,11 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 export default function AiSidebar() {
     const router = useRouter();
     const { user, logout } = useAuth();
-    const { conversations, currentConv, setCurrentConv, createNewChat, deleteConversation, loading } = useAi();
+    const { conversations, currentConv, setCurrentConv, createNewChat, deleteConversation, renameChat, loading } = useAi();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+    const [editingId, setEditingId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
 
     const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
 
@@ -25,6 +27,27 @@ export default function AiSidebar() {
     const confirmDeleteChat = (e, id) => {
         e.stopPropagation();
         setDeleteModal({ isOpen: true, id });
+    };
+
+    const startEditing = (e, conv) => {
+        e.stopPropagation();
+        setEditingId(conv.id);
+        setEditTitle(conv.title || "New chat");
+    };
+
+    const saveEditing = async (e) => {
+        e.stopPropagation();
+        if (editTitle.trim()) {
+            await renameChat(editingId, editTitle);
+        }
+        setEditingId(null);
+        setEditTitle("");
+    };
+
+    const cancelEditing = (e) => {
+        if (e) e.stopPropagation();
+        setEditingId(null);
+        setEditTitle("");
     };
 
     const handleDeleteChat = async () => {
@@ -114,18 +137,43 @@ export default function AiSidebar() {
                                                 }
                                             `}
                                         >
-                                            <span className="truncate flex-1 font-sans text-sm">{c.title || "New chat"}</span>
-
-                                            {isActive && (
-                                                <div className="flex items-center z-10">
-                                                    <button
-                                                        onClick={(e) => confirmDeleteChat(e, c.id)}
-                                                        className="p-1 hover:text-red-400 text-gray-500 transition-colors opacity-0 group-hover:opacity-100"
-                                                        title="Delete Chat"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </button>
+                                            {editingId === c.id ? (
+                                                <div className="flex items-center w-full gap-2" onClick={e => e.stopPropagation()}>
+                                                    <input
+                                                        type="text"
+                                                        value={editTitle}
+                                                        onChange={(e) => setEditTitle(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') saveEditing(e);
+                                                            if (e.key === 'Escape') cancelEditing(e);
+                                                        }}
+                                                        autoFocus
+                                                        className="flex-1 bg-black border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-hidden focus:border-cyan-500"
+                                                    />
+                                                    <button onClick={saveEditing} className="text-green-400 hover:text-green-300"><Check size={14} /></button>
+                                                    <button onClick={cancelEditing} className="text-red-400 hover:text-red-300"><X size={14} /></button>
                                                 </div>
+                                            ) : (
+                                                <>
+                                                    <span className="truncate flex-1 font-sans text-sm">{c.title || "New chat"}</span>
+
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                        <button
+                                                            onClick={(e) => startEditing(e, c)}
+                                                            className="p-1 hover:text-cyan-400 text-gray-500 transition-colors"
+                                                            title="Rename Chat"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => confirmDeleteChat(e, c.id)}
+                                                            className="p-1 hover:text-red-400 text-gray-500 transition-colors"
+                                                            title="Delete Chat"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     );

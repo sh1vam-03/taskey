@@ -49,6 +49,23 @@ export function AiProvider({ children }) {
         }
     };
 
+    const renameChat = async (id, newTitle) => {
+        try {
+            await aiService.updateConversation(id, newTitle);
+            const updated = conversations.map(c =>
+                c.id === id ? { ...c, title: newTitle } : c
+            );
+            setConversations(updated);
+            if (currentConv?.id === id) {
+                setCurrentConv({ ...currentConv, title: newTitle });
+            }
+            success("Chat renamed");
+        } catch (err) {
+            console.error(err);
+            error("Failed to rename chat");
+        }
+    };
+
     const deleteConversation = async (id) => {
         try {
             await aiService.deleteConversation(id);
@@ -72,7 +89,8 @@ export function AiProvider({ children }) {
             loading,
             loadConversations,
             createNewChat,
-            deleteConversation
+            deleteConversation,
+            renameChat
         }}>
             {children}
         </AiContext.Provider>

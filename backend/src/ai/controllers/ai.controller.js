@@ -85,6 +85,25 @@ export const getConversation = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/ai/conversations/:id
+ */
+export const updateConversation = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { title } = req.body;
+
+    const conversation = await prisma.aiConversation.update({
+        where: { id, userId },
+        data: { title }
+    });
+
+    res.status(200).json({
+        success: true,
+        data: conversation
+    });
+});
+
+/**
  * DELETE /api/ai/conversations/:id
  */
 export const deleteConversation = asyncHandler(async (req, res) => {
