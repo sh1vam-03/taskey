@@ -1,7 +1,10 @@
 import prisma from "../../config/db.js";
 import asyncHandler from "../../utils/asyncHandler.js";
+import fs from "fs";
 import ApiError from "../../utils/ApiError.js";
 import { processAiRequest } from "../services/aiOrchestrator.service.js";
+import { transcribeAudio } from "../voice/stt.service.js";
+import { speakText } from "../voice/tts.service.js";
 
 // Helper to format messages
 const formatMessage = (msg) => ({
@@ -180,4 +183,62 @@ export const sendMessage = asyncHandler(async (req, res) => {
         success: true,
         data: formatMessage(aiMessage)
     });
+});
+
+/**
+ * POST /api/ai/conversations/:id/voice
+ * Handles Voice-to-Voice (Gemini Live style)
+ */
+export const processVoiceMessage = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    if (!req.file) throw new ApiError(400, "Audio file is required");
+
+    try {
+        // 1. STT: Transcribe
+        const userText = await transcribeAudio(req.file.path);
+
+        // Cleanup input file immediately
+        fs.unlinkSync(req.file.path);
+
+        if (!userText || !userText.trim()) {
+            throw new ApiError(400, "Could not understand audio");
+        }
+
+        // 2. AI: Process
+        const aiMessage = await processAiRequest({
+            userId,
+            conversationId: id,
+            message: userText,
+            mode: "VOICE"
+        });
+
+        // 3. TTS: Synthesize
+        const audioPath = await speakText({
+            text: aiMessage.content
+        });
+
+        // 4. Return Audio (Base64)
+        const audioBuffer = fs.readFileSync(audioPath);
+        const audioBase64 = audioBuffer.toString('base64');
+        const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
+
+        // Cleanup output file
+        fs.unlinkSync(audioPath);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                userText,
+                reply: aiMessage.content,
+                audioUrl: audioDataUrl
+            }
+        });
+
+    } catch (error) {
+        // Cleanup if error occurred and file still exists
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        throw error;
+    }
 });

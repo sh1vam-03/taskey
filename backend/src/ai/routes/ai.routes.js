@@ -1,7 +1,7 @@
 import { Router } from "express";
 import authMiddleware from "../../middlewares/auth.middleware.js";
-import { createConversation, getConversations, getConversation, deleteConversation, getMessages, sendMessage } from "../controllers/ai.controller.js";
-// import { upload } from "../../middlewares/upload.middleware.js";
+import { createConversation, getConversations, getConversation, deleteConversation, getMessages, sendMessage, processVoiceMessage } from "../controllers/ai.controller.js";
+import { upload } from "../../middlewares/upload.middleware.js";
 
 const router = Router();
 
@@ -14,6 +14,7 @@ router.delete("/conversations/:id", authMiddleware, deleteConversation);
 // Messages (Text)
 router.get("/conversations/:id/messages", authMiddleware, getMessages);
 router.post("/conversations/:id/message", authMiddleware, sendMessage);
+router.post("/conversations/:id/voice", authMiddleware, upload.single('audio'), processVoiceMessage);
 
 
 

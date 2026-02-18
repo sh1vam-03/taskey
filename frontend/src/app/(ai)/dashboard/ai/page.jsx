@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import aiService from '@/services/ai.service';
 import { useAuth } from '@/context/AuthContext';
 import { useAi } from '@/context/AiContext';
-import { Bot, Mic, Send, StopCircle, Sparkles, BrainCircuit, Calendar as CalendarIcon, Keyboard, MessageSquare } from 'lucide-react';
+import { Bot, Mic, Send, StopCircle, Sparkles, BrainCircuit, Calendar as CalendarIcon, Keyboard, MessageSquare, X, MessageSquareOff } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/context/ToastContext';
 import AiEnergySphere from '@/components/ui/AiEnergySphere';
@@ -17,8 +17,10 @@ export default function AIPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+
     const [isRecording, setIsRecording] = useState(false);
-    const [voiceMode, setVoiceMode] = useState(false);
+    const [liveMode, setLiveMode] = useState(false);
+    const [hideLiveText, setHideLiveText] = useState(false);
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const messagesEndRef = useRef(null);
@@ -127,7 +129,16 @@ export default function AIPage() {
         try {
             const response = await aiService.sendVoiceMessage(currentConv.id, blob);
             setMessages(prev => {
-                return [...prev, { role: 'assistant', content: response.reply }];
+                // Replace the temporary microphone placeholder with actual text if available
+                const newMsgs = [...prev];
+                const lastMsg = newMsgs[newMsgs.length - 1]; // This is the placeholder we added "🎤 [Voice Message]"
+
+                // If we want to replace it:
+                if (response.userText) {
+                    newMsgs[newMsgs.length - 1] = { role: 'user', content: response.userText };
+                }
+
+                return [...newMsgs, { role: 'assistant', content: response.reply }];
             });
 
             if (response.audioUrl) {
@@ -151,6 +162,97 @@ export default function AIPage() {
 
     return (
         <div className="flex flex-1 w-full text-white font-sans overflow-hidden bg-black">
+            {/* Gemini Live Overlay */}
+            {liveMode && (
+                <div className="fixed inset-0 z-50 bg-[#000000] flex flex-col items-center justify-between py-12 px-6 animate-in fade-in duration-500">
+                    {/* Header */}
+                    <div className="w-full flex justify-between items-center text-gray-400 max-w-4xl mx-auto">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-cyan-400" />
+                            <span className="text-sm font-medium text-white tracking-widest uppercase">Gemini Live</span>
+                        </div>
+                        <button onClick={() => setLiveMode(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                            <X className="w-6 h-6 text-gray-400" />
+                        </button>
+                    </div>
+
+                    {/* Center Visuals */}
+                    <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg relative">
+                        <div className="relative mb-12 transform scale-125 transition-transform duration-700">
+                            <AiEnergySphere
+                                size={320}
+                                baseRadius={isRecording ? 70 : 60}
+                                rotationSpeed={isRecording ? 0.01 : 0.002}
+                                waveStrength={isRecording ? 8 : 3}
+                                particleCount={500}
+                                hoverRadius={isRecording ? 60 : 40}
+                            />
+                        </div>
+
+                        {/* Live Conversation Text */}
+                        {!hideLiveText && (
+                            <div className="absolute bottom-0 w-full px-6 pb-32 flex flex-col gap-4 max-w-4xl transition-all duration-500 pointer-events-none z-10">
+                                {messages.length > 0 && (
+                                    <>
+                                        {/* Show User Text if last role was user */}
+                                        {messages[messages.length - 1].role === 'user' && (
+                                            <div className="self-end bg-[#2f2f2f] text-white px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] animate-in fade-in slide-in-from-bottom-4 shadow-lg pointer-events-auto text-left">
+                                                {messages[messages.length - 1].content}
+                                            </div>
+                                        )}
+
+                                        {/* Show AI Text if last role was assistant */}
+                                        {messages[messages.length - 1].role === 'assistant' && (
+                                            <div className="self-start text-white text-lg font-medium leading-relaxed max-w-[95%] animate-in fade-in slide-in-from-bottom-4 text-left pointer-events-auto">
+                                                {messages[messages.length - 1].content}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer Controls */}
+                    <div className="w-full max-w-md grid grid-cols-3 items-center justify-items-center gap-8">
+                        {/* Toggle Text */}
+                        <button
+                            onClick={() => setHideLiveText(!hideLiveText)}
+                            className={`p-4 rounded-full transition-all duration-300 ${hideLiveText ? 'bg-white/10 text-white' : 'bg-[#1e1e1e] text-gray-500 hover:text-white'}`}
+                        >
+                            {hideLiveText ? <MessageSquareOff className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+                        </button>
+
+                        {/* Main Mic Action */}
+                        <button
+                            onClick={isRecording ? stopRecording : startRecording}
+                            className={`p-8 rounded-full transition-all duration-300 shadow-2xl relative group ${isRecording
+                                ? 'bg-white text-black scale-110 shadow-white/20'
+                                : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-cyan-500/30 hover:scale-105'
+                                }`}
+                        >
+                            {isRecording ? (
+                                <div className="w-8 h-8 bg-black rounded-sm" />
+                            ) : (
+                                <Mic className="w-8 h-8" />
+                            )}
+                            {/* Ripple effect */}
+                            {isRecording && (
+                                <span className="absolute inset-0 rounded-full border border-white/50 animate-ping" />
+                            )}
+                        </button>
+
+                        {/* Exit */}
+                        <button
+                            onClick={() => setLiveMode(false)}
+                            className="p-4 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col h-full relative">
 
@@ -158,7 +260,7 @@ export default function AIPage() {
                 <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 w-full pb-32">
                     {!currentConv || messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center -mt-20">
-                            {!voiceMode && (
+                            {!liveMode && (
                                 <div className="relative mb-8 group cursor-pointer" onClick={() => { }}>
                                     <AiEnergySphere
                                         size={480}
@@ -174,10 +276,10 @@ export default function AIPage() {
                                 </div>
                             )}
                             <h2 className="text-2xl font-semibold text-white mb-8">
-                                {voiceMode ? (isRecording ? "Listening..." : "Voice Mode Active") : "How can I help you today?"}
+                                {liveMode ? (isRecording ? "Listening..." : "Live Mode Active") : "How can I help you today?"}
                             </h2>
 
-                            {!voiceMode && (
+                            {!liveMode && (
                                 <div className="flex flex-col items-center gap-6 max-w-2xl w-full px-6">
                                     {/* Context Badge */}
                                     <div className="flex items-center gap-2 px-3 py-1 bg-cyan-950/30 border border-cyan-500/20 rounded-full text-xs text-cyan-400 font-medium animate-pulse">
@@ -261,97 +363,52 @@ export default function AIPage() {
                 {/* Fixed Input Area */}
                 <div className="absolute bottom-0 left-0 w-full pb-6 pt-24 px-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none">
                     <div className="max-w-3xl mx-auto relative pointer-events-auto">
-                        {voiceMode ? (
-                            <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                {/* Voice Visualization / Status */}
-                                <div className="flex items-center gap-3 px-6 py-3 bg-[#1e1e1e] rounded-full border border-white/10 shadow-2xl shadow-cyan-900/10">
-                                    <div className="flex gap-1 h-4 items-center">
-                                        {[...Array(5)].map((_, i) => (
-                                            <div key={i} className={`w-1 bg-cyan-500 rounded-full animate-pulse`}
-                                                style={{
-                                                    height: isRecording ? `${Math.random() * 16 + 4}px` : '4px',
-                                                    animationDuration: isRecording ? '0.5s' : '2s'
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <span className="text-sm font-medium text-cyan-100">
-                                        {isRecording ? "Listening..." : "Tap mic to speak"}
-                                    </span>
-                                </div>
+                        <div className="group relative flex items-center gap-3 bg-[#0a0a0a]/80 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-2 transition-all duration-300 focus-within:border-cyan-500/30 focus-within:bg-[#0a0a0a]/90 focus-within:shadow-cyan-900/10">
+                            {/* Voice Toggle (Enters Live Mode) */}
+                            <button
+                                onClick={() => setLiveMode(true)}
+                                className="p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-all ml-1 shrink-0"
+                                title="Enter Gemini Live Mode"
+                            >
+                                <Sparkles className="h-5 w-5" />
+                            </button>
 
-                                {/* Controls */}
-                                <div className="flex items-center gap-6">
-                                    <button
-                                        onClick={() => {
-                                            stopRecording();
-                                            setVoiceMode(false);
-                                        }}
-                                        className="p-4 rounded-full bg-[#1e1e1e] text-gray-400 hover:text-white hover:bg-[#2a2a2a] transition-all border border-white/5"
-                                        title="Switch to Keyboard"
-                                    >
-                                        <Keyboard className="h-6 w-6" />
-                                    </button>
+                            <textarea
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                placeholder="Message Taskey AI..."
+                                className="flex-1 max-h-[200px] min-h-[24px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-[16px] leading-[1.5] resize-none py-3 scrollbar-thin scrollbar-thumb-white/10 cursor-text"
+                                rows={1}
+                                style={{ height: 'auto', minHeight: '48px' }}
+                                onInput={(e) => {
+                                    e.currentTarget.style.height = 'auto';
+                                    e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+                                }}
+                                disabled={loading}
+                            />
 
-                                    <button
-                                        onClick={isRecording ? stopRecording : startRecording}
-                                        className={`p-6 rounded-full transition-all duration-300 shadow-xl ${isRecording
-                                            ? 'bg-red-500 text-white shadow-red-500/30 scale-110'
-                                            : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-cyan-500/20 hover:scale-105'
-                                            }`}
-                                    >
-                                        {isRecording ? <StopCircle className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="group relative flex items-center gap-3 bg-[#0a0a0a]/80 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-2 transition-all duration-300 focus-within:border-cyan-500/30 focus-within:bg-[#0a0a0a]/90 focus-within:shadow-cyan-900/10">
-                                {/* Voice Toggle */}
-                                <button
-                                    onClick={() => setVoiceMode(true)}
-                                    className="p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-all ml-1 shrink-0"
-                                    title="Switch to Voice Mode"
-                                >
-                                    <Mic className="h-5 w-5" />
-                                </button>
-
-                                <textarea
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleSend();
-                                        }
-                                    }}
-                                    placeholder="Message Taskey AI..."
-                                    className="flex-1 max-h-[200px] min-h-[24px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-[16px] leading-[1.5] resize-none py-3 scrollbar-thin scrollbar-thumb-white/10 cursor-text"
-                                    rows={1}
-                                    style={{ height: 'auto', minHeight: '48px' }}
-                                    onInput={(e) => {
-                                        e.currentTarget.style.height = 'auto';
-                                        e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
-                                    }}
-                                    disabled={loading}
-                                />
-
-                                {/* Send Button */}
-                                <button
-                                    onClick={handleSend}
-                                    disabled={!input.trim() || loading}
-                                    className={`p-3 rounded-full transition-all duration-200 shrink-0 mr-1 ${input.trim() && !loading
-                                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
-                                        : 'bg-white/5 text-gray-600 cursor-not-allowed'
-                                        }`}
-                                >
-                                    {loading ? (
-                                        <Sparkles className="h-5 w-5 animate-spin" />
-                                    ) : (
-                                        <Send className="h-5 w-5 ml-0.5" />
-                                    )}
-                                </button>
-                            </div>
-                        )}
+                            {/* Send Button */}
+                            <button
+                                onClick={handleSend}
+                                disabled={!input.trim() || loading}
+                                className={`p-3 rounded-full transition-all duration-200 shrink-0 mr-1 ${input.trim() && !loading
+                                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
+                                    : 'bg-white/5 text-gray-600 cursor-not-allowed'
+                                    }`}
+                            >
+                                {loading ? (
+                                    <Sparkles className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    <Send className="h-5 w-5 ml-0.5" />
+                                )}
+                            </button>
+                        </div>
 
                         <div className="text-center text-[10px] text-gray-600 mt-3 font-medium tracking-wide">
                             AI can make mistakes. Please verify important information.
