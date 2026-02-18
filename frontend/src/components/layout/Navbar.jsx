@@ -22,19 +22,19 @@ const Navbar = () => {
 
     const navData = {
         Product: [
-            { name: "System_Capes", path: "/#features" },
-            { name: "Pricing_Grid", path: "/#pricing" },
-            { name: "Workflow_Logic", path: "/#how-it-works" }
+            { name: "Features", path: "/#features" },
+            { name: "Pricing", path: "/#pricing" },
+            { name: "How It Works", path: "/#how-it-works" }
         ],
         Company: [
-            { name: "Manifesto", path: "/about" },
-            { name: "Neural_Collective", path: "/careers" },
-            { name: "Establish_Uplink", path: "/contact" }
+            { name: "About", path: "/about" },
+            { name: "Careers", path: "/careers" },
+            { name: "Contact", path: "/contact" }
         ],
         Legal: [
-            { name: "Privacy_Protocol", path: "/privacy" },
-            { name: "System_Contract", path: "/terms" },
-            { name: "Security_Arch", path: "/security" }
+            { name: "Privacy", path: "/privacy" },
+            { name: "Terms", path: "/terms" },
+            { name: "Security", path: "/security" }
         ]
     }
 
@@ -42,7 +42,7 @@ const Navbar = () => {
         <motion.nav
             initial={{ y: -100 }}
             animate={{ y: 0 }}
-            className={`fixed top-0 inset-x-0 z-50 flex justify-center transition-all duration-500 border-b ${scrolled ? "bg-black/90 backdrop-blur-xl border-white/10" : "bg-transparent border-transparent"}`}
+            className={`fixed top-0 inset-x-0 z-50 flex justify-center transition-all duration-500 border-b ${scrolled ? "bg-black/90 backdrop-blur-xl border-cyan-500/50" : "bg-transparent border-transparent"}`}
             onMouseLeave={() => setHoveredTab(null)}
         >
             {/* Bottom Gradient Line (Active on Scroll) */}
@@ -53,24 +53,13 @@ const Navbar = () => {
                 {/* Left: Logo & Status */}
                 <div className="flex items-center gap-8">
                     <Link href="/" className="group flex items-center gap-3">
-                        {/* Logo Text Only - No [T] Box */}
                         <div className="flex items-center gap-2">
-                            {/* Small dot accent to maintain tech feel */}
-                            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-sm group-hover:animate-pulse" />
                             <span className="text-lg font-bold tracking-tighter text-white group-hover:text-cyan-400 transition-colors">
-                                TASKEY
+                                TASKTIME
                             </span>
                         </div>
                     </Link>
 
-                    {/* Desktop Status Indicator */}
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-black border border-white/10 rounded-sm">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                        <span className="text-[10px] font-mono text-gray-400 tracking-wider">SYS.ONLINE</span>
-                    </div>
                 </div>
 
                 {/* Center: Tech Menu (Dropdowns) */}
@@ -107,13 +96,6 @@ const Navbar = () => {
                                         <div className="absolute inset-0 bg-[size:20px_20px] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] opacity-50 pointer-events-none" />
 
                                         <div className="py-2 relative z-10">
-                                            {/* Header Stripe */}
-                                            <div className="px-4 py-2 border-b border-white/5 mb-1">
-                                                <span className="text-[10px] text-gray-600 font-mono flex items-center gap-2">
-                                                    // {category.toUpperCase()}_DIR
-                                                </span>
-                                            </div>
-
                                             {/* Links */}
                                             <div className="flex flex-col">
                                                 {navData[category].map((link) => (
@@ -122,7 +104,6 @@ const Navbar = () => {
                                                         href={link.path}
                                                         className="px-4 py-2 text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-colors font-mono tracking-wide flex items-center gap-2 group/link"
                                                     >
-                                                        <span className="w-1 h-1 bg-gray-700 rounded-full group-hover/link:bg-cyan-500 transition-colors" />
                                                         {link.name}
                                                     </Link>
                                                 ))}
@@ -137,14 +118,9 @@ const Navbar = () => {
 
                 {/* Right: Actions */}
                 <div className="hidden md:flex items-center gap-6">
-                    <Link href="/login" className="text-xs font-mono font-bold text-gray-400 hover:text-white transition-colors uppercase relative group">
-                        <span className="group-hover:opacity-0 transition-opacity">// ACCESS_TERMINAL</span>
-                        <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400 tracking-widest text-center">LOGIN</span>
-                    </Link>
-
-                    <Link href="/signup">
+                    <Link href="/login">
                         <Button variant="scanline" size="sm">
-                            INITIALIZE
+                            Login
                         </Button>
                     </Link>
                 </div>

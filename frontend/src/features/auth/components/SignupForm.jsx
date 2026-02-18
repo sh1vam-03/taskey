@@ -115,7 +115,7 @@ export default function SignupForm() {
 
                 <p className="text-center opacity-80">
                     {step === "form"
-                        ? "Sign up to start organizing your life with Taskey"
+                        ? "Sign up to start organizing your life with TASKTIME"
                         : "Enter the OTP sent to your email"}
                 </p>
 

@@ -19,10 +19,7 @@ export const BentoGridItem = ({
     span = "md:col-span-1"
 }) => {
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
+        <div
             className={`row-span-1 group/bento p-8 bg-black hover:bg-neutral-900/30 transition-colors duration-300 flex flex-col justify-between relative ${span} ${className}`}
         >
             {/* Tech Decorators (Corner +) */}
@@ -49,6 +46,6 @@ export const BentoGridItem = ({
                     {description}
                 </p>
             </div>
-        </motion.div>
+        </div>
     );
 };

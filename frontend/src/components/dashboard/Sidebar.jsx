@@ -36,7 +36,7 @@ export default function Sidebar() {
                     <Link href="/dashboard" className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600 animate-pulse" />
                         <span className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-white/60">
-                            Taskey
+                            TASKTIME
                         </span>
                     </Link>
                 </div>

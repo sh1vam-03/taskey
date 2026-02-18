@@ -96,7 +96,7 @@ export default function AiSidebar() {
                     <Link href="/dashboard" className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600" />
                         <span className="text-lg font-bold tracking-tight text-white">
-                            Taskey AI
+                            TASKTIME AI
                         </span>
                     </Link>
                 </div>

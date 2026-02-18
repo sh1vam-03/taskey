@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FaTwitter, FaGithub, FaLinkedin } from "react-icons/fa";
+import { FaTwitter, FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
 
 const FooterLink = ({ href, children }) => (
     <Link
@@ -26,56 +26,67 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                     <div className="col-span-1 md:col-span-1">
                         <Link href="/" className="text-xl font-bold tracking-tighter text-white mb-6 flex items-center gap-2">
-                            <div className="w-2 h-2 bg-cyan-500 rounded-sm" />
-                            TASKEY_SYSTEMS
+                            TASKTIME
                         </Link>
                         <p className="text-gray-600 text-xs leading-relaxed max-w-[200px]">
-                            // AUTOMATED_AGENCY<br />
-                            Optimizing human cognitive throughput via adaptive intelligence protocols.
+                            AI-powered task and schedule management<br />
+                            built to help you focus, prioritize, and get more done.
                         </p>
+                        <div className="flex gap-6 mt-4 w-fit">
+                            <Link href="https://instagram.com/sh1vam.03" target="_blank" className="text-cyan-600 hover:text-red-500">
+                                <FaInstagram className="w-4 h-4" />
+                            </Link>
+                            <Link href="https://github.com/sh1vam-03" target="_blank" className="text-cyan-600 hover:text-white">
+                                <FaGithub className="w-4 h-4" />
+                            </Link>
+                            <Link href="https://linkedin.com/in/sh1vam~03" target="_blank" className="text-cyan-600 hover:text-blue-700">
+                                <FaLinkedin className="w-4 h-4" />
+                            </Link>
+                        </div>
                     </div>
 
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Product</h4>
                         <ul className="space-y-1">
-                            <li><FooterLink href="/#features"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />System_Capes</FooterLink></li>
-                            <li><FooterLink href="/#pricing"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Pricing_Grid</FooterLink></li>
-                            <li><FooterLink href="/#how-it-works"><span className="w-1 h-1 bg-gray-700 rounded-full group-hover:bg-cyan-500 transition-colors" />Workflow_Logic</FooterLink></li>
+                            <li><FooterLink href="/#features">Features</FooterLink></li>
+                            <li><FooterLink href="/#pricing">Pricing</FooterLink></li>
+                            <li><FooterLink href="/#how-it-works">How It Works</FooterLink></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Company</h4>
                         <ul className="space-y-1">
-                            <li><FooterLink href="/about">Manifesto</FooterLink></li>
-                            <li><FooterLink href="/careers">Neural_Collective</FooterLink></li>
-                            <li><FooterLink href="/contact">Establish_Uplink</FooterLink></li>
+                            <li><FooterLink href="/about">About</FooterLink></li>
+                            <li><FooterLink href="/careers">Careers</FooterLink></li>
+                            <li><FooterLink href="/contact">Contact</FooterLink></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="font-bold text-white text-xs uppercase tracking-widest mb-6 border-b border-white/10 pb-2 inline-block">Legal</h4>
                         <ul className="space-y-1">
-                            <li><FooterLink href="/privacy">Privacy_Protocol</FooterLink></li>
-                            <li><FooterLink href="/terms">System_Contract</FooterLink></li>
-                            <li><FooterLink href="/security">Security_Arch</FooterLink></li>
+                            <li><FooterLink href="/privacy">Privacy</FooterLink></li>
+                            <li><FooterLink href="/terms">Terms</FooterLink></li>
+                            <li><FooterLink href="/security">Security</FooterLink></li>
                         </ul>
                     </div>
+
                 </div>
 
                 {/* System Status Bar */}
                 <div className="flex flex-col md:flex-row justify-between items-center py-6 border-t border-white/10 text-[10px] text-gray-600 uppercase tracking-wider">
                     <div className="flex items-center gap-8">
-                        <span>LATENCY: 12ms</span>
-                        <span>REGION: ASIA_EAST</span>
-                        <span className="flex items-center gap-2">
-                            STATUS:
-                            <span className="text-green-500">OPTIMAL</span>
+                        <span className="flex items-center">
+                            Built for focus.
+                            <span className="text-green-700">Powered by AI</span>
+                            .
                         </span>
+                        <span>Made with ❤️ in <span className="text-cyan-500">India</span>.</span>
                     </div>
 
                     <div className="flex gap-6 mt-4 md:mt-0">
-                        <span>© 2026 TASKEY INC.</span>
+                        <span>&copy; 2026 TASKTIME. All rights reserved.</span>
                     </div>
                 </div>
             </div>

@@ -55,20 +55,11 @@ export default function Home() {
                 {/* HUD Decorators */}
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none select-none overflow-hidden">
                     {/* Vertical Lines */}
-                    <div className="absolute top-0 bottom-0 left-[10%] w-px bg-white/5" />
-                    <div className="absolute top-0 bottom-0 right-[10%] w-px bg-white/5" />
+                    <div className="absolute top-0 bottom-0 left-[10%] w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
+                    <div className="absolute top-0 bottom-0 right-[10%] w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
 
                     {/* Grid Pattern */}
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]" />
-
-                    {/* Top Coordinates */}
-                    <div className="absolute top-32 left-[12%] font-mono text-[10px] text-gray-500 hidden sm:block">
-                        COORDS: 45.92, -12.04
-                    </div>
-                    <div className="absolute top-32 right-[12%] font-mono text-[10px] text-cyan-900/50 hidden sm:flex items-center gap-2">
-                        <span className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
-                        SYSTEM_ONLINE
-                    </div>
                 </div>
 
                 {/* Orb Container - BACKGROUND */}
@@ -79,23 +70,25 @@ export default function Home() {
                 <div className={`relative z-20 text-center space-y-6 lg:space-y-8 mt-12 lg:mt-0 ${CONTAINER_CLASS}`}>
 
                     <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-bold tracking-tighter leading-[0.95] text-transparent bg-clip-text bg-[linear-gradient(to_bottom,white_40%,rgba(255,255,255,0.5)_100%)]">
-                        Your AI Thinking Partner.
+                        Plan Smarter. Work Faster.
+                        <br />
+                        Powered by AI.
                     </h1>
 
                     <p className="text-[clamp(1rem,2vw,1.25rem)] text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
-                        Taskey orchestrates your life with <span className="text-white font-medium">adaptive intelligence</span>.
-                        No friction. Just flow.
+                        TASKTIME helps you <span className="text-white font-medium">organize tasks, automate schedules,</span>.
+                        and stay focused every day with intelligent planning.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 lg:pt-8 w-full max-w-xs sm:max-w-none mx-auto">
                         <Link href="/signup" className="w-full sm:w-auto">
                             <Button variant="scanline" size="lg" className="w-full sm:w-auto">
-                                INITIALIZE_SYSTEM
+                                Get Started Free
                             </Button>
                         </Link>
                         <Link href="#how-it-works" className="w-full sm:w-auto">
                             <Button variant="ghost" size="lg" className="text-gray-500 hover:text-white w-full sm:w-auto">
-                                // VIEW_SCHEMATICS
+                                See How It Works
                             </Button>
                         </Link>
                     </div>
@@ -109,39 +102,39 @@ export default function Home() {
                 <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>
                         <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-tighter mb-4 text-white">
-                            Neural Nodes
+                            Everything You Need to Stay Organized
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                            // System Intelligence v1.0
+                            Powerful tools designed to simplify your day.
                         </p>
                     </div>
                 </div>
 
                 <BentoGrid>
                     <BentoGridItem
-                        title="Neural Engine"
-                        description="Advanced decision matrices that adapt to your working style in real-time."
+                        title="Smart AI Planning"
+                        description="TASKTIME learns how you work and suggests better ways to organize your tasks and schedules."
                         header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                         icon={<FaBrain />}
                         className="md:col-span-2"
                     />
                     <BentoGridItem
-                        title="Quantum Sync"
-                        description="Instant state synchronization across all connected neural nodes."
+                        title="Real-Time Sync"
+                        description="Access your tasks instantly across all devices without missing a thing."
                         header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                         icon={<FaSync />}
                         className="md:col-span-1"
                     />
                     <BentoGridItem
-                        title="Privacy Core"
-                        description="Local-first processing ensuring your data never leaks from the secure enclave."
+                        title="Secure & Private"
+                        description="Your data is encrypted and protected. We never sell or share your information."
                         header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                         icon={<FaShieldAlt />}
                         className="md:col-span-1"
                     />
                     <BentoGridItem
-                        title="Decision Velocity"
-                        description="Reduce cognitive load with automated micro-decisions and routing."
+                        title="Less Stress, More Focus"
+                        description="Let AI handle scheduling and reminders so you can focus on what truly matters."
                         header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                         icon={<MdSmartToy />}
                         className="md:col-span-2"

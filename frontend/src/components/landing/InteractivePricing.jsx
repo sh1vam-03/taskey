@@ -12,32 +12,52 @@ export default function InteractivePricing() {
             id: "TIER.01",
             name: "Free",
             price: "₹0",
-            period: isYearly ? "/yr" : "/mo",
+            period: isYearly ? "/year" : "/month",
             credits: "10 CREDITS",
-            desc: "Experimental Access.",
-            features: ["10 Tasks/mo", "30 Schedules/mo", "Basic Chat"],
-            status: "STANDBY"
+            desc: "Perfect to get started with smart task management.",
+            features: [
+                "Up to 300 tasks per month",
+                "Up to 100 schedules per month",
+                "Basic AI chat assistance"
+            ], status: "STANDBY",
+            cta: "Get Started"
         },
         {
             id: "TIER.02",
             name: "Pro",
             price: isYearly ? "₹4,999" : "₹499",
-            period: isYearly ? "/yr" : "/mo",
+            period: isYearly ? "/year" : "/month",
             credits: isYearly ? "600 CREDITS" : "50 CREDITS",
-            desc: "Professional Bandwidth.",
+            desc: "For professionals who want AI to manage their day.",
             highlight: true,
-            features: ["Unlimited Tasks", "Voice Mode", "Calendar Sync", "Priority Support"],
-            status: "RECOMMENDED"
+            features: [
+                "Unlimited tasks & schedules",
+                "Voice input",
+                "Calendar sync (Google, Outlook, Apple)",
+                "Priority support",
+                isYearly ? "600 AI credits per year" : "50 AI credits per month"
+            ],
+            status: "RECOMMENDED",
+            cta: "Start Pro"
         },
         {
             id: "TIER.03",
             name: "Plus",
             price: isYearly ? "₹9,999" : "₹999",
-            period: isYearly ? "/yr" : "/mo",
+            period: isYearly ? "/year" : "/month",
             credits: isYearly ? "1080 CREDITS" : "90 CREDITS",
-            desc: "Maximum Throughput.",
-            features: ["Deep Research", "Custom Workflows", "Team features", "API Access"],
-            status: "PREMIUM"
+            desc: "Advanced AI tools for power users and teams.",
+            features: [
+                "Everything in Pro",
+                "Deep research tools",
+                "Custom workflows",
+                "Team features",
+                "API access",
+                isYearly ? "1080 AI credits per year" : "90 AI credits per month"
+            ],
+            status: "PREMIUM",
+            cta: "Start Plus"
+
         }
     ];
 
@@ -48,7 +68,7 @@ export default function InteractivePricing() {
                     <div>
                         <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">Pricing</h2>
                         <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
-                            // RESOURCE_ALLOCATION_MATRIX
+                            Simple, transparent pricing. Upgrade anytime.
                         </p>
                     </div>
 
@@ -119,7 +139,7 @@ export default function InteractivePricing() {
                                 variant={plan.highlight ? "scanline" : "ghost"}
                                 className="w-full"
                             >
-                                {plan.highlight ? "Initialize_Pro" : "Start_Validating"}
+                                {plan.cta}
                             </Button>
                         </div>
                     ))}

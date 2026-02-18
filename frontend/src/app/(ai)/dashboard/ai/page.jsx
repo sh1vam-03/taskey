@@ -391,7 +391,7 @@ export default function AIPage() {
                                         handleSend();
                                     }
                                 }}
-                                placeholder="Message Taskey AI..."
+                                placeholder="Message TASKTIME AI..."
                                 className="flex-1 max-h-[200px] min-h-[24px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-[16px] leading-[1.5] resize-none py-3 scrollbar-thin scrollbar-thumb-white/10 cursor-text"
                                 rows={1}
                                 style={{ height: 'auto', minHeight: '48px' }}
