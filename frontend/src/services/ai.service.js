@@ -38,6 +38,51 @@ const aiService = {
     },
 
     /**
+     * Send message with streaming response
+     * Yields text chunks
+     */
+    async *sendMessageStream(conversationId, message) {
+        const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${baseURL}/ai/conversations/${conversationId}/message`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Add Authorization if using Bearer, but we rely on Cookies/Axios normally.
+                // Fetch needs credentials: 'include' for cookies.
+            },
+            body: JSON.stringify({ message, stream: true }),
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            // Try to parse error
+            let errorMsg = "Failed to send message";
+            try {
+                const errData = await response.json();
+                errorMsg = errData.message || errorMsg;
+            } catch (e) { }
+
+            // Check for 429 specifically
+            if (response.status === 429) {
+                const err = new Error(errorMsg);
+                err.status = 429; // Tag it
+                throw err;
+            }
+            throw new Error(errorMsg);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            yield chunk;
+        }
+    },
+
+    /**
      * Delete a conversation
      * @param {string} conversationId
      */

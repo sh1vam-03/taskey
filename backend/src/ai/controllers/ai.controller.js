@@ -128,10 +128,47 @@ export const getMessages = asyncHandler(async (req, res) => {
 export const sendMessage = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-    const { message } = req.body;
+    const { message, stream } = req.body; // Can accept stream flag in body too
 
     if (!message) throw new ApiError(400, "Message is required");
 
+    // STREAMING HANDLER
+    if (stream || req.query.stream === 'true') {
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no"); // For Nginx if used
+
+        try {
+            // Import dynamically to avoid circular deps with service if needed, 
+            // but standard import is fine if handled correctly.
+            const { processAiRequestStream } = await import("../services/aiOrchestrator.service.js");
+
+            for await (const chunk of processAiRequestStream({
+                userId,
+                conversationId: id,
+                message,
+                mode: "TEXT"
+            })) {
+                // SSE format: data: <chunk>\n\n
+                // But efficient streaming often just sends raw text chunks if client reads stream directly.
+                // Standard SSE needs 'data: '. 
+                // Let's use simple chunked transfer (raw text) which is easier for fetch() + getReader().
+                // Just write the chunk.
+                res.write(chunk);
+            }
+            res.end();
+        } catch (error) {
+            console.error("Streaming Error Controller:", error);
+            // If headers sent, we can't send JSON error. 
+            // Send a specific error chunk?
+            res.write(`\n[ERROR: ${error.message}]`);
+            res.end();
+        }
+        return;
+    }
+
+    // STANDARD HANDLER
     const aiMessage = await processAiRequest({
         userId,
         conversationId: id,

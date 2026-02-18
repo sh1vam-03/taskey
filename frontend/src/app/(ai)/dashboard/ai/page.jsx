@@ -11,8 +11,8 @@ import AiEnergySphere from '@/components/ui/AiEnergySphere';
 
 export default function AIPage() {
     const { error } = useToast();
-    const { refreshProfile } = useAuth();
-    const { currentConv, setCurrentConv, createNewChat } = useAi(); // Consume Context
+    const { user, refreshProfile } = useAuth();
+    const { currentConv, setCurrentConv, createNewChat, loadConversations } = useAi(); // Consume Context
 
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -22,28 +22,6 @@ export default function AIPage() {
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const messagesEndRef = useRef(null);
-    const [thinkingText, setThinkingText] = useState("Thinking...");
-
-    const THINKING_STEPS = [
-        "Reading your schedule...",
-        "Checking pending tasks...",
-        "Analyzing recent habits...",
-        "Formulating plan..."
-    ];
-
-    useEffect(() => {
-        if (!loading) return;
-
-        let step = 0;
-        setThinkingText(THINKING_STEPS[0]);
-
-        const interval = setInterval(() => {
-            step = (step + 1) % THINKING_STEPS.length;
-            setThinkingText(THINKING_STEPS[step]);
-        }, 2000); // Change every 2s
-
-        return () => clearInterval(interval);
-    }, [loading]);
 
     useEffect(() => {
         if (currentConv) {
@@ -55,7 +33,7 @@ export default function AIPage() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, thinkingText]); // Scroll when text changes too
+    }, [messages]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,7 +57,7 @@ export default function AIPage() {
         if (!activeId) {
             try {
                 // Use context method
-                const newConv = await createNewChat(input.substring(0, 30) || "New Conversation");
+                const newConv = await createNewChat();
                 activeId = newConv.id;
             } catch (err) {
                 console.error(err);
@@ -233,28 +211,33 @@ export default function AIPage() {
                     ) : (
                         <div className="max-w-3xl mx-auto w-full px-4 md:px-0 pt-4 flex flex-col gap-6">
                             {messages.map((m, i) => (
-                                <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    {m.role !== 'user' && (
-                                        <div className="w-8 h-8 rounded-full bg-cyan-600/20 flex items-center justify-center border border-cyan-500/20 shrink-0 mt-1">
-                                            <Bot className="w-5 h-5 text-cyan-400" />
-                                        </div>
-                                    )}
+                                <div key={i} className={`flex gap-4 mb-6 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    {/* AI Avatar Removed */}
 
+                                    {/* Message Bubble */}
                                     <div className={`
-                                        prose prose-invert max-w-[85%] md:max-w-none text-[15px] leading-7
-                                        ${m.role === 'user' ? 'bg-[#212121] px-5 py-3 rounded-2xl rounded-tr-sm ml-auto' : 'w-full'}
+                                        prose prose-invert max-w-[85%] md:max-w-[75%] text-[15px] leading-7 relative group
+                                        ${m.role === 'user'
+                                            ? 'bg-[#2f2f2f] px-5 py-2.5 rounded-[20px] text-gray-100'
+                                            : 'w-full px-0 text-gray-200'}
                                     `}>
                                         <ReactMarkdown components={{
                                             code({ node, inline, className, children, ...props }) {
                                                 const match = /language-(\w+)/.exec(className || '')
                                                 return !inline && match ? (
-                                                    <div className="rounded-md bg-black/50 p-4 border border-white/10 my-4 overflow-x-auto">
-                                                        <code className={className} {...props}>
-                                                            {children}
-                                                        </code>
+                                                    <div className="rounded-md bg-[#0d0d0d] border border-white/10 my-4 overflow-hidden">
+                                                        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10 text-xs text-gray-400">
+                                                            <span>{match[1]}</span>
+                                                            <span>Copy code</span>
+                                                        </div>
+                                                        <div className="p-4 overflow-x-auto">
+                                                            <code className={className} {...props}>
+                                                                {children}
+                                                            </code>
+                                                        </div>
                                                     </div>
                                                 ) : (
-                                                    <code className="bg-white/10 rounded px-1 py-0.5 text-sm" {...props}>
+                                                    <code className="bg-white/10 rounded px-1.5 py-0.5 text-sm" {...props}>
                                                         {children}
                                                     </code>
                                                 )
@@ -264,32 +247,11 @@ export default function AIPage() {
                                         </ReactMarkdown>
                                     </div>
 
-                                    {m.role === 'user' && (
-                                        <div className="w-8 h-8 rounded-full bg-[#212121] flex items-center justify-center overflow-hidden shrink-0 mt-1">
-                                            <div className="text-xs font-bold text-gray-300">YO</div>
-                                        </div>
-                                    )}
+                                    {/* No User Avatar - Just Bubble */}
                                 </div>
                             ))}
 
-                            {loading && (
-                                <div className="flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                    <div className="w-8 h-8 rounded-full bg-cyan-600/20 flex items-center justify-center border border-cyan-500/20 shrink-0">
-                                        <BrainCircuit className="w-4 h-4 text-cyan-400 animate-pulse" />
-                                    </div>
-                                    <div className="flex flex-col justify-center gap-1 mt-1">
-                                        <div className="text-sm text-cyan-400 font-mono tracking-wide animate-pulse">
-                                            {thinkingText}
-                                        </div>
-                                        {/* Little dots */}
-                                        <div className="flex gap-1">
-                                            <span className="w-1 h-1 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                            <span className="w-1 h-1 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                            <span className="w-1 h-1 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {/* Loading State Removed - Streaming happens in real-time */}
 
                             <div ref={messagesEndRef} className="h-4" />
                         </div>
@@ -343,7 +305,7 @@ export default function AIPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="group relative flex items-end gap-3 bg-[#0a0a0a]/80 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-2 transition-all duration-300 focus-within:border-cyan-500/30 focus-within:bg-[#0a0a0a]/90 focus-within:shadow-cyan-900/10">
+                            <div className="group relative flex items-center gap-3 bg-[#0a0a0a]/80 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-2 transition-all duration-300 focus-within:border-cyan-500/30 focus-within:bg-[#0a0a0a]/90 focus-within:shadow-cyan-900/10">
                                 {/* Voice Toggle */}
                                 <button
                                     onClick={() => setVoiceMode(true)}
@@ -363,9 +325,9 @@ export default function AIPage() {
                                         }
                                     }}
                                     placeholder="Message Taskey AI..."
-                                    className="flex-1 max-h-[200px] min-h-[44px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-[16px] leading-[1.5] resize-none py-2.5 scrollbar-thin scrollbar-thumb-white/10 cursor-text"
+                                    className="flex-1 max-h-[200px] min-h-[24px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-[16px] leading-[1.5] resize-none py-3 scrollbar-thin scrollbar-thumb-white/10 cursor-text"
                                     rows={1}
-                                    style={{ height: 'auto', minHeight: '44px' }}
+                                    style={{ height: 'auto', minHeight: '48px' }}
                                     onInput={(e) => {
                                         e.currentTarget.style.height = 'auto';
                                         e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
@@ -377,7 +339,7 @@ export default function AIPage() {
                                 <button
                                     onClick={handleSend}
                                     disabled={!input.trim() || loading}
-                                    className={`p-3 rounded-full transition-all duration-200 shrink-0 mr-1 mb-1 ${input.trim() && !loading
+                                    className={`p-3 rounded-full transition-all duration-200 shrink-0 mr-1 ${input.trim() && !loading
                                         ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
                                         : 'bg-white/5 text-gray-600 cursor-not-allowed'
                                         }`}
