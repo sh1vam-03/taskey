@@ -18,7 +18,13 @@ export const buildSystemContext = async (userId, user, conversationId = null) =>
     const [behaviorLogs, summary, taskData, scheduleData] = await Promise.all([
         getRecentBehaviors(userId),
         getLastSummary(conversationId),
-        getTasks(userId, { isArchived: 'false', limit: 10, sortBy: 'priority', sortOrder: 'desc' }),
+        getTasks(userId, {
+            isArchived: 'false',
+            limit: 10,
+            sortBy: 'priority',
+            sortOrder: 'desc',
+            date: new Date() // Context for today's status
+        }),
         getSchedules(userId, todayStart, todayEnd)
     ]);
 
@@ -26,7 +32,7 @@ export const buildSystemContext = async (userId, user, conversationId = null) =>
     const behaviorContext = formatBehaviorContext(behaviorLogs);
 
     // Format Tasks
-    const pendingTasks = taskData.tasks.filter(t => t.dailyCompletions.length === 0);
+    const pendingTasks = taskData.tasks.filter(t => t.status !== 'COMPLETED');
     const taskContext = pendingTasks.length > 0
         ? `Pending Tasks (Top ${pendingTasks.length}):\n` + pendingTasks.map(t =>
             `- [${t.priority}] ${t.title} ${t.dueDate ? `(Due: ${new Date(t.dueDate).toLocaleDateString()})` : ''}`
