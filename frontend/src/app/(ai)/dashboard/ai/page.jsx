@@ -99,7 +99,12 @@ export default function AIPage() {
             if (refreshProfile) refreshProfile();
         } catch (err) {
             console.error(err);
-            error("Failed to send message. Check credits.");
+            const errMsg = err.response?.status === 429
+                ? (err.response.data?.message || "AI Service is temporarily unavailable due to quota limits.")
+                : (err.response?.data?.message || "Failed to send message. Check credits.");
+
+            error(errMsg);
+            setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Error**: ${errMsg}` }]);
         } finally {
             setLoading(false);
         }
@@ -155,7 +160,12 @@ export default function AIPage() {
             if (refreshProfile) refreshProfile();
         } catch (err) {
             console.error(err);
-            error("Voice processing failed. Check credits.");
+            const errMsg = err.response?.status === 429
+                ? (err.response.data?.message || "AI Service is temporarily unavailable due to quota limits.")
+                : (err.response?.data?.message || "Voice processing failed. Check credits.");
+
+            error(errMsg);
+            setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Error**: ${errMsg}` }]);
         } finally {
             setLoading(false);
         }
@@ -287,42 +297,57 @@ export default function AIPage() {
                 </div>
 
                 {/* Fixed Input Area */}
-                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black to-transparent pb-6 pt-10 px-4">
-                    <div className="max-w-3xl mx-auto relative">
+                <div className="absolute bottom-0 left-0 w-full pb-6 pt-24 px-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none">
+                    <div className="max-w-3xl mx-auto relative pointer-events-auto">
                         {voiceMode ? (
-                            <div className="flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                <div className="flex items-center gap-4 bg-[#1e1e1e] rounded-full border border-white/10 p-2 pl-6 shadow-lg">
-                                    <span className="text-sm font-mono text-gray-400 animate-pulse">
+                            <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                {/* Voice Visualization / Status */}
+                                <div className="flex items-center gap-3 px-6 py-3 bg-[#1e1e1e] rounded-full border border-white/10 shadow-2xl shadow-cyan-900/10">
+                                    <div className="flex gap-1 h-4 items-center">
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className={`w-1 bg-cyan-500 rounded-full animate-pulse`}
+                                                style={{
+                                                    height: isRecording ? `${Math.random() * 16 + 4}px` : '4px',
+                                                    animationDuration: isRecording ? '0.5s' : '2s'
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span className="text-sm font-medium text-cyan-100">
                                         {isRecording ? "Listening..." : "Tap mic to speak"}
                                     </span>
-                                    <div className="h-8 w-px bg-white/10" />
-                                    <button
-                                        onClick={isRecording ? stopRecording : startRecording}
-                                        className={`p-4 rounded-full transition-all duration-300 ${isRecording
-                                            ? 'bg-red-500/20 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] scale-110'
-                                            : 'bg-white/5 text-white hover:bg-white/10'
-                                            }`}
-                                    >
-                                        {isRecording ? <StopCircle className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-                                    </button>
-                                    <div className="h-8 w-px bg-white/10" />
+                                </div>
+
+                                {/* Controls */}
+                                <div className="flex items-center gap-6">
                                     <button
                                         onClick={() => {
                                             stopRecording();
                                             setVoiceMode(false);
                                         }}
-                                        className="p-3 rounded-full hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                        className="p-4 rounded-full bg-[#1e1e1e] text-gray-400 hover:text-white hover:bg-[#2a2a2a] transition-all border border-white/5"
                                         title="Switch to Keyboard"
                                     >
-                                        <Keyboard className="h-5 w-5" />
+                                        <Keyboard className="h-6 w-6" />
+                                    </button>
+
+                                    <button
+                                        onClick={isRecording ? stopRecording : startRecording}
+                                        className={`p-6 rounded-full transition-all duration-300 shadow-xl ${isRecording
+                                            ? 'bg-red-500 text-white shadow-red-500/30 scale-110'
+                                            : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-cyan-500/20 hover:scale-105'
+                                            }`}
+                                    >
+                                        {isRecording ? <StopCircle className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative flex items-end gap-2 bg-[#1e1e1e] rounded-xl border border-white/10 shadow-lg focus-within:border-white/20 transition-colors p-3">
+                            <div className="group relative flex items-end gap-3 bg-[#0a0a0a]/80 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-2 transition-all duration-300 focus-within:border-cyan-500/30 focus-within:bg-[#0a0a0a]/90 focus-within:shadow-cyan-900/10">
+                                {/* Voice Toggle */}
                                 <button
                                     onClick={() => setVoiceMode(true)}
-                                    className="p-2 rounded-lg transition-all hover:bg-black/20 text-gray-400 hover:text-white"
+                                    className="p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-cyan-400 transition-all ml-1 shrink-0"
                                     title="Switch to Voice Mode"
                                 >
                                     <Mic className="h-5 w-5" />
@@ -338,9 +363,9 @@ export default function AIPage() {
                                         }
                                     }}
                                     placeholder="Message Taskey AI..."
-                                    className="flex-1 max-h-[200px] min-h-[24px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-base resize-none py-1 scrollbar-thin scrollbar-thumb-white/10"
+                                    className="flex-1 max-h-[200px] min-h-[44px] bg-transparent border-0 text-white placeholder:text-gray-500 focus:ring-0 text-[16px] leading-[1.5] resize-none py-2.5 scrollbar-thin scrollbar-thumb-white/10 cursor-text"
                                     rows={1}
-                                    style={{ height: 'auto', minHeight: '24px' }}
+                                    style={{ height: 'auto', minHeight: '44px' }}
                                     onInput={(e) => {
                                         e.currentTarget.style.height = 'auto';
                                         e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
@@ -348,21 +373,26 @@ export default function AIPage() {
                                     disabled={loading}
                                 />
 
+                                {/* Send Button */}
                                 <button
                                     onClick={handleSend}
                                     disabled={!input.trim() || loading}
-                                    className={`p-2 rounded-lg transition-all ${input.trim() && !loading
-                                        ? 'bg-cyan-600 text-white hover:bg-cyan-500'
-                                        : 'bg-transparent text-gray-500 cursor-not-allowed'
+                                    className={`p-3 rounded-full transition-all duration-200 shrink-0 mr-1 mb-1 ${input.trim() && !loading
+                                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
+                                        : 'bg-white/5 text-gray-600 cursor-not-allowed'
                                         }`}
                                 >
-                                    <Send className="h-4 w-4" />
+                                    {loading ? (
+                                        <Sparkles className="h-5 w-5 animate-spin" />
+                                    ) : (
+                                        <Send className="h-5 w-5 ml-0.5" />
+                                    )}
                                 </button>
                             </div>
                         )}
 
-                        <div className="text-center text-xs text-gray-500 mt-2 font-mono">
-                            AI can make mistakes. Check important info.
+                        <div className="text-center text-[10px] text-gray-600 mt-3 font-medium tracking-wide">
+                            AI can make mistakes. Please verify important information.
                         </div>
                     </div>
                 </div>
