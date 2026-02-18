@@ -14,8 +14,9 @@ export const buildSystemContext = async (userId, user, conversationId = null) =>
     const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
     const todayEnd = new Date(today.setHours(23, 59, 59, 999)).toISOString();
 
-    // 1. Parallel Data Fetching
-    const [behaviorLogs, summary, taskData, scheduleData] = await Promise.all([
+    // 1. Parallel Data Fetching with Fault Tolerance
+    // Use allSettled so one failure (e.g. DB timeout) doesn't crash the whole AI request
+    const results = await Promise.allSettled([
         getRecentBehaviors(userId),
         getLastSummary(conversationId),
         getTasks(userId, {
@@ -27,6 +28,16 @@ export const buildSystemContext = async (userId, user, conversationId = null) =>
         }),
         getSchedules(userId, todayStart, todayEnd)
     ]);
+
+    const behaviorLogs = results[0].status === 'fulfilled' ? results[0].value : [];
+    const summary = results[1].status === 'fulfilled' ? results[1].value : null;
+    const taskData = results[2].status === 'fulfilled' ? results[2].value : { tasks: [] };
+    const scheduleData = results[3].status === 'fulfilled' ? results[3].value : [];
+
+    // Log warnings if any service failed
+    if (results.some(r => r.status === 'rejected')) {
+        console.warn("[AI Context] Partial data failure:", results.filter(r => r.status === 'rejected').map(r => r.reason.message));
+    }
 
     // 2. Format Contexts
     const behaviorContext = formatBehaviorContext(behaviorLogs);

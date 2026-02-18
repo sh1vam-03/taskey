@@ -56,15 +56,32 @@ export const createSubscription = async (userId, plan, billingCycle) => {
             userId,
             entity: RazorpayEntity.SUBSCRIPTION,
             purpose: PaymentPurpose.SUBSCRIPTION,
-            amount: price * 100, // Convert to paise if Razorpay expects it? 
-            // WAIT: Previous plans.js had 49900 (paise). 
-            // My new config has 499 (Rupees).
-            // Razorpay usually expects Paise.
-            // I should multiply by 100 here.
+            amount: price * 100,
             currency: "INR",
             status: "CREATED",
             razorpaySubscriptionId: razorpaySubscription.id,
         },
+    });
+
+    // 5️⃣ Create Local Subscription Record (CRITICAL FIX)
+    // Upsert to handle re-subscription or plan change scenarios
+    await prisma.subscription.upsert({
+        where: { userId },
+        update: {
+            razorpaySubscriptionId: razorpaySubscription.id,
+            plan: plan,
+            billingCycle: billingCycle,
+            status: "CREATED",
+            isActive: false, // Will be set to true by webhook
+        },
+        create: {
+            userId,
+            razorpaySubscriptionId: razorpaySubscription.id,
+            plan: plan,
+            billingCycle: billingCycle,
+            status: "CREATED",
+            isActive: false,
+        }
     });
 
     return razorpaySubscription;
@@ -143,7 +160,12 @@ export const createTopUpOrder = async (userId, topUpId) => {
         amount: pack.price * 100, // paise
         currency: "INR",
         receipt: `topup_${userId.slice(0, 8)}_${Date.now()}`,
-        payment_capture: 1
+        payment_capture: 1,
+        notes: {
+            type: "TOP_UP",
+            userId: userId,
+            credits: pack.credits
+        }
     };
 
     const order = await razorpay.orders.create(options);
