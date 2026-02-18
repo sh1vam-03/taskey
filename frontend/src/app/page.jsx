@@ -95,8 +95,6 @@ export default function Home() {
 
             {/* SECTIONS */}
 
-            {/* SECTIONS */}
-
             <BentoGridSection />
             <DetailedFeatures />
             <InteractivePricing />
