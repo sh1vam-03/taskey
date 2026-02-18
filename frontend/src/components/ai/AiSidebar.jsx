@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Menu, X, Plus, MessageSquare, Trash2, ArrowLeft, Pencil, Check } from 'lucide-react';
+import { LogOut, Menu, X, Plus, MessageSquare, Trash2, ArrowLeft, Pencil, Check, MoreVertical } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAi } from '@/context/AiContext';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ export default function AiSidebar() {
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
     const [editingId, setEditingId] = useState(null);
     const [editTitle, setEditTitle] = useState("");
+    const [activeMenuId, setActiveMenuId] = useState(null);
 
     const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
 
@@ -27,12 +28,19 @@ export default function AiSidebar() {
     const confirmDeleteChat = (e, id) => {
         e.stopPropagation();
         setDeleteModal({ isOpen: true, id });
+        setActiveMenuId(null); // Close menu
     };
 
     const startEditing = (e, conv) => {
         e.stopPropagation();
         setEditingId(conv.id);
         setEditTitle(conv.title || "New chat");
+        setActiveMenuId(null); // Close menu
+    };
+
+    const toggleMenu = (e, id) => {
+        e.stopPropagation();
+        setActiveMenuId(activeMenuId === id ? null : id);
     };
 
     const saveEditing = async (e) => {
@@ -150,28 +158,45 @@ export default function AiSidebar() {
                                                         autoFocus
                                                         className="flex-1 bg-black border border-gray-600 rounded px-2 py-1 text-white text-xs focus:outline-hidden focus:border-cyan-500"
                                                     />
-                                                    <button onClick={saveEditing} className="text-green-400 hover:text-green-300"><Check size={14} /></button>
-                                                    <button onClick={cancelEditing} className="text-red-400 hover:text-red-300"><X size={14} /></button>
+                                                    <button onClick={saveEditing} className="text-white hover:text-white/50"><Check size={14} /></button>
+                                                    <button onClick={cancelEditing} className="text-white hover:text-white/50"><X size={14} /></button>
                                                 </div>
                                             ) : (
                                                 <>
                                                     <span className="truncate flex-1 font-sans text-sm">{c.title || "New chat"}</span>
 
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                    {/* Menu Trigger */}
+                                                    <div className={`absolute right-2 flex items-center ${activeMenuId === c.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                                                         <button
-                                                            onClick={(e) => startEditing(e, c)}
-                                                            className="p-1 hover:text-cyan-400 text-gray-500 transition-colors"
-                                                            title="Rename Chat"
+                                                            onClick={(e) => toggleMenu(e, c.id)}
+                                                            className="p-1.5 hover:bg-black rounded-md text-gray-400 hover:text-white transition-colors"
                                                         >
-                                                            <Pencil className="h-3.5 w-3.5" />
+                                                            <MoreVertical size={16} />
                                                         </button>
-                                                        <button
-                                                            onClick={(e) => confirmDeleteChat(e, c.id)}
-                                                            className="p-1 hover:text-red-400 text-gray-500 transition-colors"
-                                                            title="Delete Chat"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
+
+                                                        {/* Dropdown Menu */}
+                                                        {activeMenuId === c.id && (
+                                                            <>
+                                                                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
+
+                                                                <div className="absolute right-0 top-6 w-32 bg-[#1e1e1e] border border-white/10 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                                                                    <button
+                                                                        onClick={(e) => startEditing(e, c)}
+                                                                        className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/10 hover:text-white flex items-center gap-2"
+                                                                    >
+                                                                        <Pencil size={12} />
+                                                                        Rename
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={(e) => confirmDeleteChat(e, c.id)}
+                                                                        className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-2"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </>
                                             )}
