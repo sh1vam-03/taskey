@@ -5,6 +5,8 @@ import ApiError from "../../utils/ApiError.js";
 import { processAiRequest } from "../services/aiOrchestrator.service.js";
 import { transcribeAudio } from "../voice/stt.service.js";
 import { speakText } from "../voice/tts.service.js";
+import { checkCreditBalance, deductCredits } from "../services/aiToken.service.js";
+import { AI_COSTS } from "../../config/plans.config.js";
 
 // Helper to format messages
 const formatMessage = (msg) => ({
@@ -214,9 +216,23 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
 
     if (!req.file) throw new ApiError(400, "Audio file is required");
 
+    // 0. Billing Check (STT + LLM + TTS)
+    const totalCost = AI_COSTS.VOICE["whisper-1"] + AI_COSTS.CHAT["gpt-4o-mini"] + AI_COSTS.VOICE["tts-1"];
+    await checkCreditBalance(userId, totalCost);
+
     try {
         // 1. STT: Transcribe
         const userText = await transcribeAudio(req.file.path);
+
+        // Deduct STT Credits
+        await deductCredits({
+            userId,
+            conversationId: id,
+            credits: AI_COSTS.VOICE["whisper-1"],
+            source: "AI_USAGE",
+            model: "whisper-1",
+            type: "VOICE"
+        });
 
         // Cleanup input file immediately
         fs.unlinkSync(req.file.path);
@@ -225,7 +241,7 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Could not understand audio");
         }
 
-        // 2. AI: Process
+        // 2. AI: Process (LLM credits deducted internally)
         const aiMessage = await processAiRequest({
             userId,
             conversationId: id,
@@ -236,6 +252,16 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         // 3. TTS: Synthesize
         const audioPath = await speakText({
             text: aiMessage.content
+        });
+
+        // Deduct TTS Credits
+        await deductCredits({
+            userId,
+            conversationId: id,
+            credits: AI_COSTS.VOICE["tts-1"],
+            source: "AI_USAGE",
+            model: "tts-1",
+            type: "VOICE"
         });
 
         // 4. Return Audio (Base64)
@@ -267,10 +293,24 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
  * Only converts Audio -> Text
  */
 export const transcribeVoice = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
     if (!req.file) throw new ApiError(400, "Audio file is required");
+
+    const cost = AI_COSTS.VOICE["whisper-1"];
+    await checkCreditBalance(userId, cost);
 
     try {
         const text = await transcribeAudio(req.file.path);
+
+        // Deduct Credits
+        await deductCredits({
+            userId,
+            conversationId: null,
+            credits: cost,
+            source: "AI_USAGE",
+            model: "whisper-1",
+            type: "VOICE"
+        });
 
         // Cleanup
         fs.unlinkSync(req.file.path);
@@ -290,10 +330,24 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
  * Only converts Text -> Audio
  */
 export const synthesizeVoice = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
     const { text } = req.body;
     if (!text) throw new ApiError(400, "Text is required");
 
+    const cost = AI_COSTS.VOICE["tts-1"];
+    await checkCreditBalance(userId, cost);
+
     const audioPath = await speakText({ text });
+
+    // Deduct Credits
+    await deductCredits({
+        userId,
+        conversationId: null,
+        credits: cost,
+        source: "AI_USAGE",
+        model: "tts-1",
+        type: "VOICE"
+    });
 
     // Return as Base64 for easy frontend playback
     const audioBuffer = fs.readFileSync(audioPath);

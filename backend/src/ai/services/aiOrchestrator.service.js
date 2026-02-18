@@ -4,6 +4,7 @@ import prisma from "../../config/db.js";
 import { runAgentGraph } from "../graph/main.graph.js";
 import { countTokens, checkCreditBalance, deductCredits } from "../services/aiToken.service.js";
 import { validateInputSafety } from "../validators/safety.validator.js";
+import { AI_COSTS } from "../../config/plans.config.js";
 
 /**
  * Generates a short title for the conversation
@@ -49,7 +50,7 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
 export const processAiRequest = async ({ userId, conversationId, message, mode = "TEXT" }) => {
 
     // 0. Strict Billing Pre-Check
-    const minCredits = mode === "VOICE" ? 3 : 1;
+    const minCredits = AI_COSTS.CHAT["gpt-4o-mini"];
     await checkCreditBalance(userId, minCredits);
 
     // 0.1 Safety Check
@@ -109,7 +110,7 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
 
     // 6. Credit Deduction (Atomic)
     // Voice might cost more in future, but for now logic is same
-    const creditsUsed = countTokens(message) + countTokens(aiContentString);
+    const creditsUsed = AI_COSTS.CHAT["gpt-4o-mini"];
 
     await deductCredits({
         userId,
@@ -138,7 +139,7 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
 export const processAiRequestStream = async function* ({ userId, conversationId, message, mode = "TEXT" }) {
 
     // 0. Strict Billing Pre-Check
-    const minCredits = mode === "VOICE" ? 3 : 1;
+    const minCredits = AI_COSTS.CHAT["gpt-4o-mini"];
     await checkCreditBalance(userId, minCredits);
 
     // 0.1 Safety Check
@@ -214,7 +215,7 @@ export const processAiRequestStream = async function* ({ userId, conversationId,
         });
 
         // 6. Credit Deduction (Atomic)
-        const creditsUsed = countTokens(message) + countTokens(fullAiResponse);
+        const creditsUsed = AI_COSTS.CHAT["gpt-4o-mini"];
         await deductCredits({
             userId,
             conversationId,
