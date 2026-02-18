@@ -107,29 +107,25 @@ export default function AiSidebar() {
                                             key={c.id}
                                             onClick={() => handleSelectChat(c)}
                                             className={`
-                                                relative group flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                                                relative group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-200 cursor-pointer
                                                 ${isActive
-                                                    ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5'
-                                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                                    ? 'bg-[#212121] text-white'
+                                                    : 'text-gray-400 hover:bg-[#212121]/50 hover:text-white'
                                                 }
                                             `}
                                         >
-                                            <MessageSquare className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400'}`} />
-                                            <span className="truncate flex-1 font-sans tracking-wide">{c.title || "New chat"}</span>
+                                            <span className="truncate flex-1 font-sans text-sm">{c.title || "New chat"}</span>
 
                                             {isActive && (
-                                                <>
-                                                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_#06b6d4]" />
-                                                    <div className="absolute right-6 flex items-center z-10">
-                                                        <button
-                                                            onClick={(e) => confirmDeleteChat(e, c.id)}
-                                                            className="p-1 hover:bg-red-500/10 hover:text-red-400 text-gray-500 rounded-md transition-colors"
-                                                            title="Delete Chat"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </>
+                                                <div className="flex items-center z-10">
+                                                    <button
+                                                        onClick={(e) => confirmDeleteChat(e, c.id)}
+                                                        className="p-1 hover:text-red-400 text-gray-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                        title="Delete Chat"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     );
