@@ -17,8 +17,8 @@ export default function AiSidebar() {
 
     const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
 
-    const handleNewChat = async () => {
-        await createNewChat();
+    const handleNewChat = () => {
+        setCurrentConv(null);
         if (window.innerWidth < 768) setIsMobileOpen(false);
     };
 
