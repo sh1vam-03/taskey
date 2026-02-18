@@ -6,7 +6,6 @@ import { LogOut, Menu, X, Plus, MessageSquare, Trash2, ArrowLeft } from 'lucide-
 import { useAuth } from '@/context/AuthContext';
 import { useAi } from '@/context/AiContext';
 import { useState } from 'react';
-import Button from '@/components/ui/Button';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 export default function AiSidebar() {
@@ -54,84 +53,113 @@ export default function AiSidebar() {
                 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 {/* Header / Logo Area */}
-                <div className="h-16 flex items-center px-4 border-b border-white/5 gap-3">
+                <div className="h-20 flex items-center px-8 border-b border-white/5 gap-3">
                     <button
                         onClick={() => router.push('/dashboard')}
-                        className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
+                        className="p-2 -ml-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
                         title="Back to Dashboard"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <span className="font-semibold tracking-tight text-white">Taskey AI</span>
+                    <Link href="/dashboard" className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600" />
+                        <span className="text-lg font-bold tracking-tight text-white">
+                            Taskey AI
+                        </span>
+                    </Link>
                 </div>
 
-                {/* New Chat Button */}
-                <div className="p-4 pb-2">
-                    <Button
-                        onClick={handleNewChat}
-                        variant="ghost"
-                        className="w-full justify-start gap-3 border border-white/10 hover:bg-white/5 text-sm py-6 px-4 transition-colors rounded-xl group bg-white/5"
-                    >
-                        <div className="p-1.5 bg-cyan-500/10 rounded-lg group-hover:bg-cyan-500/20 transition-colors text-cyan-400">
-                            <Plus className="h-4 w-4" />
-                        </div>
-                        <span className="font-medium">New chat</span>
-                    </Button>
-                </div>
-
-                {/* History List */}
-                <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 scrollbar-thin scrollbar-thumb-white/10">
-                    <div className="text-[10px] font-mono uppercase tracking-wider text-gray-500 px-4 py-2">History</div>
-
-                    {loading && conversations.length === 0 ? (
-                        <div className="space-y-2 px-2">
-                            <div className="h-10 bg-white/5 rounded-lg w-full animate-pulse" />
-                            <div className="h-10 bg-white/5 rounded-lg w-3/4 animate-pulse" />
-                        </div>
-                    ) : (
-                        conversations.map(c => (
-                            <div
-                                key={c.id}
-                                onClick={() => handleSelectChat(c)}
+                {/* Nav / History List */}
+                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
+                    <div>
+                        <h3 className="px-4 text-[10px] font-mono uppercase tracking-wider text-gray-500 mb-2">
+                            Actions
+                        </h3>
+                        <div className="space-y-1">
+                            <button
+                                onClick={handleNewChat}
                                 className={`
-                                    group flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer text-sm transition-all duration-200 relative
-                                    ${currentConv?.id === c.id
-                                        ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                                    }
+                                    w-full relative group flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                                    text-gray-400 hover:text-white hover:bg-white/5
                                 `}
                             >
-                                <MessageSquare className={`h-4 w-4 shrink-0 transition-colors ${currentConv?.id === c.id ? 'text-cyan-400' : 'text-gray-600 group-hover:text-cyan-400'}`} />
-                                <span className="truncate flex-1 text-sm font-medium">{c.title || "New chat"}</span>
+                                <Plus className="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+                                <span className="font-sans tracking-wide">New Chat</span>
+                            </button>
+                        </div>
+                    </div>
 
-                                {currentConv?.id === c.id && (
-                                    <div className="absolute right-2 flex items-center">
-                                        <button
-                                            onClick={(e) => confirmDeleteChat(e, c.id)}
-                                            className="p-1.5 hover:bg-red-500/10 hover:text-red-400 text-gray-500 rounded-md transition-colors"
+                    <div>
+                        <h3 className="px-4 text-[10px] font-mono uppercase tracking-wider text-gray-500 mb-2">
+                            History
+                        </h3>
+                        <div className="space-y-1">
+                            {loading && conversations.length === 0 ? (
+                                <div className="space-y-2 px-2">
+                                    <div className="h-9 bg-white/5 rounded-lg w-full animate-pulse" />
+                                    <div className="h-9 bg-white/5 rounded-lg w-3/4 animate-pulse" />
+                                </div>
+                            ) : (
+                                conversations.map(c => {
+                                    const isActive = currentConv?.id === c.id;
+                                    return (
+                                        <div
+                                            key={c.id}
+                                            onClick={() => handleSelectChat(c)}
+                                            className={`
+                                                relative group flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
+                                                ${isActive
+                                                    ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5'
+                                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                                }
+                                            `}
                                         >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    )}
+                                            <MessageSquare className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400'}`} />
+                                            <span className="truncate flex-1 font-sans tracking-wide">{c.title || "New chat"}</span>
+
+                                            {isActive && (
+                                                <>
+                                                    <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_#06b6d4]" />
+                                                    <div className="absolute right-6 flex items-center z-10">
+                                                        <button
+                                                            onClick={(e) => confirmDeleteChat(e, c.id)}
+                                                            className="p-1 hover:bg-red-500/10 hover:text-red-400 text-gray-500 rounded-md transition-colors"
+                                                            title="Delete Chat"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
                 </div>
 
-                {/* User Info / Footer */}
+                {/* User Info (Copied from Dashboard Sidebar) */}
                 <div className="border-t border-white/5 p-4 m-4 bg-white/5 rounded-xl">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-9 h-9 rounded-full bg-linear-to-br from-cyan-900 to-black border border-cyan-500/20 flex items-center justify-center text-xs font-mono text-cyan-400">
-                            AI
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-xs font-mono text-white">
+                            {user?.name?.[0] || 'U'}
                         </div>
                         <div className="flex flex-col overflow-hidden">
-                            <span className="text-sm font-medium text-white truncate">AI Assistant</span>
+                            <span className="text-sm font-medium text-white truncate">{user?.name}</span>
                             <span className="text-[10px] text-cyan-500 font-mono uppercase tracking-wider">
-                                Active
+                                {user?.plan === 'pro' ? 'PRO_ACCESS' : 'FREE_TIER'}
                             </span>
                         </div>
                     </div>
+
+                    <button
+                        onClick={logout}
+                        className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
+                    >
+                        <LogOut className="h-3.5 w-3.5" />
+                        Disconnect
+                    </button>
                 </div>
             </aside>
 
