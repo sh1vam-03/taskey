@@ -242,3 +242,50 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         throw error;
     }
 });
+
+/**
+ * POST /api/ai/voice/transcribe
+ * Only converts Audio -> Text
+ */
+export const transcribeVoice = asyncHandler(async (req, res) => {
+    if (!req.file) throw new ApiError(400, "Audio file is required");
+
+    try {
+        const text = await transcribeAudio(req.file.path);
+
+        // Cleanup
+        fs.unlinkSync(req.file.path);
+
+        res.status(200).json({
+            success: true,
+            data: { text }
+        });
+    } catch (error) {
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        throw error;
+    }
+});
+
+/**
+ * POST /api/ai/voice/tts
+ * Only converts Text -> Audio
+ */
+export const synthesizeVoice = asyncHandler(async (req, res) => {
+    const { text } = req.body;
+    if (!text) throw new ApiError(400, "Text is required");
+
+    const audioPath = await speakText({ text });
+
+    // Return as Base64 for easy frontend playback
+    const audioBuffer = fs.readFileSync(audioPath);
+    const audioBase64 = audioBuffer.toString('base64');
+    const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
+
+    // Cleanup
+    fs.unlinkSync(audioPath);
+
+    res.status(200).json({
+        success: true,
+        data: { audioUrl: audioDataUrl }
+    });
+});

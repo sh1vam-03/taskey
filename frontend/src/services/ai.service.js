@@ -84,7 +84,6 @@ const aiService = {
 
     /**
      * Delete a conversation
-     * @param {string} conversationId
      */
     async deleteConversation(conversationId) {
         const response = await api.delete(`/ai/conversations/${conversationId}`);
@@ -92,7 +91,27 @@ const aiService = {
     },
 
     /**
-     * Send voice audio to conversation
+     * Transcribe Audio (STT Only)
+     */
+    async transcribeAudio(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'voice.webm');
+        const response = await api.post('/ai/voice/transcribe', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data.data;
+    },
+
+    /**
+     * Synthesize Text to Speech (TTS Only)
+     */
+    async synthesizeSpeech(text) {
+        const response = await api.post('/ai/voice/tts', { text });
+        return response.data.data;
+    },
+
+    /**
+     * Send voice audio to conversation (Legacy Monolithic)
      * @param {string} conversationId 
      * @param {Blob} audioBlob 
      */

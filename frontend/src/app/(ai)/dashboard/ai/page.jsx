@@ -169,7 +169,7 @@ export default function AIPage() {
                     <div className="w-full flex justify-between items-center text-gray-400 max-w-4xl mx-auto">
                         <div className="flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-cyan-400" />
-                            <span className="text-sm font-medium text-white tracking-widest uppercase">Gemini Live</span>
+                            <span className="text-sm font-medium text-white tracking-widest uppercase">TASKTIME Voice Assistant</span>
                         </div>
                         <button onClick={() => setLiveMode(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                             <X className="w-6 h-6 text-gray-400" />
@@ -203,8 +203,8 @@ export default function AIPage() {
 
                                         {/* Show AI Text if last role was assistant */}
                                         {messages[messages.length - 1].role === 'assistant' && (
-                                            <div className="self-start text-white text-lg font-medium leading-relaxed max-w-[95%] animate-in fade-in slide-in-from-bottom-4 text-left pointer-events-auto">
-                                                {messages[messages.length - 1].content}
+                                            <div className="self-start text-white text-lg font-medium leading-relaxed max-w-[95%] animate-in fade-in slide-in-from-bottom-4 text-left pointer-events-auto prose prose-invert prose-p:my-1 prose-pre:bg-black/50 prose-pre:rounded-lg prose-pre:p-2 prose-code:bg-white/10 prose-code:rounded prose-code:px-1 prose-strong:text-cyan-400">
+                                                <ReactMarkdown>{messages[messages.length - 1].content}</ReactMarkdown>
                                             </div>
                                         )}
                                     </>
