@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAi } from '@/context/AiContext';
 import { useState } from 'react';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
 export default function AiSidebar() {
     const router = useRouter();
@@ -126,10 +127,7 @@ export default function AiSidebar() {
                         </h3>
                         <div className="space-y-1">
                             {loading && conversations.length === 0 ? (
-                                <div className="space-y-2 px-2">
-                                    <div className="h-9 bg-white/5 rounded-lg w-full animate-pulse" />
-                                    <div className="h-9 bg-white/5 rounded-lg w-3/4 animate-pulse" />
-                                </div>
+                                <SkeletonLoader type="chat-sidebar" />
                             ) : (
                                 conversations.map(c => {
                                     const isActive = currentConv?.id === c.id;

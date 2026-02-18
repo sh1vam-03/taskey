@@ -48,5 +48,34 @@ export default function SkeletonLoader({ type = "text", className = "" }) {
         );
     }
 
+    if (type === "chat-sidebar") {
+        return (
+            <div className={`space-y-2 ${className}`}>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="h-10 w-full bg-zinc-900/30 border border-white/5 rounded-lg animate-pulse" />
+                ))}
+            </div>
+        );
+    }
+
+    if (type === "chat-messages") {
+        return (
+            <div className={`space-y-6 p-4 ${className}`}>
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="space-y-4">
+                        {/* User Bubble (Right) */}
+                        <div className="flex justify-end">
+                            <div className="h-12 w-2/3 bg-zinc-800/30 rounded-2xl rounded-tr-sm animate-pulse" />
+                        </div>
+                        {/* AI Bubble (Left) */}
+                        <div className="flex justify-start">
+                            <div className="h-24 w-3/4 bg-zinc-900/30 rounded-2xl rounded-tl-sm animate-pulse" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return <div className={`${baseClass} ${className}`} />;
 }

@@ -8,6 +8,7 @@ import { Bot, Mic, Send, StopCircle, Sparkles, BrainCircuit, Calendar as Calenda
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/context/ToastContext';
 import AiEnergySphere from '@/components/ui/AiEnergySphere';
+import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
 export default function AIPage() {
     const { error } = useToast();
@@ -17,6 +18,7 @@ export default function AIPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [fetchingMessages, setFetchingMessages] = useState(false);
 
     const [isRecording, setIsRecording] = useState(false);
     const [liveMode, setLiveMode] = useState(false);
@@ -43,10 +45,13 @@ export default function AIPage() {
 
     const loadMessages = async (id) => {
         try {
+            setFetchingMessages(true);
             const msgs = await aiService.getMessages(id);
             setMessages(msgs);
         } catch (err) {
             console.error(err);
+        } finally {
+            setFetchingMessages(false);
         }
     };
 
@@ -258,7 +263,11 @@ export default function AIPage() {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 w-full pb-32">
-                    {!currentConv || messages.length === 0 ? (
+                    {fetchingMessages ? (
+                        <div className="max-w-3xl mx-auto w-full px-4 md:px-0 pt-4">
+                            <SkeletonLoader type="chat-messages" />
+                        </div>
+                    ) : !currentConv || messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center -mt-20">
                             {!liveMode && (
                                 <div className="relative mb-8 group cursor-pointer" onClick={() => { }}>
