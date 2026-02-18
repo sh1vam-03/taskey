@@ -25,6 +25,8 @@ export default function HowItWorks() {
             icon: <FaCheckCircle />
         }
     ];
+    const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
+
 
     return (
         <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black border-t border-white/5" id="how-it-works">

@@ -60,9 +60,10 @@ export default function InteractivePricing() {
 
         }
     ];
+    const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
 
     return (
-        <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black border-t border-white/5" id="pricing">
+        <section className={`py-[var(--section-spacing)] ${CONTAINER_CLASS}`} id="pricing">
             <div className="w-full max-w-[var(--container-width)] mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8 border-b border-white/10 pb-6">
                     <div>

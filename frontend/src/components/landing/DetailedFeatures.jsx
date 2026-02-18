@@ -68,9 +68,10 @@ export default function DetailedFeatures() {
             className: "md:col-span-1"
         }
     ];
+    const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
 
     return (
-        <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black" id="features">
+        <section className={`py-[var(--section-spacing)] ${CONTAINER_CLASS}`} id="features">
             <div className="w-full max-w-[var(--container-width)] mx-auto">
                 <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>

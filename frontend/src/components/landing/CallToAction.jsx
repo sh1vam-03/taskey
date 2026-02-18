@@ -3,9 +3,11 @@ import React from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
+const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
+
 export default function CallToAction() {
     return (
-        <section className="relative py-[var(--section-spacing)] px-[var(--container-padding)] bg-black overflow-hidden border-t border-white/5">
+        <section className={`relative py-[var(--section-spacing)] ${CONTAINER_CLASS} bg-black overflow-hidden border-t border-white/5`}>
             {/* Background Decorators */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px] opacity-50" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
