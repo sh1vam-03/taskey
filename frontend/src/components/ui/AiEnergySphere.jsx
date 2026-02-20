@@ -77,7 +77,6 @@ export default function AiEnergySphere({
         const hoverRSq = hoverRadius * hoverRadius;
         const BUCKETS = 12;
 
-        // Reusable per-frame arrays — no per-frame allocation
         const slotPX = new Float32Array(particleCount);
         const slotPY = new Float32Array(particleCount);
         const slotR = new Float32Array(particleCount);
@@ -94,11 +93,13 @@ export default function AiEnergySphere({
 
             ctx.clearRect(0, 0, size, size);
 
-            // Atmospheric inner glow
-            const hueBase = (t * 0.08) % 360;
+            // ── Cyan atmospheric inner glow ──────────────────────────────────
+            // Cyan is HSL ~185°, so we lock hue drift in that range
+            const hueBase = 185 + Math.sin(t * 0.005) * 8; // subtle ±8° drift around 185
+
             const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseRadius);
-            bg.addColorStop(0, `hsla(${190 + hueBase * 0.25},90%,70%,0.06)`);
-            bg.addColorStop(0.6, `hsla(${210 + hueBase * 0.1},80%,50%,0.02)`);
+            bg.addColorStop(0, `hsla(${hueBase},100%,65%,0.09)`);
+            bg.addColorStop(0.5, `hsla(${hueBase + 5},90%,45%,0.04)`);
             bg.addColorStop(1, "hsla(0,0%,0%,0)");
             ctx.fillStyle = bg;
             ctx.fillRect(0, 0, size, size);
@@ -110,7 +111,7 @@ export default function AiEnergySphere({
 
             bktCount.fill(0);
 
-            // ── Physics pass ─────────────────────────────────────────────────────
+            // ── Physics pass ─────────────────────────────────────────────────
             for (let i = 0; i < particleCount; i++) {
                 const o = i * S;
 
@@ -129,7 +130,6 @@ export default function AiEnergySphere({
                 const px = buf[o + 3] * sc;
                 const py = buf[o + 4] * sc;
 
-                // Cursor repulsion
                 const dx = px - mx;
                 const dy = py - my;
                 const dSq = dx * dx + dy * dy;
@@ -149,17 +149,20 @@ export default function AiEnergySphere({
                 bktSlots[bkt][bktCount[bkt]++] = i;
             }
 
-            // ── Batch draw — one beginPath per depth bucket ───────────────────────
-            ctx.shadowBlur = 0; // disabled — shadowBlur per particle is a huge perf killer
+            // ── Batch draw — cyan palette per depth bucket ───────────────────
+            ctx.shadowBlur = 0;
 
             for (let b = 0; b < BUCKETS; b++) {
                 const count = bktCount[b];
                 if (!count) continue;
 
                 const depth = (b + 0.5) / BUCKETS;
-                const hue = (175 + depth * 40 + hueBase * 0.18) | 0;
-                const lum = (58 + depth * 28) | 0;
-                const alpha = (0.10 + depth * 0.90).toFixed(2);
+
+                // Cyan hue range: 180° (aqua) → 195° (cyan-blue) by depth
+                const hue = (180 + depth * 15) | 0;
+                // Saturation full, lightness 55% → 85% front-to-back
+                const lum = (55 + depth * 30) | 0;
+                const alpha = (0.08 + depth * 0.92).toFixed(2);
 
                 ctx.fillStyle = `hsla(${hue},100%,${lum}%,${alpha})`;
                 ctx.beginPath();
@@ -170,16 +173,16 @@ export default function AiEnergySphere({
                     const px = cx + slotPX[i];
                     const py = cy + slotPY[i];
                     const r = slotR[i];
-                    ctx.moveTo(px + r, py);  // moveTo prevents arcs from connecting
+                    ctx.moveTo(px + r, py);
                     ctx.arc(px, py, r, 0, Math.PI * 2);
                 }
                 ctx.fill();
             }
 
-            // ── Rim glow overlay ──────────────────────────────────────────────────
+            // ── Cyan rim glow overlay ─────────────────────────────────────────
             const rim = ctx.createRadialGradient(cx, cy, baseRadius * 0.72, cx, cy, baseRadius * 1.18);
             rim.addColorStop(0, "hsla(0,0%,0%,0)");
-            rim.addColorStop(0.65, `hsla(${(185 + hueBase * 0.12) | 0},100%,80%,0.05)`);
+            rim.addColorStop(0.65, `hsla(185,100%,75%,0.07)`);
             rim.addColorStop(1, "hsla(0,0%,0%,0)");
             ctx.fillStyle = rim;
             ctx.fillRect(0, 0, size, size);
@@ -197,13 +200,8 @@ export default function AiEnergySphere({
                 position: "relative",
                 width: size,
                 height: size,
-                borderRadius: "50%",
-                background: "radial-gradient(ellipse at 40% 35%, #030e1c 0%, #000407 100%)",
-                boxShadow: [
-                    "0 0 120px 30px rgba(0,200,255,0.07)",
-                    "0 0  40px  8px rgba(0,160,220,0.05)",
-                    "inset 0 0  60px rgba(0,180,240,0.03)",
-                ].join(", "),
+                // No background, no border-radius, no box-shadow — canvas only
+                background: "transparent",
             }}
         >
             <canvas ref={canvasRef} style={{ display: "block" }} />
