@@ -1,7 +1,7 @@
 import TermsClient from "./TermsClient";
 
 export const metadata = {
-    title: 'System Contract | Taskey',
+    title: 'Terms & Conditions | TASKTIME',
 }
 
 export default function TermsPage() {

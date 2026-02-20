@@ -54,7 +54,7 @@ const Navbar = () => {
                 <div className="flex items-center gap-8">
                     <Link href="/" className="group flex items-center gap-3">
                         <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold tracking-tighter text-white group-hover:text-cyan-400 transition-colors">
+                            <span className="text-xl font-bold  text-white group-hover:text-cyan-400 transition-colors ">
                                 TASKTIME
                             </span>
                         </div>
@@ -119,7 +119,7 @@ const Navbar = () => {
                 {/* Right: Actions */}
                 <div className="hidden md:flex items-center gap-6">
                     <Link href="/login">
-                        <Button variant="scanline" size="sm">
+                        <Button variant="scanline" size="md">
                             Login
                         </Button>
                     </Link>

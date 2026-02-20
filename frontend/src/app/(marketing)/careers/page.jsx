@@ -1,7 +1,7 @@
 import CareersClient from "./CareersClient";
 
 export const metadata = {
-    title: 'Neural Collective | Taskey',
+    title: 'Careers | TASKTIME',
 }
 
 export default function CareersPage() {

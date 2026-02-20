@@ -48,18 +48,11 @@ export default function ContactClient() {
             <div className="w-full max-w-2xl mx-auto relative z-10">
                 {/* HERO HEADER */}
                 <div className="text-center mb-12 lg:mb-16">
-                    <div className="inline-flex items-center gap-2 border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-6 lg:mb-8">
-                        <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
-                        <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">
-                            SIGNAL: STABLE
-                        </span>
-                    </div>
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
-                        Establish Uplink
+                        Get in Touch
                     </h1>
                     <p className="text-lg lg:text-xl text-gray-400 max-w-xl mx-auto leading-relaxed px-4">
-                        Initiate a secure transmission channel to our engineering team.
-                        We are listening.
+                        Have a question, need support, or want to explore a partnership? Send a message and we’ll respond within 24 hours.
                     </p>
                 </div>
 
@@ -79,8 +72,8 @@ export default function ContactClient() {
                         <div className="absolute bottom-2 right-2 text-[8px] text-white/20 font-mono">+</div>
 
                         <div className="mb-2 text-center">
-                            <h2 className="text-xl font-bold text-white">Secure Uplink</h2>
-                            <p className="text-gray-500 text-sm">Enter designation credentials</p>
+                            <h2 className="text-xl font-bold text-white">Send us a Message</h2>
+                            <p className="text-gray-500 text-sm">Fill out the form below and we’ll get back to you shortly.</p>
                         </div>
 
                         {result && (
@@ -96,7 +89,7 @@ export default function ContactClient() {
                             {/* Name Input */}
                             <div>
                                 <label className="block mb-1 text-sm font-medium text-gray-300">
-                                    Designation (Name)
+                                    Full Name
                                 </label>
                                 <input
                                     name="name"
@@ -111,7 +104,7 @@ export default function ContactClient() {
                             {/* Email Input */}
                             <div>
                                 <label className="block mb-1 text-sm font-medium text-gray-300">
-                                    Comms Channel (Email)
+                                    Email Address
                                 </label>
                                 <input
                                     name="email"
@@ -128,7 +121,7 @@ export default function ContactClient() {
                             {/* Message Input */}
                             <div>
                                 <label className="block mb-1 text-sm font-medium text-gray-300">
-                                    Payload Data (Message)
+                                    Message
                                 </label>
                                 <textarea
                                     name="message"
@@ -151,10 +144,10 @@ export default function ContactClient() {
                                     {isSubmitting ? (
                                         <span className="flex items-center justify-center gap-2">
                                             <Spinner size="sm" className="text-black" />
-                                            Establishing...
+                                            Sending...
                                         </span>
                                     ) : (
-                                        "Initiate Transmission"
+                                        "Send Message"
                                     )}
                                 </Button>
                             </div>
@@ -165,7 +158,7 @@ export default function ContactClient() {
                 {/* Footer Decorator */}
                 <div className="mt-12 text-center">
                     <p className="font-mono text-[10px] text-gray-600 uppercase tracking-[0.2em]">
-                        SECURE CONSOLE V1.0.4 • ENCRYPTED
+                        We respect your privacy. Your information will never be shared.
                     </p>
                 </div>
             </div>

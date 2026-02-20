@@ -2,9 +2,13 @@
 
 import React, { useEffect, useRef } from "react";
 
+// Particle buffer stride (floats per particle)
+// [ baseX, baseY, baseZ, x, y, z, phase, speed, pSize ]
+const S = 9;
+
 export default function AiEnergySphere({
-    size =600,
-    particleCount = 1000,
+    size = 600,
+    particleCount = 1200,
     baseRadius = 200,
     waveStrength = 10,
     rotationSpeed = 0.01,
@@ -14,71 +18,52 @@ export default function AiEnergySphere({
 }) {
     const canvasRef = useRef(null);
     const mouseRef = useRef({ x: 9999, y: 9999 });
-    const particlesRef = useRef([]);
+    const bufRef = useRef(null);
     const rafRef = useRef(null);
 
-    /* ===============================
-       Mouse tracking (SCREEN SPACE)
-    =============================== */
+    /* ── Mouse ──────────────────────────────────────────────────────────────── */
     useEffect(() => {
-        const move = (e) => {
+        const onMove = (e) => {
             const rect = canvasRef.current?.getBoundingClientRect();
             if (!rect) return;
             mouseRef.current.x = e.clientX - rect.left - rect.width / 2;
             mouseRef.current.y = e.clientY - rect.top - rect.height / 2;
         };
-
-        const leave = () => {
-            mouseRef.current.x = 9999;
-            mouseRef.current.y = 9999;
-        };
-
-        window.addEventListener("mousemove", move);
-        window.addEventListener("mouseleave", leave);
+        const onLeave = () => { mouseRef.current.x = mouseRef.current.y = 9999; };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseleave", onLeave);
         return () => {
-            window.removeEventListener("mousemove", move);
-            window.removeEventListener("mouseleave", leave);
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseleave", onLeave);
         };
     }, []);
 
-    /* ===============================
-       Particle initialization
-    =============================== */
+    /* ── Init particles ─────────────────────────────────────────────────────── */
     useEffect(() => {
-        const particles = [];
-
+        const buf = new Float32Array(particleCount * S);
         for (let i = 0; i < particleCount; i++) {
+            const o = i * S;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
-            const bias = Math.pow(Math.random(), 0.4);
-            const r = baseRadius + bias * 12;
-
+            const r = baseRadius + Math.pow(Math.random(), 0.4) * 12;
             const x = r * Math.sin(phi) * Math.cos(theta);
             const y = r * Math.sin(phi) * Math.sin(theta);
             const z = r * Math.cos(phi);
-
-            particles.push({
-                baseX: x,
-                baseY: y,
-                baseZ: z,
-                x, y, z,
-                phase: Math.random() * Math.PI * 2,
-                speed: 0.4 + Math.random() * 0.6,
-                size: 0.55 + Math.random() * 1.05,
-            });
+            buf[o] = buf[o + 3] = x;
+            buf[o + 1] = buf[o + 4] = y;
+            buf[o + 2] = buf[o + 5] = z;
+            buf[o + 6] = Math.random() * Math.PI * 2;
+            buf[o + 7] = 0.4 + Math.random() * 0.6;
+            buf[o + 8] = 0.55 + Math.random() * 1.05;
         }
-
-        particlesRef.current = particles;
+        bufRef.current = buf;
     }, [particleCount, baseRadius]);
 
-    /* ===============================
-       Animation loop (CORRECT SPACE)
-    =============================== */
+    /* ── Render loop ────────────────────────────────────────────────────────── */
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d", { alpha: true });
         const dpr = window.devicePixelRatio || 1;
 
         canvas.width = size * dpr;
@@ -87,97 +72,141 @@ export default function AiEnergySphere({
         canvas.style.height = `${size}px`;
         ctx.scale(dpr, dpr);
 
-        let t = 0;
-        const hoverRadiusSq = hoverRadius * hoverRadius;
+        const cx = size / 2;
+        const cy = size / 2;
+        const hoverRSq = hoverRadius * hoverRadius;
+        const BUCKETS = 12;
 
-        const animate = () => {
+        // Reusable per-frame arrays — no per-frame allocation
+        const slotPX = new Float32Array(particleCount);
+        const slotPY = new Float32Array(particleCount);
+        const slotR = new Float32Array(particleCount);
+        const slotBkt = new Uint8Array(particleCount);
+        const bktCount = new Int32Array(BUCKETS);
+        const bktSlots = Array.from({ length: BUCKETS }, () => new Uint16Array(particleCount));
+
+        let t = 0;
+
+        const frame = () => {
             t += 1;
+            const buf = bufRef.current;
+            if (!buf) { rafRef.current = requestAnimationFrame(frame); return; }
+
             ctx.clearRect(0, 0, size, size);
-            ctx.save();
-            ctx.translate(size / 2, size / 2);
+
+            // Atmospheric inner glow
+            const hueBase = (t * 0.08) % 360;
+            const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseRadius);
+            bg.addColorStop(0, `hsla(${190 + hueBase * 0.25},90%,70%,0.06)`);
+            bg.addColorStop(0.6, `hsla(${210 + hueBase * 0.1},80%,50%,0.02)`);
+            bg.addColorStop(1, "hsla(0,0%,0%,0)");
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, size, size);
 
             const mx = mouseRef.current.x;
             const my = mouseRef.current.y;
-
             const cosR = Math.cos(t * rotationSpeed);
             const sinR = Math.sin(t * rotationSpeed);
 
-            for (const p of particlesRef.current) {
-                /* ---- base surface ---- */
-                const wave =
-                    Math.sin(t * 0.018 * p.speed + p.phase) * waveStrength;
+            bktCount.fill(0);
 
-                const baseX = p.baseX * cosR - p.baseZ * sinR + wave;
-                const baseZ = p.baseX * sinR + p.baseZ * cosR;
-                const baseY =
-                    p.baseY + Math.cos(t * 0.014 + p.phase) * wave;
+            // ── Physics pass ─────────────────────────────────────────────────────
+            for (let i = 0; i < particleCount; i++) {
+                const o = i * S;
 
-                /* ---- spring toward base ---- */
-                p.x += (baseX - p.x) * springStrength;
-                p.y += (baseY - p.y) * springStrength;
-                p.z += (baseZ - p.z) * springStrength;
+                const wave = Math.sin(t * 0.018 * buf[o + 7] + buf[o + 6]) * waveStrength;
+                const bx = buf[o] * cosR - buf[o + 2] * sinR + wave;
+                const bz = buf[o] * sinR + buf[o + 2] * cosR;
+                const by = buf[o + 1] + Math.cos(t * 0.014 + buf[o + 6]) * wave;
 
-                /* ---- depth & projection ---- */
-                const rawDepth = (p.z + baseRadius) / (baseRadius * 2);
-                const depth = Math.min(1, Math.max(0, rawDepth));
-                const scale = 0.55 + depth;
+                buf[o + 3] += (bx - buf[o + 3]) * springStrength;
+                buf[o + 4] += (by - buf[o + 4]) * springStrength;
+                buf[o + 5] += (bz - buf[o + 5]) * springStrength;
 
-                const px = p.x * scale;
-                const py = p.y * scale;
+                const rawD = (buf[o + 5] + baseRadius) / (baseRadius * 2);
+                const depth = rawD < 0 ? 0 : rawD > 1 ? 1 : rawD;
+                const sc = 0.55 + depth;
+                const px = buf[o + 3] * sc;
+                const py = buf[o + 4] * sc;
 
-                /* ---- cursor interaction (PROJECTED SPACE ✔) ---- */
+                // Cursor repulsion
                 const dx = px - mx;
                 const dy = py - my;
-                const distSq = dx * dx + dy * dy;
-
-                if (distSq < hoverRadiusSq) {
-                    // surface normal
-                    const len = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z) || 1;
-                    const nx = p.x / len;
-                    const ny = p.y / len;
-                    const nz = p.z / len;
-
-                    const k = 1 - distSq / hoverRadiusSq;
-                    const force = k * repelStrength;
-
-                    p.x += nx * force;
-                    p.y += ny * force;
-                    p.z += nz * force;
+                const dSq = dx * dx + dy * dy;
+                if (dSq < hoverRSq) {
+                    const len = Math.sqrt(buf[o + 3] * buf[o + 3] + buf[o + 4] * buf[o + 4] + buf[o + 5] * buf[o + 5]) || 1;
+                    const force = (1 - dSq / hoverRSq) * repelStrength;
+                    buf[o + 3] += buf[o + 3] / len * force;
+                    buf[o + 4] += buf[o + 4] / len * force;
+                    buf[o + 5] += buf[o + 5] / len * force;
                 }
 
-                /* ---- draw ---- */
-                const radius = Math.max(0.5, p.size * scale);
+                const bkt = Math.min(BUCKETS - 1, (depth * BUCKETS) | 0);
+                slotPX[i] = px;
+                slotPY[i] = py;
+                slotR[i] = Math.max(0.4, buf[o + 8] * sc);
+                slotBkt[i] = bkt;
+                bktSlots[bkt][bktCount[bkt]++] = i;
+            }
 
+            // ── Batch draw — one beginPath per depth bucket ───────────────────────
+            ctx.shadowBlur = 0; // disabled — shadowBlur per particle is a huge perf killer
+
+            for (let b = 0; b < BUCKETS; b++) {
+                const count = bktCount[b];
+                if (!count) continue;
+
+                const depth = (b + 0.5) / BUCKETS;
+                const hue = (175 + depth * 40 + hueBase * 0.18) | 0;
+                const lum = (58 + depth * 28) | 0;
+                const alpha = (0.10 + depth * 0.90).toFixed(2);
+
+                ctx.fillStyle = `hsla(${hue},100%,${lum}%,${alpha})`;
                 ctx.beginPath();
-                ctx.fillStyle = `hsla(${180 + depth * 20}, 100%, 70%, ${0.2 + depth * 0.8})`;
-                ctx.shadowBlur = distSq < hoverRadiusSq ? 4 : 2;
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.arc(px, py, radius, 0, Math.PI * 2);
+
+                const slots = bktSlots[b];
+                for (let s = 0; s < count; s++) {
+                    const i = slots[s];
+                    const px = cx + slotPX[i];
+                    const py = cy + slotPY[i];
+                    const r = slotR[i];
+                    ctx.moveTo(px + r, py);  // moveTo prevents arcs from connecting
+                    ctx.arc(px, py, r, 0, Math.PI * 2);
+                }
                 ctx.fill();
             }
 
-            ctx.restore();
-            rafRef.current = requestAnimationFrame(animate);
+            // ── Rim glow overlay ──────────────────────────────────────────────────
+            const rim = ctx.createRadialGradient(cx, cy, baseRadius * 0.72, cx, cy, baseRadius * 1.18);
+            rim.addColorStop(0, "hsla(0,0%,0%,0)");
+            rim.addColorStop(0.65, `hsla(${(185 + hueBase * 0.12) | 0},100%,80%,0.05)`);
+            rim.addColorStop(1, "hsla(0,0%,0%,0)");
+            ctx.fillStyle = rim;
+            ctx.fillRect(0, 0, size, size);
+
+            rafRef.current = requestAnimationFrame(frame);
         };
 
-        animate();
+        frame();
         return () => cancelAnimationFrame(rafRef.current);
-    }, [
-        size,
-        waveStrength,
-        rotationSpeed,
-        baseRadius,
-        hoverRadius,
-        repelStrength,
-        springStrength,
-    ]);
+    }, [size, waveStrength, rotationSpeed, baseRadius, hoverRadius, repelStrength, springStrength, particleCount]);
 
     return (
         <div
-            className="relative flex items-center justify-center"
-            style={{ width: size, height: size }}
+            style={{
+                position: "relative",
+                width: size,
+                height: size,
+                borderRadius: "50%",
+                background: "radial-gradient(ellipse at 40% 35%, #030e1c 0%, #000407 100%)",
+                boxShadow: [
+                    "0 0 120px 30px rgba(0,200,255,0.07)",
+                    "0 0  40px  8px rgba(0,160,220,0.05)",
+                    "inset 0 0  60px rgba(0,180,240,0.03)",
+                ].join(", "),
+            }}
         >
-            <canvas ref={canvasRef} />
+            <canvas ref={canvasRef} style={{ display: "block" }} />
         </div>
     );
 }

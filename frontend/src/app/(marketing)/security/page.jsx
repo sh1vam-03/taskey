@@ -1,7 +1,7 @@
 import SecurityClient from "./SecurityClient";
 
 export const metadata = {
-    title: 'Security Architecture | Taskey',
+    title: 'Security | TASKTIME',
 }
 
 export default function SecurityPage() {

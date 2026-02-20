@@ -5,38 +5,50 @@ import { PlanType } from "@prisma/client";
 // ==========================================
 export const AI_COSTS = {
     CHAT: {
-        "gpt-4o-mini": 1
+        base: 1,              // 1 credit per API call minimum
+        per_1000_tokens: 2,   // 1 credit per 1k tokens
+        max_per_call: 200      // safety cap: e.g., don't charge more than 50 credits per call without human review
     },
     VOICE: {
-        "whisper-1": 3,
-        "tts-1": 3
+        "whisper-1": {
+            per_minute: 10,      // 1 credit per minute transcribed
+            rounding: "ceil"    // round up partial minutes
+        },
+        "tts-1": {
+            per_minute: 20,      // 2 credits per minute generated
+            rounding: "ceil"
+        }
     },
     TOOL: {
-        "tavily": 1
+        "tavily": {
+            per_request: 10,     // 1 credit per basic search
+            advanced_multiplier: 20  // if advanced search used, charge 2 credits
+        }
     }
 };
+
 
 // ==========================================
 // 1.5. TOP-UP PACKS
 // ==========================================
 export const TOP_UP_PLANS = {
-    CREDIT_100: {
-        id: "CREDIT_100",
-        label: "100 Credits",
-        credits: 100,
-        price: 99 // INR
+    CREDIT_200: {
+        id: "CREDIT_200",
+        label: "200 Credits",
+        credits: 200,
+        price: 29 // INR
     },
-    CREDIT_500: {
-        id: "CREDIT_500",
-        label: "500 Credits",
-        credits: 500,
-        price: 399
+    CREDIT_450: {
+        id: "CREDIT_450",
+        label: "450 Credits",
+        credits: 450,
+        price: 49 // INR
     },
     CREDIT_1000: {
         id: "CREDIT_1000",
         label: "1000 Credits",
         credits: 1000,
-        price: 699
+        price: 99 // INR
     }
 };
 
@@ -55,43 +67,43 @@ export const PLANS = {
             YEARLY: 10
         },
         limits: {
-            task: 100,
-            schedule: 300,
-            behavior: 45
+            task: 200,
+            schedule: 50,
+            behavior: 30
         },
         rank: 0
     },
     [PlanType.PRO]: {
         label: "Pro",
         price: {
-            MONTHLY: 499, // INR
-            YEARLY: 4999
+            MONTHLY: 29, // INR
+            YEARLY: 299
         },
         credits: {
-            MONTHLY: 50,
-            YEARLY: 600 // 50 * 12
+            MONTHLY: 300,
+            YEARLY: 3600 // 300 * 12
         },
         limits: {
             task: 300,
-            schedule: 600,
-            behavior: 100
+            schedule: 100,
+            behavior: 50
         },
         rank: 1
     },
     [PlanType.PRO_PLUS]: {
         label: "Pro Plus",
         price: {
-            MONTHLY: 999,
-            YEARLY: 9999
+            MONTHLY: 79,
+            YEARLY: 799
         },
         credits: {
-            MONTHLY: 90,
-            YEARLY: 1080 // 90 * 12
+            MONTHLY: 900,
+            YEARLY: 10800 // 900 * 12
         },
         limits: {
-            task: 500,
-            schedule: 1000,
-            behavior: 1000
+            task: 1000,
+            schedule: 500,
+            behavior: 100
         },
         rank: 2
     }
