@@ -1,7 +1,7 @@
 import TermsClient from "./TermsClient";
 
 export const metadata = {
-    title: 'Terms & Conditions | TASKTIME',
+    title: 'Terms of Service | TASKTIME',
 }
 
 export default function TermsPage() {

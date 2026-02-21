@@ -87,7 +87,7 @@ export default function TermsClient() {
 
                 {/* Header */}
                 <div className="mb-16 border-b border-white/10 pb-8">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tighter">Terms & Conditions</h1>
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tighter">Terms of Service</h1>
                     <p className="text-sm font-mono text-gray-500">LAST UPDATED: {lastUpdated}</p>
                     <p className="text-sm font-mono text-gray-600 mt-1">TASKTIME · Maharashtra, India</p>
                 </div>

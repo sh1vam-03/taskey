@@ -183,6 +183,9 @@ export default function SignupForm() {
                                 {showConfirmPassword ? "Hide" : "Show"}
                             </Button>
                         </div>
+                        <span className="text-xs text-gray-500">
+                            By signing up, you agree to our <Link href="/terms" className="text-cyan-500 hover:text-cyan-200">Terms of Service</Link> and <Link href="/privacy" className="text-cyan-500 hover:text-cyan-200">Privacy Policy</Link>.
+                        </span>
 
                         <Button
                             className="w-full sm:w-auto mt-4"
