@@ -21,22 +21,6 @@ function SubHeading({ title }) {
     );
 }
 
-function InfoBlock({ children }) {
-    return (
-        <div className="bg-white/5 border-l-2 border-cyan-500 p-4 rounded-r-md my-4">
-            <p className="text-sm text-cyan-200">{children}</p>
-        </div>
-    );
-}
-
-function WarningBlock({ children }) {
-    return (
-        <div className="bg-red-500/10 border-l-2 border-red-500 p-4 rounded-r-md my-4">
-            <p className="text-sm text-red-200">{children}</p>
-        </div>
-    );
-}
-
 function BulletList({ items }) {
     return (
         <ul className="list-none pl-0 space-y-2 text-gray-400">
@@ -57,8 +41,7 @@ function Divider() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TermsClient() {
-    const lastUpdated = "February 21, 2026";
-
+    const lastUpdated = "February 22, 2026";
     const [orbSize, setOrbSize] = useState(1000);
 
     useEffect(() => {
@@ -87,9 +70,9 @@ export default function TermsClient() {
 
                 {/* Header */}
                 <div className="mb-16 border-b border-white/10 pb-8">
+                    <p className="text-sm font-mono text-cyan-500 mb-2 tracking-widest">TASKTIME · Maharashtra, India</p>
                     <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tighter">Terms of Service</h1>
-                    <p className="text-sm font-mono text-gray-500">LAST UPDATED: {lastUpdated}</p>
-                    <p className="text-sm font-mono text-gray-600 mt-1">TASKTIME · Maharashtra, India</p>
+                    <p className="text-sm font-mono text-gray-500">Last updated: {lastUpdated} </p>
                 </div>
 
                 {/* Terms Card */}
@@ -125,7 +108,7 @@ export default function TermsClient() {
                             <p className="mb-4">To access or use the Service, you must satisfy all of the following eligibility requirements:</p>
                             <BulletList items={[
                                 "You must be at least eighteen (18) years of age. By using the Service, you represent and warrant that you are at least 18 years old.",
-                                "If you are using the Service on behalf of an organization, company, or other legal entity, you represent and warrant that you have the authority to bind that entity to these Terms, in which case \"you\" and \"your\" shall refer to that entity.",
+                                "If you are using the Service on behalf of an organization, company, or other legal entity, you represent and warrant that you have the authority to bind that entity to these Terms, in which case the terms \"you\" and \"your\" shall refer to that entity.",
                                 "You must not be barred from using the Service under the laws of any applicable jurisdiction, including the laws of India.",
                                 "You must not be a person or entity subject to applicable international sanctions or export control restrictions.",
                             ]} />
@@ -134,7 +117,7 @@ export default function TermsClient() {
                             </p>
                             <SubHeading title="2.2 Export Controls & Sanctions Compliance" />
                             <p>
-                                You may not access or use the Service in violation of any applicable export control laws, trade sanctions, or trade embargoes, including those administered or enforced by the Government of India, the United States Office of Foreign Assets Control (OFAC), the European Union, or any other applicable governmental authority. By using the Service, you represent and warrant that (a) you are not located in a country or territory subject to a comprehensive trade embargo; (b) you are not listed on any applicable list of prohibited or restricted parties; and (c) your use of the Service will not result in a violation of any applicable export control or sanctions law. TASKTIME reserves the right to restrict or terminate access for any User or region to comply with such obligations.
+                                You may not access or use the Service in violation of any applicable export control laws, trade sanctions, or trade embargoes, including those administered or enforced by the Government of India, the United States Office of Foreign Assets Control (OFAC), the European Union, or any other applicable governmental authority. By using the Service, you represent and warrant that (a) you are not located in a country or territory that is subject to a comprehensive trade embargo; (b) you are not listed on any applicable list of prohibited or restricted parties; and (c) your use of the Service will not result in a violation of any applicable export control or sanctions law. TASKTIME reserves the right to restrict or terminate access to the Service for any User or region in order to comply with applicable export control and sanctions obligations.
                             </p>
                         </section>
 
@@ -164,25 +147,28 @@ export default function TermsClient() {
 
                             <SubHeading title="4.1 Subscription Plans" />
                             <p>
-                                TASKTIME offers various subscription plans, the details of which are available at tasktime.in/pricing. Plans may vary in features, usage limits, AI credit allocations, and pricing. TASKTIME reserves the right to modify, introduce, or discontinue subscription plans at any time, subject to notice to existing subscribers.
+                                TASKTIME offers various subscription plans, the details of which are available on our pricing page at tasktime.in/pricing. Subscription plans may vary in terms of features, usage limits, AI credit allocations, and pricing. TASKTIME reserves the right to modify, introduce, or discontinue subscription plans at any time, subject to notice to existing subscribers.
                             </p>
 
                             <SubHeading title="4.2 Fees & Payment" />
                             <p className="mb-3">
-                                All subscription fees are payable in advance. Monthly plans are billed once per calendar month. Annual plans are billed upfront as a lump sum covering the full twelve (12)-month subscription period; by selecting an annual plan, you acknowledge that the entire annual fee is due immediately and is non-refundable in accordance with Section 13 (Refund Policy). You authorize TASKTIME or its authorized payment processors to charge your designated payment method for all applicable fees. All charges are in the currency specified at checkout and are inclusive of applicable taxes unless stated otherwise.
+                                All subscription fees are payable in advance on the applicable billing cycle. Monthly plans are billed once per calendar month. Annual plans are billed upfront as a lump sum covering the full twelve (12)-month subscription period; by selecting an annual plan, you acknowledge that the entire annual fee is due immediately and is non-refundable in accordance with Section 13 (Refund Policy). You authorize TASKTIME or its authorized payment processors to charge your designated payment method for all applicable fees. All charges are in the currency specified at checkout and are inclusive of applicable taxes unless stated otherwise.
                             </p>
                             <p>
                                 You represent that you are authorized to use the payment method you provide. TASKTIME is not responsible for charges imposed by your financial institution, including overdraft or currency conversion fees.
                             </p>
 
                             <SubHeading title="4.3 Auto-Renewal" />
+                            <p className="mb-3">
+                                All subscriptions are automatically renewed at the end of each billing cycle (monthly or annual, as applicable) at the then-current subscription rate, unless cancelled by the User prior to the renewal date. By subscribing, you expressly authorize TASKTIME to charge your payment method for each renewal period without further action on your part.
+                            </p>
                             <p>
-                                All subscriptions automatically renew at the end of each billing cycle at the then-current rate, unless cancelled prior to the renewal date. By subscribing, you expressly authorize TASKTIME to charge your payment method for each renewal period without further action on your part. Cancellation after a renewal charge has been processed will not entitle you to a refund for that billing period.
+                                TASKTIME will endeavor to provide advance notice of upcoming renewal charges. It is your responsibility to manage your subscription settings and to cancel prior to renewal if you do not wish to continue. Cancellation after a renewal charge has been processed will not entitle you to a refund for that billing period.
                             </p>
 
                             <SubHeading title="4.4 Cancellation" />
                             <p>
-                                You may cancel your subscription at any time through your account settings or by contacting support@tasktime.in. Cancellation takes effect at the end of the current billing cycle. Upon cancellation, you retain access until the end of the paid period, after which your subscription and associated features will be deactivated. Cancellation does not entitle you to any refund of fees already paid for the current billing cycle.
+                                You may cancel your subscription at any time through your account settings or by contacting support@tasktime.in. Cancellation will take effect at the end of the current billing cycle. Upon cancellation, you will retain access to the Service until the end of the paid period, after which your subscription and associated features will be deactivated. Cancellation does not entitle you to any refund of fees already paid for the current billing cycle.
                             </p>
 
                             <SubHeading title="4.5 Price Changes" />
@@ -204,12 +190,12 @@ export default function TermsClient() {
 
                             <SubHeading title="5.2 Subscription Credits" />
                             <p>
-                                Subscription credits are allocated to your account at the commencement of each billing cycle in accordance with your subscription plan. Subscription credits expire at the end of each billing cycle and do not roll over. Unused subscription credits at the time of expiry are forfeited without compensation.
+                                Subscription credits are allocated to your account at the commencement of each billing cycle in accordance with your subscription plan. Subscription credits expire at the end of each billing cycle and do not roll over to the next cycle. Unused subscription credits at the time of expiry are forfeited without compensation.
                             </p>
 
                             <SubHeading title="5.3 Top-Up Credits" />
                             <p>
-                                Users may purchase additional credits (&quot;Top-Up Credits&quot;) outside of their subscription allocation. Top-Up Credits expire between six (6) and twelve (12) months from the date of purchase, as specified at the time of purchase. Unused Top-Up Credits that expire are forfeited without compensation.
+                                Users may purchase additional credits (&quot;Top-Up Credits&quot;) outside of their subscription allocation. Top-Up Credits expire between six (6) and twelve (12) months from the date of purchase, as specified at the time of purchase. The applicable expiry period will be disclosed prior to purchase. Unused Top-Up Credits that expire are forfeited without compensation.
                             </p>
 
                             <SubHeading title="5.4 Non-Transferability" />
@@ -219,7 +205,7 @@ export default function TermsClient() {
 
                             <SubHeading title="5.5 Non-Refundability" />
                             <p>
-                                All credits are non-refundable once allocated or purchased, regardless of whether they have been used, partially used, or remain unused at the time of cancellation or account termination. Please refer to Section 13 (Refund Policy) for further details.
+                                All credits, whether subscription credits or Top-Up Credits, are non-refundable once allocated or purchased. This applies regardless of whether the credits have been used, partially used, or remain unused at the time of cancellation or account termination. Please refer to Section 13 (Refund Policy) for further details.
                             </p>
 
                             <SubHeading title="5.6 Usage Limits & Fair Use" />
@@ -240,18 +226,21 @@ export default function TermsClient() {
                             <SubHeading title="6.1 Prohibited Activities" />
                             <BulletList items={[
                                 "Resale or Unauthorized Distribution: You may not resell, sublicense, distribute, or otherwise make the Service available to any third party for commercial gain without TASKTIME's prior written consent.",
-                                "Automated Access & Scraping: You may not use automated tools, bots, crawlers, scrapers, or similar mechanisms to access, index, or extract data from the Service, except where expressly permitted through TASKTIME's API.",
+                                "Automated Access & Scraping: You may not use automated tools, bots, crawlers, scrapers, or similar mechanisms to access, index, or extract data from the Service, except where expressly permitted by TASKTIME through its API and subject to applicable API Terms.",
                                 "System Abuse: You may not engage in any activity that imposes an unreasonable or disproportionate load on TASKTIME's infrastructure, or that interferes with the proper functioning of the Service or any systems connected to it.",
                                 "Reverse Engineering: You may not attempt to reverse engineer, decompile, disassemble, or otherwise derive the source code, underlying algorithms, or structure of any part of the Service or platform.",
                                 "Malicious Use: You may not use the Service to transmit malware, viruses, or other harmful code, or to conduct phishing, fraud, or any other unlawful or deceptive activity.",
-                                "Unlawful Use: You may not use the Service to violate any applicable local, national, or international law or regulation, including data protection laws, intellectual property laws, consumer protection laws, or anti-spam legislation.",
+                                "Unlawful Use: You may not use the Service to violate any applicable local, national, or international law or regulation, including but not limited to data protection laws, intellectual property laws, consumer protection laws, or anti-spam legislation.",
                                 "Harassment & Abuse: You may not use the Service to harass, defame, threaten, or harm any individual or group.",
                                 "Unauthorized Access: You may not attempt to gain unauthorized access to any account, server, system, or network connected to the Service.",
                             ]} />
 
                             <SubHeading title="6.2 Monitoring & Enforcement" />
+                            <p className="mb-3">
+                                TASKTIME reserves the right to monitor usage patterns, implement rate limiting, and take any technical or administrative measures necessary to prevent abuse of the Service. This includes the right to suspend or permanently terminate access to any account that, in TASKTIME&apos;s reasonable judgment, violates this Acceptable Use Policy or any other provision of these Terms.
+                            </p>
                             <p>
-                                TASKTIME reserves the right to monitor usage patterns, implement rate limiting, and take any technical or administrative measures necessary to prevent abuse of the Service. This includes the right to suspend or permanently terminate access to any account that, in TASKTIME&apos;s reasonable judgment, violates this Acceptable Use Policy or any other provision of these Terms. TASKTIME&apos;s exercise or non-exercise of monitoring rights shall not constitute a waiver of any right or create any obligation to monitor or take any particular enforcement action.
+                                TASKTIME&apos;s exercise or non-exercise of monitoring rights shall not constitute a waiver of any right or create any obligation to monitor or take any particular enforcement action.
                             </p>
                         </section>
 
@@ -260,9 +249,6 @@ export default function TermsClient() {
                         {/* 7. AI Output Disclaimer */}
                         <section>
                             <SectionHeading number={7} title="AI Output Disclaimer" />
-                            <WarningBlock>
-                                <strong>Critical Warning:</strong> TASKTIME is a probabilistic system, not a deterministic one. AI Outputs are generated algorithmically and may be inaccurate, incomplete, or misleading. Never rely solely on AI Outputs for professional, legal, medical, or financial decisions.
-                            </WarningBlock>
 
                             <SubHeading title="7.1 Nature of AI Outputs" />
                             <p className="mb-3">
@@ -276,7 +262,10 @@ export default function TermsClient() {
 
                             <SubHeading title="7.3 Not Professional Advice" />
                             <p className="mb-3">
-                                AI Outputs generated by the Service do not constitute, and must not be construed as, legal advice, medical advice, financial advice, accounting advice, investment advice, psychological counselling, or any other form of professional advice. TASKTIME is not a licensed legal, medical, financial, or professional services provider. Users should not act or refrain from acting solely on the basis of AI Outputs without independently verifying the information and, where appropriate, consulting a qualified professional in the relevant field.
+                                AI Outputs generated by the Service do not constitute, and must not be construed as, legal advice, medical advice, financial advice, accounting advice, investment advice, psychological counselling, or any other form of professional advice. TASKTIME is not a licensed legal, medical, financial, or professional services provider.
+                            </p>
+                            <p className="mb-3">
+                                Users should not act or refrain from acting solely on the basis of AI Outputs without independently verifying the information and, where appropriate, consulting a qualified professional in the relevant field.
                             </p>
 
                             <SubHeading title="7.4 User Responsibility" />
@@ -297,17 +286,13 @@ export default function TermsClient() {
 
                         <Divider />
 
-                        {/* 8. Beta Features */}
+                        {/* 8. Beta Features & Experimental Functionality */}
                         <section>
                             <SectionHeading number={8} title="Beta Features & Experimental Functionality" />
-                            <div className="inline-flex items-center gap-2 border border-amber-400/30 bg-amber-400/10 px-3 py-1 rounded-full mb-4">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                <span className="text-amber-400 text-xs font-mono font-bold tracking-widest">EXPERIMENTAL</span>
-                            </div>
 
                             <SubHeading title="8.1 Designation of Beta Features" />
                             <p className="mb-3">
-                                TASKTIME may, from time to time, make available certain features, tools, or functionalities designated as &quot;beta&quot;, &quot;preview&quot;, &quot;experimental&quot;, &quot;early access&quot;, or by similar terminology (collectively, &quot;Beta Features&quot;). Beta Features are offered at TASKTIME&apos;s sole discretion for evaluation and testing purposes only.
+                                TASKTIME may, from time to time, make available certain features, tools, or functionalities that are designated as &quot;beta&quot;, &quot;preview&quot;, &quot;experimental&quot;, &quot;early access&quot;, or by similar terminology (collectively, &quot;Beta Features&quot;). Beta Features are offered at TASKTIME&apos;s sole discretion for evaluation and testing purposes only.
                             </p>
 
                             <SubHeading title="8.2 No Warranties for Beta Features" />
@@ -439,9 +424,6 @@ export default function TermsClient() {
                         {/* 13. Refund Policy */}
                         <section>
                             <SectionHeading number={13} title="Refund Policy" />
-                            <WarningBlock>
-                                <strong>No Refunds:</strong> All fees paid to TASKTIME are strictly non-refundable. No refunds will be issued for used or unused subscription periods or AI credits, except where explicitly required by applicable law.
-                            </WarningBlock>
 
                             <SubHeading title="13.1 General Non-Refundability" />
                             <p className="mb-3">
@@ -475,14 +457,20 @@ export default function TermsClient() {
                         <section>
                             <SectionHeading number={14} title="Limitation of Liability" />
 
-                            <SubHeading title={`14.1 Service Provided "As Is" and "As Available"`} />
+                            <SubHeading title={`14.1 Service Provided 'As Is' and 'As Available'`} />
                             <p className="mb-3">
-                                THE SERVICE IS PROVIDED ON AN &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; BASIS WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, TASKTIME EXPRESSLY DISCLAIMS ALL WARRANTIES, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, TITLE, ACCURACY, AND RELIABILITY. TASKTIME does not warrant that the Service will be uninterrupted, error-free, secure, or free from viruses or other harmful components, or that any defect will be corrected.
+                                THE SERVICE IS PROVIDED ON AN &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; BASIS WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, TASKTIME EXPRESSLY DISCLAIMS ALL WARRANTIES, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, TITLE, ACCURACY, AND RELIABILITY.
+                            </p>
+                            <p className="mb-3">
+                                TASKTIME does not warrant that the Service will be uninterrupted, error-free, secure, or free from viruses or other harmful components, or that any defect will be corrected.
                             </p>
 
                             <SubHeading title="14.2 Service Availability" />
                             <p className="mb-3">
-                                TASKTIME does not guarantee any specific level of service availability, uptime, or response time unless such guarantees are expressly stated in a separate, written Service Level Agreement (SLA) executed between TASKTIME and the User. In the absence of an executed SLA, the Service is provided on a commercially reasonable efforts basis. Scheduled and unscheduled maintenance, third-party infrastructure outages, force majeure events, or other technical failures may result in periods of unavailability for which TASKTIME shall have no liability. Users are advised not to use the Service as the sole or primary system of record for critical data without maintaining independent backups.
+                                TASKTIME does not guarantee any specific level of service availability, uptime, or response time unless such guarantees are expressly stated in a separate, written Service Level Agreement (SLA) executed between TASKTIME and the User. In the absence of an executed SLA, the Service is provided on a commercially reasonable efforts basis. Scheduled and unscheduled maintenance, third-party infrastructure outages, force majeure events, or other technical failures may result in periods of unavailability for which TASKTIME shall have no liability.
+                            </p>
+                            <p className="mb-3">
+                                Users are advised not to use the Service as the sole or primary system of record for critical data without maintaining independent backups.
                             </p>
 
                             <SubHeading title="14.3 Exclusion of Consequential Damages" />
@@ -534,7 +522,10 @@ export default function TermsClient() {
 
                             <SubHeading title="16.2 Mandatory Arbitration" />
                             <p className="mb-3">
-                                Any dispute, controversy, or claim arising out of or relating to these Terms, or the breach, termination, or invalidity thereof, shall be resolved by binding arbitration conducted in accordance with the Arbitration and Conciliation Act, 1996 (as amended), or its successor legislation. The seat and venue of arbitration shall be Mumbai, Maharashtra, India. Proceedings shall be conducted in the English language. The arbitral tribunal shall consist of a sole arbitrator mutually agreed upon by the parties. In the absence of agreement, the arbitrator shall be appointed in accordance with the applicable rules under the Arbitration and Conciliation Act, 1996.
+                                Any dispute, controversy, or claim arising out of or relating to these Terms, or the breach, termination, or invalidity thereof, shall be resolved by binding arbitration. Arbitration shall be conducted in accordance with the Arbitration and Conciliation Act, 1996 (as amended), or its successor legislation. The seat and venue of arbitration shall be Mumbai, Maharashtra, India. Proceedings shall be conducted in the English language.
+                            </p>
+                            <p className="mb-3">
+                                The arbitral tribunal shall consist of a sole arbitrator mutually agreed upon by the parties. In the absence of agreement, the arbitrator shall be appointed in accordance with the applicable rules under the Arbitration and Conciliation Act, 1996.
                             </p>
 
                             <SubHeading title="16.3 Jurisdiction for Interim Relief" />
@@ -551,10 +542,6 @@ export default function TermsClient() {
                             <p>
                                 Any claim or action arising out of or relating to the Service or these Terms must be commenced within one (1) year after the cause of action accrues. Claims not brought within this period are permanently barred.
                             </p>
-
-                            <InfoBlock>
-                                Governing law: India. Arbitration seat: Mumbai, Maharashtra. Conducted under the Arbitration and Conciliation Act, 1996.
-                            </InfoBlock>
                         </section>
 
                         <Divider />
@@ -621,17 +608,29 @@ export default function TermsClient() {
                         <section>
                             <SectionHeading number={19} title="Contact Information" />
                             <p className="mb-4">
-                                If you have any questions, concerns, or formal notices relating to these Terms and Conditions, please contact us at:
+                                For any questions, concerns, or formal notices relating to these Terms and Conditions, please contact:
                             </p>
                             <div className="bg-white/5 border border-white/10 rounded-sm p-6 space-y-2 font-mono text-sm">
                                 <p><span className="text-gray-500">Entity:</span> <span className="text-cyan-400">TASKTIME</span></p>
-                                <p><span className="text-gray-500">Department:</span> <span className="text-gray-300">Legal &amp; Compliance</span></p>
-                                <p><span className="text-gray-500">Jurisdiction:</span> <span className="text-gray-300">Maharashtra, India</span></p>
-                                <p><span className="text-gray-500">Legal:</span> <span className="text-cyan-400">legal@tasktime.in</span></p>
+                                <p><span className="text-gray-500">Department:</span> <span className="text-gray-300">Legal &amp; Compliance Department</span></p>
+                                <p><span className="text-gray-500">Location:</span> <span className="text-gray-300">Maharashtra, India</span></p>
+                                <p><span className="text-gray-500">Email:</span> <span className="text-cyan-400">legal@tasktime.in</span></p>
                                 <p><span className="text-gray-500">Support:</span> <span className="text-cyan-400">support@tasktime.in</span></p>
-                                <p><span className="text-gray-500">Website:</span> <span className="text-cyan-400">https://tasktime.in</span></p>
+                                <p><span className="text-gray-500">Website:</span> <span className="text-cyan-400">www.tasktime.in</span></p>
                             </div>
                         </section>
+
+                        {/* <Divider /> */}
+
+                        {/* Closing Statement & Copyright */}
+                        {/* <section>
+                            <p className="text-sm text-gray-400 mb-4">
+                                This document constitutes the complete and binding Terms and Conditions of TASKTIME. By using the Service, you acknowledge that you have read, understood, and agreed to be bound by all provisions herein.
+                            </p>
+                            <p className="text-sm text-gray-500 font-mono">
+                                Copyright © 2026 TASKTIME. All Rights Reserved.
+                            </p>
+                        </section> */}
 
                         <Divider />
 
