@@ -11,7 +11,7 @@ import HowItWorks from "@/components/landing/HowItWorks";
 import DetailedFeatures from "@/components/landing/DetailedFeatures";
 import CallToAction from "@/components/landing/CallToAction";
 
-// ─── Compute orb size outside React (no closure) ────────────────────────────
+// ─── Compute orb size outside React ─────────────────────────────────────────
 function computeOrbSize() {
     if (typeof window === "undefined") return 900;
     const w = window.innerWidth;
@@ -25,19 +25,16 @@ const CONTAINER_CLASS =
     "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
 
 export default function Home() {
-    const [orbSize, setOrbSize] = useState(900); // Stable default for SSR
+    const [orbSize, setOrbSize] = useState(900);
     const rafId = useRef(null);
 
-    // Debounce resize via rAF — no setState spam while dragging window
     const handleResize = useCallback(() => {
         if (rafId.current) cancelAnimationFrame(rafId.current);
-        rafId.current = requestAnimationFrame(() => {
-            setOrbSize(computeOrbSize());
-        });
+        rafId.current = requestAnimationFrame(() => setOrbSize(computeOrbSize()));
     }, []);
 
     useEffect(() => {
-        setOrbSize(computeOrbSize()); // Update with actual size after mount
+        setOrbSize(computeOrbSize());
         window.addEventListener("resize", handleResize, { passive: true });
         return () => {
             window.removeEventListener("resize", handleResize);
@@ -55,17 +52,14 @@ export default function Home() {
             {/* ── HERO ─────────────────────────────────────────────────────────── */}
             <section className="relative min-h-[100dvh] max-h-[900px] flex flex-col items-center justify-center py-[var(--section-spacing)] border-b border-white/5 overflow-hidden">
 
-                {/* HUD Decorators — pure CSS, zero JS cost */}
-                <div
-                    className="absolute inset-0 pointer-events-none select-none overflow-hidden"
-                    aria-hidden="true"
-                >
+                {/* HUD decorators */}
+                <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
                     <div className="absolute top-0 bottom-0 left-[10%] w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
                     <div className="absolute top-0 bottom-0 right-[10%] w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]" />
                 </div>
 
-                {/* Orb — will-change:transform tells the compositor to isolate this layer */}
+                {/* Orb */}
                 <div
                     className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-60 md:opacity-100"
                     style={{ willChange: "transform" }}
@@ -89,23 +83,35 @@ export default function Home() {
 
                     <p className="text-[clamp(1rem,2vw,1.25rem)] text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
                         TASKTIME helps you{" "}
-                        <span className="text-white font-medium">
-                            organize tasks, automate schedules,
-                        </span>{" "}
+                        <span className="text-white font-medium">organize tasks, automate schedules,</span>{" "}
                         and stay focused every day with intelligent planning.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 lg:pt-8 w-full max-w-xs sm:max-w-none mx-auto">
+
+                        {/*
+                         * PRIMARY CTA
+                         * variant="primary" → solid cyan fill, shimmer sweep, glow on hover.
+                         * This is the highest-priority action — should always stand out most.
+                         */}
                         <Link href="/signup" className="w-full sm:w-auto">
-                            <Button variant="scanline" size="lg" className="w-full sm:w-auto">
+                            <Button variant="primary" size="lg" className="w-full sm:w-auto">
                                 Get Started Free
                             </Button>
                         </Link>
+
+                        {/*
+                         * SECONDARY CTA
+                         * variant="ghost" → no background, no border at rest.
+                         * Appears lighter so it doesn't compete with the primary button.
+                         * Do NOT override colors here — the component handles it correctly.
+                         */}
                         <Link href="#how-it-works" className="w-full sm:w-auto">
-                            <Button variant="ghost" size="lg" className="text-gray-500 hover:text-white w-full sm:w-auto">
+                            <Button variant="ghost" size="lg" className="w-full sm:w-auto">
                                 See How It Works
                             </Button>
                         </Link>
+
                     </div>
                 </div>
             </section>

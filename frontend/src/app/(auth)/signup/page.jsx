@@ -1,7 +1,7 @@
 import SignupForm from "@/features/auth/components/SignupForm"
 
 export const metadata = {
-    title: 'Initialize System | TASKTIME',
+    title: 'Signup | TASKTIME',
 }
 
 export default function Signup() {

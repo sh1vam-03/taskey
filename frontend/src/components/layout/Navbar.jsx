@@ -154,7 +154,7 @@ const Navbar = () => {
                             {Object.entries(navData).map(([category, links]) => (
                                 <div key={category} className="space-y-3">
                                     <h4 className="text-xs font-bold font-mono text-cyan-600 uppercase tracking-widest border-b border-white/10 pb-2">
-                                        // {category}
+                                        {category}
                                     </h4>
                                     <div className="flex flex-col space-y-2 pl-4 border-l border-white/5">
                                         {links.map((link) => (
@@ -172,12 +172,14 @@ const Navbar = () => {
                             ))}
 
                             <div className="h-px bg-white/10 my-2" />
-                            <Link href="/login" className="text-sm font-mono text-white hover:text-cyan-400 pl-4 py-2">
-                                {">"} LOGIN_TERMINAL
+                            <Link href="/login" className="w-full">
+                                <Button variant="scanline" className="w-full justify-center">
+                                    LOGIN
+                                </Button>
                             </Link>
                             <Link href="/signup" className="w-full">
-                                <Button variant="scanline" className="w-full justify-center">
-                                    INITIALIZE_SYSTEM
+                                <Button variant="primary" className="w-full justify-center">
+                                    SIGNUP
                                 </Button>
                             </Link>
                         </div>

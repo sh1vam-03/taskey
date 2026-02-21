@@ -62,7 +62,7 @@ export default function ForgotPassword() {
                         variant="scanline"
                         className="w-full sm:w-auto mt-4"
                     >
-                        {loading ? "Sending..." : "Send_Reset_Link"}
+                        {loading ? "Sending..." : "Send_Resettt_Link"}
                     </Button>
                 </form>
 

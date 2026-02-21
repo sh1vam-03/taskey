@@ -1,28 +1,11 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCheck, FaTimes, FaBolt, FaMicrophone, FaGlobe, FaRobot } from "react-icons/fa";
+import { FaCheck, FaTimes, FaBolt, FaRobot } from "react-icons/fa";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 
-// ─── Minimal Button shim (replace with your own Button component) ────────────
-function Button({ children, variant = "default", className = "", ...props }) {
-    const base =
-        "relative inline-flex items-center justify-center gap-2 px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest transition-all duration-200 focus:outline-none";
-    const variants = {
-        scanline:
-            "bg-cyan-500 text-black hover:bg-cyan-400 active:scale-[.98] shadow-[0_0_20px_rgba(0,255,255,0.25)]",
-        ghost:
-            "border border-white/20 text-white hover:border-white/50 hover:bg-white/5 active:scale-[.98]",
-        outline:
-            "border border-cyan-500/40 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-950/30 active:scale-[.98]",
-    };
-    return (
-        <button className={`${base} ${variants[variant] ?? variants.ghost} ${className}`} {...props}>
-            {children}
-        </button>
-    );
-}
-
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────────────
 const PLANS = [
     {
         id: "TIER.01",
@@ -33,9 +16,9 @@ const PLANS = [
         monthlyCredits: "10 credits (one-time trial)",
         yearlyCredits: "10 credits (one-time trial)",
         desc: "Perfect for manual productivity tracking.",
-        status: "STANDBY",
         cta: "Get Started",
-        highlight: false,
+        variant: "default",       // Card variant
+        buttonVariant: "ghost",   // Button variant
         features: [
             { label: "200 tasks / month", included: true },
             { label: "50 schedules / month", included: true },
@@ -54,9 +37,9 @@ const PLANS = [
         monthlyCredits: "300 AI credits / month",
         yearlyCredits: "3,600 AI credits / year",
         desc: "Best for professionals who want AI-powered productivity.",
-        status: "RECOMMENDED",
         cta: "Start Pro",
-        highlight: true,
+        variant: "filled",        // Card variant — tinted, highlighted
+        buttonVariant: "primary", // Button variant — solid cyan CTA
         features: [
             { label: "300 tasks / month", included: true },
             { label: "100 schedules / month", included: true },
@@ -75,10 +58,9 @@ const PLANS = [
         monthlyCredits: "900 AI credits / month",
         yearlyCredits: "10,800 AI credits / year",
         desc: "For power users who want a complete AI productivity partner.",
-        status: "PREMIUM",
         cta: "Start Pro+",
-        highlight: false,
-        isPremium: true,
+        variant: "outline",       // Card variant — cyan border
+        buttonVariant: "outline", // Button variant — transparent with cyan border
         features: [
             { label: "1,000 tasks / month", included: true },
             { label: "500 schedules / month", included: true },
@@ -110,26 +92,16 @@ const TABLE_ROWS = [
 export default function InteractivePricing() {
     const [isYearly, setIsYearly] = useState(false);
 
-    const getPrice = (plan) => {
-        if (plan.monthlyPrice === 0) return "Free";
-        return isYearly ? `₹${plan.yearlyPrice}` : `₹${plan.monthlyPrice}`;
-    };
-
-    const getPeriod = (plan) => {
-        if (plan.monthlyPrice === 0) return "";
-        return isYearly ? "/year" : "/month";
-    };
-
-    const getCredits = (plan) =>
-        isYearly ? plan.yearlyCredits : plan.monthlyCredits;
-
-    const yearlyDiscount = (monthly, yearly) =>
-        Math.round(((monthly * 12 - yearly) / (monthly * 12)) * 100);
+    const getPrice = (p) => p.monthlyPrice === 0 ? "Free" : isYearly ? `₹${p.yearlyPrice}` : `₹${p.monthlyPrice}`;
+    const getPeriod = (p) => p.monthlyPrice === 0 ? "" : isYearly ? "/year" : "/month";
+    const getCredits = (p) => isYearly ? p.yearlyCredits : p.monthlyCredits;
+    const yearlyDiscount = (mo, yr) => Math.round(((mo * 12 - yr) / (mo * 12)) * 100);
 
     return (
-        <section className="py-24 px-4 md:px-8 bg-black min-h-screen" id="pricing">
-            {/* ── Header ── */}
+        <section className="py-24 px-4 md:px-8 bg-black" id="pricing">
             <div className="max-w-6xl mx-auto">
+
+                {/* ── Header ──────────────────────────────────────────────── */}
                 <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8 border-b border-white/10 pb-8">
                     <div>
                         <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-600 mb-3">
@@ -175,7 +147,7 @@ export default function InteractivePricing() {
                     </div>
                 </div>
 
-                {/* ── Plan Cards ── */}
+                {/* ── Plan Cards ──────────────────────────────────────────── */}
                 <div className="grid md:grid-cols-3 gap-5 mb-6">
                     {PLANS.map((plan, i) => (
                         <motion.div
@@ -183,199 +155,163 @@ export default function InteractivePricing() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.08 }}
-                            className={`relative p-8 transition-all duration-300 group flex flex-col ${plan.highlight
-                                    ? "bg-cyan-950/10 border border-cyan-500/60 shadow-[0_0_40px_rgba(0,255,255,0.07)]"
-                                    : plan.isPremium
-                                        ? "bg-white/[0.02] border border-white/15 hover:border-white/30"
-                                        : "bg-black border border-white/10 hover:border-white/25"
-                                }`}
+                            className="relative"
                         >
-                            {/* Corner brackets */}
-                            {[
-                                "top-0 left-0 border-t border-l",
-                                "top-0 right-0 border-t border-r",
-                                "bottom-0 left-0 border-b border-l",
-                                "bottom-0 right-0 border-b border-r",
-                            ].map((pos, k) => (
-                                <div
-                                    key={k}
-                                    className={`absolute ${pos} w-3 h-3 transition-colors ${plan.highlight
-                                            ? "border-cyan-500"
-                                            : "border-white/20 group-hover:border-white/50"
-                                        }`}
-                                />
-                            ))}
-
-                            {/* Badge */}
+                            {/* Popular / Best Value badge */}
                             {plan.badge && (
-                                <div
-                                    className={`absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm ${plan.highlight
-                                            ? "bg-cyan-500 text-black"
-                                            : "bg-white text-black"
-                                        }`}
-                                >
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-4 py-1 text-[10px] font-mono font-bold uppercase tracking-widest rounded-sm bg-[var(--color-primary)] text-black">
                                     ✦ {plan.badge}
                                 </div>
                             )}
 
-                            {/* Plan ID + Name */}
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <div className="font-mono text-[9px] text-gray-600 mb-1">
-                                        [{plan.id}]
-                                    </div>
-                                    <h3
-                                        className={`text-2xl font-black tracking-tight ${plan.highlight
-                                                ? "text-cyan-400"
-                                                : plan.isPremium
-                                                    ? "text-white"
-                                                    : "text-gray-200"
-                                            }`}
-                                    >
-                                        {plan.name}
-                                    </h3>
-                                </div>
-                                {plan.highlight && (
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                                        <span className="text-[9px] font-mono text-cyan-500">ACTIVE</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Price */}
-                            <div className="mb-2 border-b border-white/5 pb-6">
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key={isYearly ? "yearly" : "monthly"}
-                                        initial={{ opacity: 0, y: -8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 8 }}
-                                        transition={{ duration: 0.18 }}
-                                        className="flex items-end gap-2"
-                                    >
-                                        <span className="text-5xl font-black text-white tracking-tighter">
-                                            {getPrice(plan)}
-                                        </span>
-                                        <span className="text-gray-500 text-sm font-mono mb-1">
-                                            {getPeriod(plan)}
-                                        </span>
-                                    </motion.div>
-                                </AnimatePresence>
-                                {isYearly && plan.monthlyPrice > 0 && (
-                                    <p className="text-[10px] font-mono text-gray-600 mt-1">
-                                        ≈ ₹{Math.round(plan.yearlyPrice / 12)}/month · Save ₹{plan.monthlyPrice * 12 - plan.yearlyPrice}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Credits pill */}
-                            <div className="mb-5">
-                                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-cyan-500 border border-cyan-900/40 bg-cyan-950/20 px-2.5 py-1 rounded-sm">
-                                    <FaBolt className="w-2.5 h-2.5" />
-                                    {getCredits(plan)}
-                                </span>
-                            </div>
-
-                            {/* Desc */}
-                            <p className="text-gray-500 text-xs font-mono mb-7 leading-relaxed">
-                                {plan.desc}
-                            </p>
-
-                            {/* Features */}
-                            <div className="space-y-3 mb-8 flex-1">
-                                {plan.features.map((feat, j) => (
-                                    <div key={j} className="flex items-center gap-3 text-xs font-mono">
-                                        {feat.included ? (
-                                            <FaCheck
-                                                className={`w-3 h-3 flex-shrink-0 ${plan.highlight ? "text-cyan-400" : "text-gray-400"
-                                                    }`}
-                                            />
-                                        ) : (
-                                            <FaTimes className="w-3 h-3 flex-shrink-0 text-gray-700" />
-                                        )}
-                                        <span
-                                            className={feat.included ? "text-gray-300" : "text-gray-700"}
-                                        >
-                                            {feat.label}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <Button
-                                variant={plan.highlight ? "scanline" : plan.isPremium ? "outline" : "ghost"}
-                                className="w-full"
+                            <Card
+                                variant={plan.variant}
+                                shimmer={plan.variant === "filled"}
+                                className="h-full flex flex-col"
                             >
-                                {plan.cta}
-                            </Button>
+                                {/* Plan ID + name + status dot */}
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <div className="font-mono text-[9px] text-gray-600 mb-1">
+                                            [{plan.id}]
+                                        </div>
+                                        <h3 className="text-2xl font-black tracking-tight text-white">
+                                            {plan.name}
+                                        </h3>
+                                    </div>
+                                    {plan.variant === "filled" && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                                            <span className="text-[9px] font-mono text-[var(--color-primary)]">RECOMMENDED</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Price */}
+                                <div className="mb-5 border-b border-white/5 pb-5">
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={isYearly ? "yr" : "mo"}
+                                            initial={{ opacity: 0, y: -8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 8 }}
+                                            transition={{ duration: 0.18 }}
+                                            className="flex items-end gap-2"
+                                        >
+                                            <span className="text-5xl font-black text-white tracking-tighter">
+                                                {getPrice(plan)}
+                                            </span>
+                                            <span className="text-gray-500 text-sm font-mono mb-1">
+                                                {getPeriod(plan)}
+                                            </span>
+                                        </motion.div>
+                                    </AnimatePresence>
+                                    {isYearly && plan.monthlyPrice > 0 && (
+                                        <p className="text-[10px] font-mono text-gray-600 mt-1">
+                                            ≈ ₹{Math.round(plan.yearlyPrice / 12)}/month · Save ₹{plan.monthlyPrice * 12 - plan.yearlyPrice}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Credits pill */}
+                                <div className="mb-4">
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[var(--color-primary)] border border-[var(--color-primary-border)] bg-[var(--color-primary-muted)] px-2.5 py-1 rounded-sm">
+                                        <FaBolt className="w-2.5 h-2.5" />
+                                        {getCredits(plan)}
+                                    </span>
+                                </div>
+
+                                {/* Desc */}
+                                <p className="text-gray-500 text-xs font-mono mb-6 leading-relaxed">
+                                    {plan.desc}
+                                </p>
+
+                                {/* Features */}
+                                <div className="space-y-3 mb-8 flex-1">
+                                    {plan.features.map((feat, j) => (
+                                        <div key={j} className="flex items-center gap-3 text-xs font-mono">
+                                            {feat.included ? (
+                                                <FaCheck className="w-3 h-3 flex-shrink-0 text-[var(--color-primary)]" />
+                                            ) : (
+                                                <FaTimes className="w-3 h-3 flex-shrink-0 text-gray-700" />
+                                            )}
+                                            <span className={feat.included ? "text-gray-300" : "text-gray-700"}>
+                                                {feat.label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* CTA */}
+                                <Button variant={plan.buttonVariant} size="md" className="w-full">
+                                    {plan.cta}
+                                </Button>
+                            </Card>
                         </motion.div>
                     ))}
                 </div>
 
-                {/* ── Credits note ── */}
-                <div className="flex items-start gap-3 border border-white/5 bg-white/[0.02] p-4 rounded-sm mb-20">
-                    <FaRobot className="text-cyan-700 w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <p className="text-[11px] font-mono text-gray-500 leading-relaxed">
-                        <span className="text-gray-400 font-bold">AI credits</span> are used when interacting with the AI assistant — for chat, voice responses, and real-time web lookups.{" "}
-                        <span className="text-cyan-700">Most users never run out.</span> Need more? Top up anytime below.
-                    </p>
-                </div>
+                {/* ── Credits note ─────────────────────────────────────────── */}
+                <Card variant="ghost" className="mb-20">
+                    <div className="flex items-start gap-3">
+                        <FaRobot className="text-[var(--color-primary)] w-4 h-4 mt-0.5 flex-shrink-0 opacity-50" />
+                        <p className="text-[11px] font-mono text-gray-500 leading-relaxed">
+                            <span className="text-gray-400 font-bold">AI credits</span> are used when interacting with the AI assistant — for chat, voice responses, and real-time web lookups.{" "}
+                            <span className="text-[var(--color-primary)] opacity-70">Most users never run out.</span> Need more? Top up anytime below.
+                        </p>
+                    </div>
+                </Card>
 
-                {/* ── Comparison Table ── */}
+                {/* ── Comparison Table ─────────────────────────────────────── */}
                 <div className="mb-20">
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-600 mb-6">
                         [FEATURE_COMPARISON]
                     </p>
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs font-mono">
-                            <thead>
-                                <tr className="border-b border-white/10">
-                                    <th className="text-left py-4 pr-8 text-gray-600 font-normal w-1/3">Feature</th>
-                                    {PLANS.map((plan) => (
-                                        <th
-                                            key={plan.id}
-                                            className={`py-4 px-6 font-bold text-center ${plan.highlight ? "text-cyan-400" : "text-gray-300"
-                                                }`}
-                                        >
-                                            {plan.name}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {TABLE_ROWS.map((row, i) => (
-                                    <tr
-                                        key={i}
-                                        className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
-                                    >
-                                        <td className="py-4 pr-8 text-gray-500">{row.label}</td>
-                                        {row.values.map((val, j) => (
-                                            <td key={j} className="py-4 px-6 text-center">
-                                                {val === null ? (
-                                                    <FaTimes className="w-3 h-3 text-gray-700 mx-auto" />
-                                                ) : val === true ? (
-                                                    <FaCheck
-                                                        className={`w-3 h-3 mx-auto ${j === 1 ? "text-cyan-500" : "text-gray-400"
-                                                            }`}
-                                                    />
-                                                ) : (
-                                                    <span
-                                                        className={j === 1 ? "text-cyan-400" : "text-gray-300"}
-                                                    >
-                                                        {val}
-                                                    </span>
-                                                )}
-                                            </td>
+                    <Card variant="default" noPadding>
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-xs font-mono">
+                                <thead>
+                                    <tr className="border-b border-white/[0.07]">
+                                        <th className="text-left py-4 px-6 text-gray-600 font-normal w-1/3">Feature</th>
+                                        {PLANS.map((plan) => (
+                                            <th
+                                                key={plan.id}
+                                                className={`py-4 px-6 font-bold text-center ${plan.variant === "filled" ? "text-[var(--color-primary)]" : "text-gray-400"}`}
+                                            >
+                                                {plan.name}
+                                            </th>
                                         ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {TABLE_ROWS.map((row, i) => (
+                                        <tr
+                                            key={i}
+                                            className="border-b border-white/[0.04] hover:bg-[var(--color-primary-muted)] transition-colors"
+                                        >
+                                            <td className="py-4 px-6 text-gray-500">{row.label}</td>
+                                            {row.values.map((val, j) => (
+                                                <td key={j} className="py-4 px-6 text-center">
+                                                    {val === null ? (
+                                                        <FaTimes className="w-3 h-3 text-gray-700 mx-auto" />
+                                                    ) : val === true ? (
+                                                        <FaCheck className="w-3 h-3 mx-auto text-[var(--color-primary)]" />
+                                                    ) : (
+                                                        <span className={j === 1 ? "text-[var(--color-primary)]" : "text-gray-300"}>
+                                                            {val}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
                 </div>
 
-                {/* ── Top-Up Packs ── */}
+                {/* ── Top-Up Packs ─────────────────────────────────────────── */}
                 <div className="mb-6">
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-600 mb-2">
                         [AI_CREDIT_TOPUPS]
@@ -385,36 +321,34 @@ export default function InteractivePricing() {
                     </p>
                     <div className="grid sm:grid-cols-3 gap-4">
                         {TOPUPS.map((pack, i) => (
-                            <motion.div
-                                key={i}
-                                whileHover={{ y: -2 }}
-                                className="relative border border-white/10 hover:border-cyan-800/50 bg-black p-6 flex items-center justify-between gap-4 transition-all group cursor-pointer"
-                            >
-                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20 group-hover:border-cyan-800/60 transition-colors" />
-                                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 group-hover:border-cyan-800/60 transition-colors" />
-
-                                <div>
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <FaBolt className="text-cyan-600 w-3 h-3" />
-                                        <span className="text-xl font-black text-white tracking-tight">
-                                            {pack.credits}
-                                        </span>
-                                        <span className="text-[10px] text-gray-600 font-mono">credits</span>
+                            <motion.div key={i} whileHover={{ y: -2 }}>
+                                <Card variant="default" className="cursor-pointer">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <FaBolt className="text-[var(--color-primary)] w-3 h-3 opacity-70" />
+                                                <span className="text-xl font-black text-white tracking-tight">
+                                                    {pack.credits}
+                                                </span>
+                                                <span className="text-[10px] text-gray-600 font-mono">credits</span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-600 font-mono">
+                                                ≈ ₹{(pack.price / pack.credits).toFixed(2)} per credit
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-black text-white">₹{pack.price}</div>
+                                            <Button variant="ghost" size="sm" className="mt-2">
+                                                Buy now →
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <p className="text-[10px] text-gray-600 font-mono">
-                                        ≈ ₹{(pack.price / pack.credits).toFixed(2)} per credit
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-2xl font-black text-white">₹{pack.price}</div>
-                                    <button className="text-[10px] font-mono text-cyan-600 hover:text-cyan-400 transition-colors mt-1 underline underline-offset-2">
-                                        Buy now →
-                                    </button>
-                                </div>
+                                </Card>
                             </motion.div>
                         ))}
                     </div>
                 </div>
+
             </div>
         </section>
     );
