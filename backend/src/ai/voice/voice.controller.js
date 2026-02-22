@@ -31,6 +31,15 @@ const getUserProvider = (user) => {
     return p === "sarvam" || p === "openai" ? p : "openai";
 };
 
+/** Safely unlink a file — logs a warning on failure but never throws. */
+const safeUnlink = (filePath) => {
+    if (filePath && fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {
+            console.warn(`[VoiceController] Failed to delete temp file ${filePath}:`, e.message);
+        }
+    }
+};
+
 /**
  * Full voice pipeline: Audio → STT → LLM → TTS → Audio response.
  *
@@ -54,6 +63,10 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
     await checkCreditBalance(user.id, sttMax + llmMax + ttsMax);
 
     if (!req.file) throw new Error("Audio file is required");
+
+    // ✅ FIX: Track TTS output file path from the start so the catch block
+    // can clean it up even if deductCredits or readFileSync throws after speakText.
+    let ttsAudioPath = null;
 
     try {
         // 1. STT — uses user.aiSarvamLang as input language hint
@@ -90,17 +103,14 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
 
         // 3. TTS — language is AUTO-DETECTED from aiContentString inside speakText
         const emotion = inferVoiceEmotion({ summary: aiContentString });
-        const {
-            audioPath,
-            durationMinutes: ttsDuration,
-            detectedLang,
-        } = await speakText({
+        const { audioPath, durationMinutes: ttsDuration, detectedLang } = await speakText({
             text: aiContentString,
             emotion,
             provider,
-            // NOTE: No languageCode passed — auto-detected from text by languageDetect.js
             speaker: user.aiSarvamSpeaker || DEFAULT_SPEAKER,
         });
+
+        ttsAudioPath = audioPath; // ✅ tracked — catch block will clean this up if needed
 
         const ttsCredits = calcVoiceCost(ttsModel, ttsDuration);
         await deductCredits({
@@ -113,20 +123,17 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
             meta: { durationMinutes: ttsDuration, detectedLang },
         });
 
-        // 4. Cleanup input file
-        try { fs.unlinkSync(req.file.path); } catch (e) {
-            console.warn("[VoiceController] Failed to delete input file:", e.message);
-        }
+        // 4. Cleanup STT input file (no longer needed)
+        safeUnlink(req.file.path);
 
-        // 5. Return audio response
+        // 5. Read TTS output and return
         const audioBuffer = fs.readFileSync(audioPath);
         const audioBase64 = audioBuffer.toString("base64");
         const mimeType = getAudioMimeType(provider);
         const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
 
-        try { fs.unlinkSync(audioPath); } catch (e) {
-            console.warn("[VoiceController] Failed to delete output file:", e.message);
-        }
+        safeUnlink(audioPath);
+        ttsAudioPath = null; // cleared — file is gone
 
         res.json({
             success: true,
@@ -143,9 +150,9 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
             },
         });
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) {
-            try { fs.unlinkSync(req.file.path); } catch { }
-        }
+        // Clean up any temp files left behind
+        safeUnlink(req.file?.path);
+        safeUnlink(ttsAudioPath); // ✅ FIX: was missing — TTS file leaked on any error after speakText
         throw error;
     }
 });

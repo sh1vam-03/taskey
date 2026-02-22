@@ -149,7 +149,9 @@ export const sarvamChatStream = async function* (messages, opts = {}) {
  * @param {string} filePath  - Local path to the audio file
  * @param {Object} opts
  * @param {string} opts.mode          - "transcribe" | "translate" | "verbatim"
- * @param {string} opts.languageCode  - BCP-47 e.g. "hi-IN". "unknown" = auto-detect.
+ * @param {string} opts.languageCode  - BCP-47 e.g. "hi-IN".
+ *                                      Pass "unknown" (or omit) to let Saaras auto-detect.
+ *                                      ⚠️  DO NOT send "unknown" to the API — omit the field instead.
  * @returns {Promise<string>} Transcribed text
  */
 export const sarvamTranscribe = async (filePath, opts = {}) => {
@@ -177,7 +179,12 @@ export const sarvamTranscribe = async (filePath, opts = {}) => {
     formData.append("file", blob, path.basename(filePath));
     formData.append("model", opts.model || "saaras:v3");
     formData.append("mode", opts.mode || "transcribe");
-    if (opts.languageCode) {
+
+    // ✅ FIX: "unknown" is our internal sentinel for "let Saaras auto-detect".
+    // The Saaras API auto-detects when the language_code field is OMITTED entirely.
+    // Sending language_code: "unknown" would cause a 4xx API error.
+    // Only append language_code when a real BCP-47 code is provided.
+    if (opts.languageCode && opts.languageCode !== "unknown") {
         formData.append("language_code", opts.languageCode);
     }
 
@@ -237,7 +244,7 @@ export const sarvamSynthesize = async (text, opts = {}) => {
 
     // Validated defaults
     const languageCode = opts.languageCode || "en-IN";
-    const speaker = opts.speaker || "shubh";  // "priya" is in the current valid list
+    const speaker = opts.speaker || "shubh";  // "shubh" is in the current valid list
     const pace = Math.max(0.5, Math.min(2.0, opts.pace || 1.0));
     const sampleRate = opts.sampleRate || 22050;
 
