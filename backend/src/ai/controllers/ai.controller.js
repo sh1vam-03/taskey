@@ -16,6 +16,12 @@
  * ── STT Language (aiSarvamLang) ──────────────────────────────
  * Used only for Saaras v3 input transcription accuracy.
  * "unknown" = Saaras auto-detects the spoken language.
+ *
+ * ── Tool Calling ─────────────────────────────────────────────
+ * Both OpenAI and Sarvam providers support full tool calling.
+ * sarvam-m exposes an OpenAI-compatible /v1/chat/completions endpoint
+ * that accepts the standard `tools` parameter. The graph routes both
+ * providers through the same Planner → Agent → Tools pipeline.
  */
 
 import prisma from "../../config/db.js";
@@ -106,6 +112,9 @@ const safeUnlink = (filePath) => {
  *   sttLang  → User-set. Helps Saaras accurately transcribe spoken input.
  *   speaker  → User-set. The Bulbul v3 voice the user hears.
  *   TTS lang → Never user-set. Auto-detected per-response from LLM output text.
+ *
+ * Both providers support full tool calling:
+ *   sarvam-m uses an OpenAI-compatible endpoint that accepts the tools parameter.
  */
 export const getAiSettings = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -154,8 +163,10 @@ export const getAiSettings = asyncHandler(async (req, res) => {
                 {
                     id: "sarvam",
                     name: "Sarvam AI (sarvam-m)",
-                    description: "Optimised for Indian languages — Hindi, Marathi, Tamil and more. No tool calling.",
-                    supportsTools: false,
+                    // ✅ FIX: Sarvam now runs the full agentic pipeline via its
+                    // OpenAI-compatible endpoint. Tool calling is fully supported.
+                    description: "Optimised for Indian languages — Hindi, Marathi, Tamil and more. Full tool calling supported.",
+                    supportsTools: true,
                     supportsVoice: true,
                 },
             ],

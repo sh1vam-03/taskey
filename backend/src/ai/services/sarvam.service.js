@@ -8,8 +8,16 @@
  * Auth: api-subscription-key header (NOT Bearer token)
  * Base: https://api.sarvam.ai
  *
- * ⚠️  IMPORTANT: sarvam-m does NOT support tool/function calling.
- *     Tool-using agentic workflows must use OpenAI.
+ * ── Tool Calling ─────────────────────────────────────────────
+ * sarvam-m DOES support tool/function calling via its OpenAI-compatible
+ * /v1/chat/completions endpoint. The main.graph.js routes Sarvam through
+ * LangChain's ChatOpenAI adapter (pointed at Sarvam's base URL), which
+ * handles tool binding and the full agentic loop automatically.
+ *
+ * The raw sarvamChat / sarvamChatStream functions in this file are used for:
+ *   - Conversation title generation (simple, no tools needed)
+ *   - Health checks
+ * They are NOT used for the main agentic pipeline anymore (main.graph.js handles that).
  *
  * ── Bulbul v3 Speakers ───────────────────────────────────────
  * Male:   shubh, amit, sumit, manan, rahul, ratan
@@ -35,11 +43,13 @@ const getSarvamKey = () => {
 };
 
 // ─────────────────────────────────────────────
-// 1. CHAT — sarvam-m
+// 1. CHAT — sarvam-m (simple, no tools)
+// Used for title generation and health checks only.
+// The agentic pipeline uses LangChain's ChatOpenAI adapter (main.graph.js).
 // ─────────────────────────────────────────────
 
 /**
- * Single-shot chat completion with sarvam-m.
+ * Single-shot chat completion with sarvam-m (no tool calling).
  * @param {Array<{role: string, content: string}>} messages
  * @param {Object} opts
  * @returns {Promise<string>} AI reply text
@@ -78,8 +88,10 @@ export const sarvamChat = async (messages, opts = {}) => {
 };
 
 /**
- * Streaming chat completion with sarvam-m (SSE generator).
- * Usage: for await (const token of sarvamChatStream(messages)) { ... }
+ * Streaming chat completion with sarvam-m (SSE generator, no tool calling).
+ * Used for simple streaming responses. The agentic streaming pipeline
+ * goes through LangChain's ChatOpenAI adapter in main.graph.js.
+ *
  * @param {Array<{role: string, content: string}>} messages
  * @param {Object} opts
  * @yields {string} Token chunks
@@ -180,7 +192,7 @@ export const sarvamTranscribe = async (filePath, opts = {}) => {
     formData.append("model", opts.model || "saaras:v3");
     formData.append("mode", opts.mode || "transcribe");
 
-    // ✅ FIX: "unknown" is our internal sentinel for "let Saaras auto-detect".
+    // ✅ "unknown" is our internal sentinel for "let Saaras auto-detect".
     // The Saaras API auto-detects when the language_code field is OMITTED entirely.
     // Sending language_code: "unknown" would cause a 4xx API error.
     // Only append language_code when a real BCP-47 code is provided.
@@ -244,7 +256,7 @@ export const sarvamSynthesize = async (text, opts = {}) => {
 
     // Validated defaults
     const languageCode = opts.languageCode || "en-IN";
-    const speaker = opts.speaker || "shubh";  // "shubh" is in the current valid list
+    const speaker = opts.speaker || "shubh";
     const pace = Math.max(0.5, Math.min(2.0, opts.pace || 1.0));
     const sampleRate = opts.sampleRate || 22050;
 

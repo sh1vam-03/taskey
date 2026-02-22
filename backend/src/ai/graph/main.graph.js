@@ -1,25 +1,29 @@
 /**
  * Main Agent Graph (Multi-Provider)
  *
- * Two graph variants:
+ * Both providers now run the FULL agentic pipeline:
+ *   Planner → Agent (with tools) → Reflection → Summarize → Finalize
  *
  * 1. OPENAI GRAPH  (provider: "openai")
- *    Full agentic flow: Planner → Agent (with tools) → Reflection → Summarize → Finalize
- *    Uses gpt-4o-mini. Supports tool calling, web search, tasks, schedules.
+ *    Uses gpt-4o-mini via LangChain ChatOpenAI.
+ *    Tool calling: native OpenAI function calling.
  *
  * 2. SARVAM GRAPH  (provider: "sarvam")
- *    Simplified conversational flow: sarvam_chat → Finalize
- *    ⚠️  sarvam-m does NOT support tool calling.
- *    Best for Indian language chat, conversational Q&A, simple planning.
- *    Tool actions (create_task, schedule, etc.) will NOT be executed.
- *    For full tool support, switch to the OpenAI provider.
+ *    Uses sarvam-m via LangChain ChatOpenAI pointed at Sarvam's OpenAI-compatible endpoint.
+ *    Tool calling: sarvam-m supports the OpenAI tools parameter via /v1/chat/completions.
+ *    ✅ Full tool support: create_task, update_task, create_schedule, web_search, etc.
+ *    ✅ Indian language responses with full agentic capabilities.
+ *
+ * Auth difference:
+ *    OpenAI: Authorization: Bearer <key>
+ *    Sarvam: api-subscription-key: <key>  (also accepts Bearer as fallback)
+ *    We send both headers so LangChain's OpenAI adapter works transparently.
  *
  * Provider is selected per-request based on user.aiProvider from the DB.
  */
 
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
-import { AIMessage } from "@langchain/core/messages";  // HumanMessage / SystemMessage not used here
 import { graphState } from "./state.schema.js";
 
 import { createIntentNode } from "./nodes/intent.node.js";
@@ -30,21 +34,20 @@ import { createReflectionNode } from "./nodes/reflection.node.js";
 import { createFinalizeNode } from "./nodes/finalize.node.js";
 import { shouldContinue } from "./edges.js";
 
-import { buildSystemContext } from "../services/aiContext.service.js";
-import { sarvamChat, sarvamChatStream } from "../services/sarvam.service.js";
-
 // ─────────────────────────────────────────────────────────────
 // GRAPH CACHE
 // Compiled graphs are expensive to build — cache by key.
-// Keys: "openai" | "openai-stream" | "sarvam"
+// Keys: "openai" | "openai-stream" | "sarvam" | "sarvam-stream"
 // ─────────────────────────────────────────────────────────────
 const graphCache = new Map();
 
 // ─────────────────────────────────────────────────────────────
-// MODEL FACTORY — OpenAI only
-// Sarvam graph calls sarvam.service.js directly (no LangChain model needed).
+// MODEL FACTORIES
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Builds a ChatOpenAI instance for the OpenAI provider.
+ */
 const buildOpenAIModel = (streaming = false) =>
     new ChatOpenAI({
         model: "gpt-4o-mini",
@@ -55,21 +58,60 @@ const buildOpenAIModel = (streaming = false) =>
         streaming,
     });
 
+/**
+ * Builds a ChatOpenAI instance pointed at Sarvam's OpenAI-compatible endpoint.
+ *
+ * sarvam-m's /v1/chat/completions is fully OpenAI-compatible, including the
+ * `tools` parameter for function/tool calling. By routing through LangChain's
+ * ChatOpenAI adapter we get the full agentic pipeline for free.
+ *
+ * Auth: Sarvam's primary auth is `api-subscription-key` header.
+ * We also pass the key as the Bearer token (LangChain sends it automatically)
+ * since Sarvam's API accepts it when the subscription key is also present.
+ */
+const buildSarvamModel = (streaming = false) =>
+    new ChatOpenAI({
+        model: "sarvam-m",
+        temperature: 0.2,
+        // LangChain sends this as "Authorization: Bearer <apiKey>"
+        // Sarvam accepts it alongside the api-subscription-key header
+        apiKey: process.env.SARVAM_API_KEY,
+        timeout: 30000,
+        maxRetries: 2,
+        streaming,
+        configuration: {
+            // Point to Sarvam's OpenAI-compatible base URL
+            baseURL: `${process.env.SARVAM_API_BASE || "https://api.sarvam.ai"}/v1`,
+            // Sarvam's primary auth mechanism
+            defaultHeaders: {
+                "api-subscription-key": process.env.SARVAM_API_KEY,
+            },
+        },
+    });
+
 // ─────────────────────────────────────────────────────────────
-// OPENAI AGENTIC GRAPH
+// AGENTIC GRAPH COMPILER (shared between OpenAI and Sarvam)
 // Planner → Agent (tools) → Reflection → Summarize → Finalize
 // ─────────────────────────────────────────────────────────────
 
-const compileOpenAIGraph = (streaming = false) => {
+/**
+ * Compiles the full agentic graph for a given model.
+ * Both OpenAI and Sarvam use this same pipeline — the only difference
+ * is which model instance is passed in.
+ *
+ * @param {ChatOpenAI} model - Pre-built model instance (OpenAI or Sarvam)
+ * @returns {CompiledGraph}
+ */
+const compileAgentGraph = (model) => {
     const tools = getBoundTools();
-    const model = buildOpenAIModel(streaming).bindTools(tools);
+    const boundModel = model.bindTools(tools);
 
     const workflow = new StateGraph({ channels: graphState })
-        .addNode("planner", createPlannerNode(model))
-        .addNode("agent", createIntentNode(model))
+        .addNode("planner", createPlannerNode(boundModel))
+        .addNode("agent", createIntentNode(boundModel))
         .addNode("tools", createToolNode(tools))
-        .addNode("reflection", createReflectionNode(model))
-        .addNode("summarize", createMemoryNode(model))
+        .addNode("reflection", createReflectionNode(boundModel))
+        .addNode("summarize", createMemoryNode(boundModel))
         .addNode("finalize", createFinalizeNode())
         .addEdge(START, "planner")
         .addEdge("planner", "agent")
@@ -82,59 +124,29 @@ const compileOpenAIGraph = (streaming = false) => {
     return workflow.compile();
 };
 
-// ─────────────────────────────────────────────────────────────
-// SARVAM CONVERSATIONAL GRAPH
-// sarvam_chat → Finalize
-// No tools, no planner — pure conversation via sarvam.service.js.
-// ─────────────────────────────────────────────────────────────
+/**
+ * Returns a cached compiled graph for the given provider + streaming mode.
+ *
+ * @param {string}  provider  - "openai" | "sarvam"
+ * @param {boolean} streaming - Whether to build with streaming enabled
+ * @returns {CompiledGraph}
+ */
+const getGraph = (provider, streaming = false) => {
+    const cacheKey = `${provider}-${streaming ? "stream" : "sync"}`;
 
-const compileSarvamGraph = () => {
-    /**
-     * Single node: injects system context + calls sarvam-m directly.
-     * Does NOT use a LangChain model instance — sarvam-m is called through
-     * our own sarvam.service.js adapter (which handles auth correctly).
-     */
-    const sarvamChatNode = async (state, config) => {
-        const { messages } = state;
-        const { user, conversationId } = config.configurable;
+    if (!graphCache.has(cacheKey)) {
+        // Safety eviction: prevent unbounded growth in long-running processes
+        if (graphCache.size > 20) graphCache.clear();
 
-        // Build context-rich system prompt (same as OpenAI graph)
-        const systemPrompt = await buildSystemContext(user.id, user, conversationId);
+        const model =
+            provider === "sarvam"
+                ? buildSarvamModel(streaming)
+                : buildOpenAIModel(streaming);
 
-        // Convert LangChain message objects to plain {role, content} format
-        const plainMessages = messages.map((msg) => {
-            const type = msg._getType?.();
-            if (type === "human" || msg.role === "user")
-                return { role: "user", content: msg.content };
-            if (type === "ai" || msg.role === "assistant")
-                return { role: "assistant", content: msg.content };
-            if (type === "system" || msg.role === "system")
-                return { role: "system", content: msg.content };
-            // Fallback — treat unknown as user turn
-            return { role: "user", content: String(msg.content) };
-        });
+        graphCache.set(cacheKey, compileAgentGraph(model));
+    }
 
-        const fullMessages = [
-            { role: "system", content: systemPrompt },
-            ...plainMessages,
-        ];
-
-        const responseText = await sarvamChat(fullMessages, {
-            temperature: 0.2,
-            maxTokens: 2048,
-        });
-
-        return { messages: [new AIMessage(responseText)] };
-    };
-
-    const workflow = new StateGraph({ channels: graphState })
-        .addNode("sarvam_chat", sarvamChatNode)
-        .addNode("finalize", createFinalizeNode())
-        .addEdge(START, "sarvam_chat")
-        .addEdge("sarvam_chat", "finalize")
-        .addEdge("finalize", END);
-
-    return workflow.compile();
+    return graphCache.get(cacheKey);
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -143,7 +155,7 @@ const compileSarvamGraph = () => {
 
 /**
  * Runs the AI graph and returns the final AIMessage.
- * Automatically routes to the correct graph based on provider.
+ * Both OpenAI and Sarvam run the full agentic pipeline.
  *
  * @param {Object} params
  * @param {string} params.userId
@@ -160,21 +172,7 @@ export const runAgentGraph = async ({
     conversationId,
     provider = "openai",
 }) => {
-    const cacheKey = provider === "sarvam" ? "sarvam" : "openai";
-
-    if (!graphCache.has(cacheKey)) {
-        // Safety eviction: prevent unbounded growth in long-running processes
-        if (graphCache.size > 20) graphCache.clear();
-
-        const app =
-            cacheKey === "sarvam"
-                ? compileSarvamGraph()
-                : compileOpenAIGraph(false);
-
-        graphCache.set(cacheKey, app);
-    }
-
-    const app = graphCache.get(cacheKey);
+    const app = getGraph(provider, false);
 
     const finalState = await app.invoke(
         { messages },
@@ -189,9 +187,8 @@ export const runAgentGraph = async ({
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Streams AI response tokens.
- *   OpenAI: uses LangGraph streamEvents (full graph pipeline).
- *   Sarvam: uses sarvamChatStream directly (avoids unnecessary graph overhead).
+ * Streams AI response tokens via LangGraph streamEvents.
+ * Both OpenAI and Sarvam stream through the full agentic pipeline.
  *
  * @param {Object} params - Same as runAgentGraph
  * @yields {string} Token chunks as they arrive
@@ -203,35 +200,7 @@ export const streamAgentGraph = async function* ({
     conversationId,
     provider = "openai",
 }) {
-    // ── Sarvam streaming ──────────────────────────────────────
-    if (provider === "sarvam") {
-        const systemPrompt = await buildSystemContext(user.id, user, conversationId);
-
-        const plainMessages = messages.map((msg) => {
-            const type = msg._getType?.();
-            if (type === "human" || msg.role === "user")
-                return { role: "user", content: msg.content };
-            if (type === "ai" || msg.role === "assistant")
-                return { role: "assistant", content: msg.content };
-            return { role: "user", content: String(msg.content) };
-        });
-
-        const fullMessages = [
-            { role: "system", content: systemPrompt },
-            ...plainMessages,
-        ];
-
-        yield* sarvamChatStream(fullMessages, { temperature: 0.2, maxTokens: 2048 });
-        return;
-    }
-
-    // ── OpenAI streaming ──────────────────────────────────────
-    const cacheKey = "openai-stream";
-    if (!graphCache.has(cacheKey)) {
-        if (graphCache.size > 20) graphCache.clear();
-        graphCache.set(cacheKey, compileOpenAIGraph(true));
-    }
-    const app = graphCache.get(cacheKey);
+    const app = getGraph(provider, true);
 
     const stream = await app.streamEvents(
         { messages },
