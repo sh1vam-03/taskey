@@ -1,23 +1,21 @@
 /**
- * Text-to-Speech Service (Multi-Provider)
+ * Text-to-Speech Service (Multi-Model)
  *
- * Providers:
- *   "openai"  → tts-1 / alloy  (English-optimized, no language param)
- *   "sarvam"  → bulbul:v3      (Indian languages — language AUTO-DETECTED from text)
+ * Routes synthesis by TTS model name directly — not by provider string.
+ * This decouples TTS from the LLM choice so users can independently select:
+ *   - which LLM to think with (aiChatModel / aiVoiceModel)
+ *   - which TTS model to speak with (aiTtsModel)
+ *
+ * Supported TTS models:
+ *   "bulbul:v3"  → Sarvam Bulbul v3  (Indian voices, auto-language detection, DEFAULT)
+ *   "tts-1"      → OpenAI TTS 1      (English-optimized, natural voice)
  *
  * ─── KEY BEHAVIOUR ───────────────────────────────────────────
- * For Sarvam TTS, the `target_language_code` sent to Bulbul v3 is
- * AUTOMATICALLY DETECTED from the text content, not taken from user settings.
+ * For Bulbul v3, the `target_language_code` is AUTO-DETECTED from the text
+ * content via languageDetect.js. Users choose their speaker voice but NOT
+ * the TTS language — it's always automatic.
  *
- *   Hindi text    → "hi-IN"   (Devanagari script detected)
- *   English text  → "en-IN"   (Latin script)
- *   Hinglish      → "hi-IN"   (mixed Devanagari+Latin → maps to Hindi)
- *   Tamil         → "ta-IN"   (Tamil Unicode block detected)
- *   … and so on for all 11 supported scripts.
- *
- * Users choose their SPEAKER voice (shubh, priya, etc.) but NOT the TTS language.
- *
- * Output: audio saved to tmp/, returns { audioPath, durationMinutes, detectedLang }
+ * Returns { audioPath, durationMinutes, detectedLang }
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -36,16 +34,15 @@ if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
 // ─────────────────────────────────────────────────────────────
 // VALID SPEAKER LIST (Bulbul v3 — full list as of 2025)
-// ─────────────────────────────────────────────────────────────
 // Male:   shubh, amit, sumit, manan, rahul, ratan
 // Female: ritu, pooja, simran, kavya, priya, ishita, shreya, shruti
+// ─────────────────────────────────────────────────────────────
 export const BULBUL_SPEAKERS = [
     "shubh", "amit", "sumit", "manan", "rahul", "ratan",   // male
     "ritu", "pooja", "simran", "kavya", "priya",            // female
-    "ishita", "shreya", "shruti",                           // female
+    "ishita", "shreya", "shruti"                            // female
 ];
 
-/** Default speaker used when none is specified */
 export const DEFAULT_SPEAKER = "priya";
 
 // ─────────────────────────────────────────────────────────────
@@ -55,47 +52,39 @@ export const DEFAULT_SPEAKER = "priya";
 /**
  * Converts text to speech audio and saves to tmp/.
  *
- * For Sarvam/Bulbul v3:
- *   - Language is AUTO-DETECTED from `text` content (no user input required).
- *   - Speaker is taken from `speaker` param (user preference).
- *
- * For OpenAI:
- *   - Uses tts-1 / alloy voice.
- *   - No language param (OpenAI TTS handles multilingual natively).
- *
  * @param {Object} params
  * @param {string} params.text      - Text to synthesize (from LLM output)
  * @param {Object} params.emotion   - { rate: 0.9–1.1 } from voice.emotion.js
- * @param {string} params.provider  - "openai" | "sarvam" (default: "openai")
- * @param {string} params.speaker   - Bulbul v3 speaker name (default: "priya")
- *                                    User-chosen. See BULBUL_SPEAKERS list above.
+ * @param {string} params.ttsModel  - "bulbul:v3" | "tts-1"  (default: "bulbul:v3")
+ * @param {string} params.speaker   - Bulbul v3 speaker name (user preference)
+ *                                    Ignored when ttsModel is "tts-1"
  *
  * @returns {Promise<{audioPath: string, durationMinutes: number, detectedLang: string|null}>}
- *   detectedLang: the BCP-47 code used (Sarvam only), null for OpenAI
+ *   detectedLang: BCP-47 code used (Bulbul v3 only), null for tts-1
  */
 export const speakText = async ({
     text,
     emotion,
-    provider = "openai",
-    speaker = DEFAULT_SPEAKER,
+    ttsModel = "bulbul:v3",
+    speaker = DEFAULT_SPEAKER
 }) => {
     if (!text?.trim()) throw new Error("speakText: text is required");
 
     const ts = Date.now();
     const estimatedDuration = getTextSpeakingMinutes(text);
 
-    // ── Sarvam / Bulbul v3 ────────────────────────────────────
-    if (provider === "sarvam") {
+    // ── Sarvam Bulbul v3 ──────────────────────────────────────
+    if (ttsModel === "bulbul:v3") {
         const audioPath = path.join(TMP_DIR, `voice-${ts}.wav`);
 
         // AUTO-DETECT language from the actual text characters
         const detectedLang = detectTextLanguage(text);
         console.log(
-            `[TTS] Auto-detected language: ${getLanguageLabel(detectedLang)} (${detectedLang}) ` +
-            `for text: "${text.substring(0, 60).replace(/\n/g, " ")}…"`
+            `[TTS] Bulbul v3 | Auto-detected: ${getLanguageLabel(detectedLang)} (${detectedLang}) ` +
+            `| Speaker: ${speaker} | Text: "${text.substring(0, 60).replace(/\n/g, " ")}…"`
         );
 
-        // Validate speaker — fall back to default if unknown speaker passed
+        // Validate speaker — fall back to default if unknown
         const safeSpeaker = BULBUL_SPEAKERS.includes(speaker) ? speaker : DEFAULT_SPEAKER;
         if (safeSpeaker !== speaker) {
             console.warn(`[TTS] Unknown speaker "${speaker}", using "${DEFAULT_SPEAKER}"`);
@@ -106,10 +95,10 @@ export const speakText = async ({
             : 1.0;
 
         const buffer = await sarvamSynthesize(text, {
-            languageCode: detectedLang,  // ← auto-detected, never user-supplied
+            languageCode: detectedLang,  // ← always auto-detected, never user-supplied
             speaker: safeSpeaker,
             pace,
-            sampleRate: 22050,
+            sampleRate: 22050
         });
 
         fs.writeFileSync(audioPath, buffer);
@@ -125,7 +114,7 @@ export const speakText = async ({
         return { audioPath, durationMinutes, detectedLang };
     }
 
-    // ── OpenAI / tts-1 ───────────────────────────────────────
+    // ── OpenAI tts-1 ─────────────────────────────────────────
     const audioPath = path.join(TMP_DIR, `voice-${ts}.mp3`);
 
     const speed = emotion?.rate
@@ -136,7 +125,7 @@ export const speakText = async ({
         model: "tts-1",
         voice: "alloy",
         input: text,
-        speed,
+        speed
     });
 
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -150,17 +139,9 @@ export const speakText = async ({
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Returns the MIME type for audio output of a given provider.
- * @param {string} provider
+ * Returns the MIME type for audio output of the given TTS model.
+ * @param {string} ttsModel - "bulbul:v3" | "tts-1"
  * @returns {string}
  */
-export const getAudioMimeType = (provider = "openai") =>
-    provider === "sarvam" ? "audio/wav" : "audio/mp3";
-
-/**
- * Returns the canonical TTS model name for billing.
- * @param {string} provider
- * @returns {string}
- */
-export const getTTSModelName = (provider = "openai") =>
-    provider === "sarvam" ? "bulbul:v3" : "tts-1";
+export const getAudioMimeType = (ttsModel = "bulbul:v3") =>
+    ttsModel === "bulbul:v3" ? "audio/wav" : "audio/mp3";

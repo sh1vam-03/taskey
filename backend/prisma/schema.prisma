@@ -121,22 +121,12 @@ model User {
 
   aiCreditBalance Int @default(0)
 
-  // ✅ NEW — AI Provider Preferences
-  // Controls which AI backend handles this user's requests.
-  // "openai"  → full agentic graph (tools, web search, scheduling)
-  // "sarvam"  → Indian language conversational model (no tool calling)
-  aiProvider String @default("sarvam")
+  aiChatModel  String @default("gemini-1.5-flash")
+  aiVoiceModel String @default("gemini-1.5-flash")
+  aiTtsModel   String @default("bulbul:v3")
+  aiSttModel   String @default("saaras:v3")
 
-  // BCP-47 language code for Sarvam STT/TTS (e.g. "hi-IN", "mr-IN", "en-IN")
-  // Used as languageCode param in sarvamTranscribe and sarvamSynthesize calls.
-  aiSarvamLang String @default("unknown")
-
-  // Sarvam TTS voice name (
-  //                  Male:   shubh, amit, sumit, manan, rahul, ratan
-  //                  Female: ritu, pooja, simran, kavya, priya, ishita, shreya, shruti
-  //                        )
-  // Full voice list: https://docs.sarvam.ai/api-reference/text-to-speech
-
+  aiSarvamLang    String @default("unknown")
   aiSarvamSpeaker String @default("shubh")
 
   createdAt DateTime @default(now())

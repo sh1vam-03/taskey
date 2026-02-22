@@ -1,29 +1,27 @@
 /**
- * Main Agent Graph (Multi-Provider)
+ * Main Agent Graph (Multi-Model)
  *
- * Both providers now run the FULL agentic pipeline:
+ * All three LLM backends run the IDENTICAL full agentic pipeline:
  *   Planner → Agent (with tools) → Reflection → Summarize → Finalize
  *
- * 1. OPENAI GRAPH  (provider: "openai")
- *    Uses gpt-4o-mini via LangChain ChatOpenAI.
- *    Tool calling: native OpenAI function calling.
+ * Supported chat/voice model IDs:
+ *   "gemini-1.5-flash" → LangChain ChatGoogleGenerativeAI (DEFAULT)
+ *   "sarvam-30b"       → LangChain ChatOpenAI @ Sarvam OpenAI-compatible endpoint
+ *   "gpt-4o-mini"      → LangChain ChatOpenAI @ OpenAI
  *
- * 2. SARVAM GRAPH  (provider: "sarvam")
- *    Uses sarvam-m via LangChain ChatOpenAI pointed at Sarvam's OpenAI-compatible endpoint.
- *    Tool calling: sarvam-m supports the OpenAI tools parameter via /v1/chat/completions.
- *    ✅ Full tool support: create_task, update_task, create_schedule, web_search, etc.
- *    ✅ Indian language responses with full agentic capabilities.
+ * Provider is now decoupled from voice/STT/TTS — the graph only cares about
+ * which LLM model to use for reasoning. STT/TTS routing is handled separately
+ * in voice/stt.service.js and voice/tts.service.js.
  *
- * Auth difference:
- *    OpenAI: Authorization: Bearer <key>
- *    Sarvam: api-subscription-key: <key>  (also accepts Bearer as fallback)
- *    We send both headers so LangChain's OpenAI adapter works transparently.
+ * Graph cache key: "<modelId>-sync" or "<modelId>-stream"
+ * e.g. "gemini-1.5-flash-sync", "sarvam-30b-stream"
  *
- * Provider is selected per-request based on user.aiProvider from the DB.
+ * Requires: npm install @langchain/google-genai
  */
 
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { graphState } from "./state.schema.js";
 
 import { createIntentNode } from "./nodes/intent.node.js";
@@ -36,8 +34,10 @@ import { shouldContinue } from "./edges.js";
 
 // ─────────────────────────────────────────────────────────────
 // GRAPH CACHE
-// Compiled graphs are expensive to build — cache by key.
-// Keys: "openai" | "openai-stream" | "sarvam" | "sarvam-stream"
+// Compiled graphs are expensive — cache by modelId + streaming mode.
+// Keys: "gemini-1.5-flash-sync" | "gemini-1.5-flash-stream"
+//       "sarvam-30b-sync"       | "sarvam-30b-stream"
+//       "gpt-4o-mini-sync"      | "gpt-4o-mini-stream"
 // ─────────────────────────────────────────────────────────────
 const graphCache = new Map();
 
@@ -46,7 +46,44 @@ const graphCache = new Map();
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Builds a ChatOpenAI instance for the OpenAI provider.
+ * Google Gemini 1.5 Flash via LangChain's ChatGoogleGenerativeAI adapter.
+ * Supports full tool calling and streaming natively.
+ */
+const buildGeminiModel = (streaming = false) =>
+    new ChatGoogleGenerativeAI({
+        model: "gemini-1.5-flash",
+        apiKey: process.env.GEMINI_API_KEY,
+        temperature: 0,
+        streaming,
+        maxRetries: 2
+    });
+
+/**
+ * Sarvam 30B via LangChain's ChatOpenAI adapter pointed at Sarvam's
+ * OpenAI-compatible /v1/chat/completions endpoint.
+ *
+ * Auth: Sarvam uses api-subscription-key header.
+ * We also pass the key as apiKey so LangChain sends it as Bearer — Sarvam
+ * accepts it alongside the api-subscription-key header.
+ */
+const buildSarvamModel = (streaming = false) =>
+    new ChatOpenAI({
+        model: "sarvam-30b",
+        temperature: 0.2,
+        apiKey: process.env.SARVAM_API_KEY,
+        timeout: 30000,
+        maxRetries: 2,
+        streaming,
+        configuration: {
+            baseURL: `${process.env.SARVAM_API_BASE || "https://api.sarvam.ai"}/v1`,
+            defaultHeaders: {
+                "api-subscription-key": process.env.SARVAM_API_KEY
+            }
+        }
+    });
+
+/**
+ * OpenAI GPT-4o Mini — standard LangChain ChatOpenAI adapter.
  */
 const buildOpenAIModel = (streaming = false) =>
     new ChatOpenAI({
@@ -55,53 +92,34 @@ const buildOpenAIModel = (streaming = false) =>
         apiKey: process.env.OPENAI_API_KEY,
         timeout: 30000,
         maxRetries: 2,
-        streaming,
+        streaming
     });
 
 /**
- * Builds a ChatOpenAI instance pointed at Sarvam's OpenAI-compatible endpoint.
+ * Returns the correct LangChain model instance for a given model ID.
+ * Falls back to Gemini if an unknown ID is passed.
  *
- * sarvam-m's /v1/chat/completions is fully OpenAI-compatible, including the
- * `tools` parameter for function/tool calling. By routing through LangChain's
- * ChatOpenAI adapter we get the full agentic pipeline for free.
- *
- * Auth: Sarvam's primary auth is `api-subscription-key` header.
- * We also pass the key as the Bearer token (LangChain sends it automatically)
- * since Sarvam's API accepts it when the subscription key is also present.
+ * @param {string} modelId - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ * @param {boolean} streaming
+ * @returns {BaseChatModel}
  */
-const buildSarvamModel = (streaming = false) =>
-    new ChatOpenAI({
-        model: "sarvam-m",
-        temperature: 0.2,
-        // LangChain sends this as "Authorization: Bearer <apiKey>"
-        // Sarvam accepts it alongside the api-subscription-key header
-        apiKey: process.env.SARVAM_API_KEY,
-        timeout: 30000,
-        maxRetries: 2,
-        streaming,
-        configuration: {
-            // Point to Sarvam's OpenAI-compatible base URL
-            baseURL: `${process.env.SARVAM_API_BASE || "https://api.sarvam.ai"}/v1`,
-            // Sarvam's primary auth mechanism
-            defaultHeaders: {
-                "api-subscription-key": process.env.SARVAM_API_KEY,
-            },
-        },
-    });
+const buildModel = (modelId, streaming = false) => {
+    switch (modelId) {
+        case "gemini-1.5-flash": return buildGeminiModel(streaming);
+        case "sarvam-30b": return buildSarvamModel(streaming);
+        case "gpt-4o-mini": return buildOpenAIModel(streaming);
+        default:
+            console.warn(`[Graph] Unknown modelId "${modelId}" — falling back to Gemini 1.5 Flash`);
+            return buildGeminiModel(streaming);
+    }
+};
 
 // ─────────────────────────────────────────────────────────────
-// AGENTIC GRAPH COMPILER (shared between OpenAI and Sarvam)
+// AGENTIC GRAPH COMPILER
+// Identical pipeline for all three models.
 // Planner → Agent (tools) → Reflection → Summarize → Finalize
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Compiles the full agentic graph for a given model.
- * Both OpenAI and Sarvam use this same pipeline — the only difference
- * is which model instance is passed in.
- *
- * @param {ChatOpenAI} model - Pre-built model instance (OpenAI or Sarvam)
- * @returns {CompiledGraph}
- */
 const compileAgentGraph = (model) => {
     const tools = getBoundTools();
     const boundModel = model.bindTools(tools);
@@ -125,25 +143,18 @@ const compileAgentGraph = (model) => {
 };
 
 /**
- * Returns a cached compiled graph for the given provider + streaming mode.
+ * Returns a cached compiled graph for the given model ID + streaming mode.
  *
- * @param {string}  provider  - "openai" | "sarvam"
- * @param {boolean} streaming - Whether to build with streaming enabled
+ * @param {string}  modelId   - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ * @param {boolean} streaming
  * @returns {CompiledGraph}
  */
-const getGraph = (provider, streaming = false) => {
-    const cacheKey = `${provider}-${streaming ? "stream" : "sync"}`;
+const getGraph = (modelId, streaming = false) => {
+    const cacheKey = `${modelId}-${streaming ? "stream" : "sync"}`;
 
     if (!graphCache.has(cacheKey)) {
-        // Safety eviction: prevent unbounded growth in long-running processes
-        if (graphCache.size > 20) graphCache.clear();
-
-        const model =
-            provider === "sarvam"
-                ? buildSarvamModel(streaming)
-                : buildOpenAIModel(streaming);
-
-        graphCache.set(cacheKey, compileAgentGraph(model));
+        if (graphCache.size > 20) graphCache.clear(); // safety eviction
+        graphCache.set(cacheKey, compileAgentGraph(buildModel(modelId, streaming)));
     }
 
     return graphCache.get(cacheKey);
@@ -154,15 +165,14 @@ const getGraph = (provider, streaming = false) => {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Runs the AI graph and returns the final AIMessage.
- * Both OpenAI and Sarvam run the full agentic pipeline.
+ * Runs the full agentic graph and returns the final AIMessage.
  *
  * @param {Object} params
  * @param {string} params.userId
  * @param {Array}  params.messages        - LangChain message objects
  * @param {Object} params.user            - Full Prisma user record
  * @param {string} params.conversationId
- * @param {string} params.provider        - "openai" | "sarvam" (default: "openai")
+ * @param {string} params.chatModel       - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
  * @returns {Promise<AIMessage>}
  */
 export const runAgentGraph = async ({
@@ -170,9 +180,9 @@ export const runAgentGraph = async ({
     messages,
     user,
     conversationId,
-    provider = "openai",
+    chatModel = "gemini-1.5-flash"
 }) => {
-    const app = getGraph(provider, false);
+    const app = getGraph(chatModel, false);
 
     const finalState = await app.invoke(
         { messages },
@@ -188,7 +198,6 @@ export const runAgentGraph = async ({
 
 /**
  * Streams AI response tokens via LangGraph streamEvents.
- * Both OpenAI and Sarvam stream through the full agentic pipeline.
  *
  * @param {Object} params - Same as runAgentGraph
  * @yields {string} Token chunks as they arrive
@@ -198,15 +207,15 @@ export const streamAgentGraph = async function* ({
     messages,
     user,
     conversationId,
-    provider = "openai",
+    chatModel = "gemini-1.5-flash"
 }) {
-    const app = getGraph(provider, true);
+    const app = getGraph(chatModel, true);
 
     const stream = await app.streamEvents(
         { messages },
         {
             configurable: { user, userId, conversationId },
-            version: "v1",
+            version: "v1"
         }
     );
 

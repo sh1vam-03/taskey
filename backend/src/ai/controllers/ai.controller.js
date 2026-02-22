@@ -1,27 +1,27 @@
 /**
- * AI Controller (Multi-Provider, Tiered Billing)
+ * AI Controller (Multi-Model, Decoupled, Tiered Billing)
  *
- * Chat billing:  handled inside aiOrchestrator.service.js (token-based)
- * Voice billing: per-minute via calcVoiceCost (STT + TTS separate)
+ * Users independently choose FOUR things:
+ *   aiChatModel  → LLM for text chat         (gemini-1.5-flash | sarvam-30b | gpt-4o-mini)
+ *   aiVoiceModel → LLM for voice thinking    (same options)
+ *   aiTtsModel   → Text-to-Speech model      (bulbul:v3 | tts-1)
+ *   aiSttModel   → Speech-to-Text model      (saaras:v3 | whisper-1)
  *
- * ── Provider Selection ────────────────────────────────────────
- *   GET  /api/ai/settings   → current provider, speaker, STT language
- *   PATCH /api/ai/settings  → update provider / speaker / STT language
+ * Plus Sarvam-specific preferences:
+ *   aiSarvamLang    → STT input language hint for Saaras v3 accuracy
+ *   aiSarvamSpeaker → Bulbul v3 speaker voice
  *
- * ── TTS Language (AUTO-DETECTED) ─────────────────────────────
+ * Smart defaults (non-technical users can start immediately):
+ *   Chat/Voice LLM → Gemini 1.5 Flash   (fast, cheap, multilingual)
+ *   TTS            → Sarvam Bulbul v3   (Indian voices, auto-language)
+ *   STT            → Sarvam Saaras v3   (best Indian accent accuracy)
+ *
+ * GET  /api/ai/settings  → returns current selections + full model catalog with pricing
+ * PATCH /api/ai/settings → update any combination of the 6 fields
+ *
+ * ── TTS Language (AUTO-DETECTED) ──────────────────────────────
  * Bulbul v3 TTS language is detected from LLM output text automatically.
  * Users cannot set TTS language — they only choose their speaker voice.
- * Detection runs inside voice/tts.service.js via voice/languageDetect.js.
- *
- * ── STT Language (aiSarvamLang) ──────────────────────────────
- * Used only for Saaras v3 input transcription accuracy.
- * "unknown" = Saaras auto-detects the spoken language.
- *
- * ── Tool Calling ─────────────────────────────────────────────
- * Both OpenAI and Sarvam providers support full tool calling.
- * sarvam-m exposes an OpenAI-compatible /v1/chat/completions endpoint
- * that accepts the standard `tools` parameter. The graph routes both
- * providers through the same Planner → Agent → Tools pipeline.
  */
 
 import prisma from "../../config/db.js";
@@ -29,33 +29,37 @@ import asyncHandler from "../../utils/asyncHandler.js";
 import fs from "fs";
 import ApiError from "../../utils/ApiError.js";
 import { processAiRequest, processAiRequestStream } from "../services/aiOrchestrator.service.js";
-import { transcribeAudio, getSTTModelName } from "../voice/stt.service.js";
+import { transcribeAudio } from "../voice/stt.service.js";
 import {
     speakText,
     getAudioMimeType,
-    getTTSModelName,
     BULBUL_SPEAKERS,
-    DEFAULT_SPEAKER,
+    DEFAULT_SPEAKER
 } from "../voice/tts.service.js";
+import { inferVoiceEmotion } from "../voice/voice.emotion.js";  // ← static import (was dynamic)
 import {
     checkCreditBalance,
     deductCredits,
     calcVoiceCost,
-    estimateMaxChatCost,
+    estimateMaxChatCost
 } from "../services/aiToken.service.js";
+import {
+    MODEL_INFO,
+    VALID_CHAT_MODELS,
+    VALID_TTS_MODELS,
+    VALID_STT_MODELS
+} from "../../config/plans.config.js";
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-/** Valid STT input language codes. User sets this for better Saaras v3 accuracy. */
 const VALID_STT_LANGS = [
     "unknown",
     "en-IN", "hi-IN", "mr-IN", "ta-IN", "te-IN", "kn-IN",
-    "ml-IN", "gu-IN", "bn-IN", "pa-IN", "od-IN",
+    "ml-IN", "gu-IN", "bn-IN", "pa-IN", "od-IN"
 ];
 
-/** Speaker display metadata used by getAiSettings response. */
 const SPEAKER_META = {
     shubh: { gender: "M", label: "Shubh" },
     amit: { gender: "M", label: "Amit" },
@@ -70,7 +74,7 @@ const SPEAKER_META = {
     priya: { gender: "F", label: "Priya" },
     ishita: { gender: "F", label: "Ishita" },
     shreya: { gender: "F", label: "Shreya" },
-    shruti: { gender: "F", label: "Shruti" },
+    shruti: { gender: "F", label: "Shruti" }
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -81,15 +85,9 @@ const formatMessage = (msg) => ({
     id: msg.id,
     role: msg.role === "USER" ? "user" : "assistant",
     content: msg.content,
-    createdAt: msg.createdAt,
+    createdAt: msg.createdAt
 });
 
-const getUserProvider = (user) => {
-    const p = user?.aiProvider;
-    return p === "sarvam" || p === "openai" ? p : "openai";
-};
-
-/** Safely unlink a file — logs a warning on failure but never throws. */
 const safeUnlink = (filePath) => {
     if (filePath && fs.existsSync(filePath)) {
         try { fs.unlinkSync(filePath); } catch (e) {
@@ -99,22 +97,33 @@ const safeUnlink = (filePath) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// AI SETTINGS — Read & Update
+// AI SETTINGS — Read
 // ─────────────────────────────────────────────────────────────
 
 /**
  * GET /api/ai/settings
  *
- * Returns the user's current AI configuration.
- * Includes static option lists so the frontend doesn't need to hard-code them.
+ * Returns the user's current model selections PLUS the full catalog with
+ * per-model pricing so the frontend can render a selection UI with costs.
  *
- * Key distinctions:
- *   sttLang  → User-set. Helps Saaras accurately transcribe spoken input.
- *   speaker  → User-set. The Bulbul v3 voice the user hears.
- *   TTS lang → Never user-set. Auto-detected per-response from LLM output text.
+ * Response shape:
+ * {
+ *   // Current selections
+ *   chatModel, voiceModel, ttsModel, sttModel, sttLang, speaker,
+ *   creditBalance, plan,
  *
- * Both providers support full tool calling:
- *   sarvam-m uses an OpenAI-compatible endpoint that accepts the tools parameter.
+ *   // Model catalogs (with pricing) — frontend renders these as selection cards
+ *   availableChatModels,   // 3 LLM options
+ *   availableVoiceModels,  // same 3 LLM options (independent selection)
+ *   availableTtsModels,    // 2 TTS options
+ *   availableSttModels,    // 2 STT options
+ *
+ *   // Sarvam-specific option lists
+ *   availableSttLangs,
+ *   availableSpeakers,
+ *
+ *   ttsLanguageNote        // reminder that TTS language is automatic
+ * }
  */
 export const getAiSettings = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -122,56 +131,47 @@ export const getAiSettings = asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
-            aiProvider: true,
+            aiChatModel: true,
+            aiVoiceModel: true,
+            aiTtsModel: true,
+            aiSttModel: true,
             aiSarvamLang: true,
             aiSarvamSpeaker: true,
             aiCreditBalance: true,
-            plan: true,
-        },
+            plan: true
+        }
     });
 
     if (!user) throw new ApiError(404, "User not found");
 
-    const availableSpeakers = BULBUL_SPEAKERS.map((id) => ({
+    const availableSpeakers = BULBUL_SPEAKERS.map(id => ({
         id,
         label: SPEAKER_META[id]?.label || id,
-        gender: SPEAKER_META[id]?.gender || "?",
+        gender: SPEAKER_META[id]?.gender || "?"
     }));
 
     res.status(200).json({
         success: true,
         data: {
-            // Current values
-            provider: user.aiProvider,
-            sttLang: user.aiSarvamLang,    // STT input language hint (Saaras v3)
-            speaker: user.aiSarvamSpeaker,  // TTS voice (Bulbul v3)
+            // ── Current user selections ──────────────────────────
+            chatModel: user.aiChatModel || "gemini-1.5-flash",
+            voiceModel: user.aiVoiceModel || "gemini-1.5-flash",
+            ttsModel: user.aiTtsModel || "bulbul:v3",
+            sttModel: user.aiSttModel || "saaras:v3",
+            sttLang: user.aiSarvamLang || "unknown",
+            speaker: user.aiSarvamSpeaker || "shubh",
             creditBalance: user.aiCreditBalance,
             plan: user.plan,
 
-            // TTS language is always automatic
-            ttsLanguageMode: "auto",
-            ttsLanguageNote: "TTS language is automatically detected from the AI response text. It cannot be manually set.",
+            // ── Model catalogs with pricing ──────────────────────
+            // Frontend renders each array as selectable cards with price info.
+            // Voice LLM uses the same options as chat LLM (independent selection).
+            availableChatModels: MODEL_INFO.CHAT_MODELS,
+            availableVoiceModels: MODEL_INFO.CHAT_MODELS,
+            availableTtsModels: MODEL_INFO.TTS_MODELS,
+            availableSttModels: MODEL_INFO.STT_MODELS,
 
-            availableProviders: [
-                {
-                    id: "openai",
-                    name: "OpenAI (GPT-4o mini)",
-                    description: "Full agentic mode — tasks, schedules, web search, tool calling",
-                    supportsTools: true,
-                    supportsVoice: true,
-                },
-                {
-                    id: "sarvam",
-                    name: "Sarvam AI (sarvam-m)",
-                    // ✅ FIX: Sarvam now runs the full agentic pipeline via its
-                    // OpenAI-compatible endpoint. Tool calling is fully supported.
-                    description: "Optimised for Indian languages — Hindi, Marathi, Tamil and more. Full tool calling supported.",
-                    supportsTools: true,
-                    supportsVoice: true,
-                },
-            ],
-
-            // STT language options — user sets this for better transcription accuracy
+            // ── Sarvam-specific STT language options ─────────────
             availableSttLangs: [
                 { code: "unknown", label: "Auto-detect (default)" },
                 { code: "en-IN", label: "English" },
@@ -184,86 +184,110 @@ export const getAiSettings = asyncHandler(async (req, res) => {
                 { code: "gu-IN", label: "Gujarati" },
                 { code: "bn-IN", label: "Bengali" },
                 { code: "pa-IN", label: "Punjabi" },
-                { code: "od-IN", label: "Odia" },
+                { code: "od-IN", label: "Odia" }
             ],
 
-            // Speaker options — user picks the voice they hear
+            // ── Bulbul v3 speaker voices ─────────────────────────
             availableSpeakers,
-        },
+
+            // ── Info notes ───────────────────────────────────────
+            ttsLanguageNote: "TTS language is automatically detected from AI response text. It cannot be manually set.",
+            ttsLanguageMode: "auto"
+        }
     });
 });
+
+// ─────────────────────────────────────────────────────────────
+// AI SETTINGS — Update
+// ─────────────────────────────────────────────────────────────
 
 /**
  * PATCH /api/ai/settings
  *
- * Updates the user's AI provider preferences.
  * All body fields are optional — send only what's changing.
+ * Any combination of fields can be updated in a single request.
  *
  * Body:
- *   provider : "openai" | "sarvam"
- *   sttLang  : BCP-47 e.g. "hi-IN" | "unknown"   (Saaras STT accuracy hint)
- *   speaker  : Bulbul v3 voice name e.g. "priya"  (user-chosen TTS voice)
+ *   chatModel  : "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ *   voiceModel : same options as chatModel
+ *   ttsModel   : "bulbul:v3" | "tts-1"
+ *   sttModel   : "saaras:v3" | "whisper-1"
+ *   sttLang    : BCP-47 e.g. "hi-IN" | "unknown"
+ *   speaker    : Bulbul v3 voice name e.g. "priya"
  *
- * There is intentionally NO ttsLang field — TTS language is always auto-detected.
+ * NOTE: There is intentionally NO ttsLang field.
+ * TTS language is always auto-detected from text content.
  */
 export const updateAiSettings = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const { provider, sttLang, speaker } = req.body;
+    const { chatModel, voiceModel, ttsModel, sttModel, sttLang, speaker } = req.body;
 
     const updates = {};
 
-    if (provider !== undefined) {
-        if (!["openai", "sarvam"].includes(provider)) {
-            throw new ApiError(400, `Invalid provider "${provider}". Must be "openai" or "sarvam".`);
-        }
-        updates.aiProvider = provider;
+    if (chatModel !== undefined) {
+        if (!VALID_CHAT_MODELS.includes(chatModel))
+            throw new ApiError(400, `Invalid chatModel "${chatModel}". Valid: ${VALID_CHAT_MODELS.join(", ")}`);
+        updates.aiChatModel = chatModel;
+    }
+
+    if (voiceModel !== undefined) {
+        if (!VALID_CHAT_MODELS.includes(voiceModel))
+            throw new ApiError(400, `Invalid voiceModel "${voiceModel}". Valid: ${VALID_CHAT_MODELS.join(", ")}`);
+        updates.aiVoiceModel = voiceModel;
+    }
+
+    if (ttsModel !== undefined) {
+        if (!VALID_TTS_MODELS.includes(ttsModel))
+            throw new ApiError(400, `Invalid ttsModel "${ttsModel}". Valid: ${VALID_TTS_MODELS.join(", ")}`);
+        updates.aiTtsModel = ttsModel;
+    }
+
+    if (sttModel !== undefined) {
+        if (!VALID_STT_MODELS.includes(sttModel))
+            throw new ApiError(400, `Invalid sttModel "${sttModel}". Valid: ${VALID_STT_MODELS.join(", ")}`);
+        updates.aiSttModel = sttModel;
     }
 
     if (sttLang !== undefined) {
-        if (!VALID_STT_LANGS.includes(sttLang)) {
-            throw new ApiError(
-                400,
-                `Invalid STT language "${sttLang}". Supported: ${VALID_STT_LANGS.join(", ")}`
-            );
-        }
+        if (!VALID_STT_LANGS.includes(sttLang))
+            throw new ApiError(400, `Invalid sttLang "${sttLang}". Supported: ${VALID_STT_LANGS.join(", ")}`);
         updates.aiSarvamLang = sttLang;
     }
 
     if (speaker !== undefined) {
-        if (!BULBUL_SPEAKERS.includes(speaker)) {
-            throw new ApiError(
-                400,
-                `Invalid speaker "${speaker}". Supported: ${BULBUL_SPEAKERS.join(", ")}`
-            );
-        }
+        if (!BULBUL_SPEAKERS.includes(speaker))
+            throw new ApiError(400, `Invalid speaker "${speaker}". Supported: ${BULBUL_SPEAKERS.join(", ")}`);
         updates.aiSarvamSpeaker = speaker;
     }
 
     if (Object.keys(updates).length === 0) {
-        throw new ApiError(
-            400,
-            "No valid fields provided. Send at least one of: provider, sttLang, speaker"
-        );
+        throw new ApiError(400, "No valid fields provided. Send at least one of: chatModel, voiceModel, ttsModel, sttModel, sttLang, speaker");
     }
 
     const user = await prisma.user.update({
         where: { id: userId },
         data: updates,
         select: {
-            aiProvider: true,
+            aiChatModel: true,
+            aiVoiceModel: true,
+            aiTtsModel: true,
+            aiSttModel: true,
             aiSarvamLang: true,
-            aiSarvamSpeaker: true,
-        },
+            aiSarvamSpeaker: true
+        }
     });
 
     res.status(200).json({
         success: true,
         message: "AI settings updated successfully",
         data: {
-            provider: user.aiProvider,
+            chatModel: user.aiChatModel,
+            voiceModel: user.aiVoiceModel,
+            ttsModel: user.aiTtsModel,
+            sttModel: user.aiSttModel,
             sttLang: user.aiSarvamLang,
-            speaker: user.aiSarvamSpeaker,
-        },
+            speaker: user.aiSarvamSpeaker
+        }
     });
 });
 
@@ -283,7 +307,7 @@ export const createConversation = asyncHandler(async (req, res) => {
             userId,
             conversationId: conversation.id,
             message,
-            mode: "TEXT",
+            mode: "TEXT"
         });
     }
 
@@ -291,8 +315,8 @@ export const createConversation = asyncHandler(async (req, res) => {
         success: true,
         data: {
             conversation,
-            message: aiMessage ? formatMessage(aiMessage) : null,
-        },
+            message: aiMessage ? formatMessage(aiMessage) : null
+        }
     });
 });
 
@@ -301,7 +325,7 @@ export const getConversations = asyncHandler(async (req, res) => {
     const conversations = await prisma.aiConversation.findMany({
         where: { userId },
         orderBy: { updatedAt: "desc" },
-        take: 50,
+        take: 50
     });
     res.status(200).json({ success: true, data: conversations });
 });
@@ -320,7 +344,7 @@ export const updateConversation = asyncHandler(async (req, res) => {
     const { title } = req.body;
     const conversation = await prisma.aiConversation.update({
         where: { id, userId },
-        data: { title },
+        data: { title }
     });
     res.status(200).json({ success: true, data: conversation });
 });
@@ -339,7 +363,7 @@ export const getMessages = asyncHandler(async (req, res) => {
     if (!conversation) throw new ApiError(404, "Conversation not found");
     const messages = await prisma.aiMessage.findMany({
         where: { conversationId: id },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "asc" }
     });
     res.status(200).json({ success: true, data: messages.map(formatMessage) });
 });
@@ -366,7 +390,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
                 userId,
                 conversationId: id,
                 message,
-                mode: "TEXT",
+                mode: "TEXT"
             })) {
                 res.write(chunk);
             }
@@ -383,14 +407,14 @@ export const sendMessage = asyncHandler(async (req, res) => {
         userId,
         conversationId: id,
         message,
-        mode: "TEXT",
+        mode: "TEXT"
     });
 
     res.status(200).json({ success: true, data: formatMessage(aiMessage) });
 });
 
 // ─────────────────────────────────────────────────────────────
-// VOICE — Full Voice-to-Voice Pipeline
+// VOICE — Full Pipeline (STT → LLM → TTS)
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -398,14 +422,12 @@ export const sendMessage = asyncHandler(async (req, res) => {
  *
  * Full pipeline: Audio → STT → LLM → TTS (auto-lang) → Audio response
  *
- * Billing:
- *   STT: calcVoiceCost(sttModel, actualAudioDuration)
- *   LLM: token-based inside processAiRequest
- *   TTS: calcVoiceCost(ttsModel, actualTTSDuration)
- *
- * Language handling:
- *   STT: user.aiSarvamLang ("unknown" = Saaras auto-detect)
- *   TTS: auto-detected from LLM response text by languageDetect.js
+ * Uses user's 4 independent model selections:
+ *   user.aiSttModel      → which model transcribes the audio
+ *   user.aiVoiceModel    → which LLM generates the response (billing inside orchestrator)
+ *   user.aiTtsModel      → which model speaks the response
+ *   user.aiSarvamLang    → STT input language hint (for Saaras accuracy)
+ *   user.aiSarvamSpeaker → TTS voice (for Bulbul v3)
  */
 export const processVoiceMessage = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -414,15 +436,17 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
     if (!req.file) throw new ApiError(400, "Audio file is required");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    const provider = getUserProvider(user);
-    const sttModel = getSTTModelName(provider);
-    const ttsModel = getTTSModelName(provider);
 
-    // Conservative pre-check: assume 1 min STT + max LLM + 1 min TTS
-    const sttMax = calcVoiceCost(sttModel, 1);
-    const llmMax = estimateMaxChatCost(provider === "sarvam" ? "sarvam-m" : "gpt-4o-mini");
-    const ttsMax = calcVoiceCost(ttsModel, 1);
-    await checkCreditBalance(userId, sttMax + llmMax + ttsMax);
+    // Resolve models with safe fallbacks to defaults
+    const sttModel = VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
+    const ttsModel = VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
+    const voiceModel = VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-1.5-flash";
+
+    // Conservative pre-check: 1 min STT + max LLM cost + 1 min TTS
+    await checkCreditBalance(
+        userId,
+        calcVoiceCost(sttModel, 1) + estimateMaxChatCost(voiceModel) + calcVoiceCost(ttsModel, 1)
+    );
 
     let ttsAudioPath = null;
 
@@ -430,7 +454,7 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         // ── 1. STT ─────────────────────────────────────────────
         const { text: userText, durationMinutes: sttDuration } = await transcribeAudio(
             req.file.path,
-            provider,
+            sttModel,
             { languageCode: user.aiSarvamLang || "unknown" }
         );
 
@@ -441,8 +465,8 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             credits: sttCredits,
             model: sttModel,
             type: "VOICE",
-            provider,
-            meta: { durationMinutes: sttDuration },
+            provider: sttModel,
+            meta: { durationMinutes: sttDuration }
         });
 
         safeUnlink(req.file.path);
@@ -454,21 +478,20 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             userId,
             conversationId: id,
             message: userText,
-            mode: "VOICE",
+            mode: "VOICE"
         });
 
-        // ── 3. TTS — language auto-detected from text ──────────
-        const { inferVoiceEmotion } = await import("../voice/voice.emotion.js");
+        // ── 3. TTS — language auto-detected from LLM output ────
         const emotion = inferVoiceEmotion({ summary: aiMessage.content });
 
         const { audioPath, durationMinutes: ttsDuration, detectedLang } = await speakText({
             text: aiMessage.content,
             emotion,
-            provider,
-            speaker: user.aiSarvamSpeaker || DEFAULT_SPEAKER,
+            ttsModel,
+            speaker: user.aiSarvamSpeaker || DEFAULT_SPEAKER
         });
 
-        ttsAudioPath = audioPath; // track for cleanup on error
+        ttsAudioPath = audioPath;
 
         const ttsCredits = calcVoiceCost(ttsModel, ttsDuration);
         await deductCredits({
@@ -477,16 +500,16 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             credits: ttsCredits,
             model: ttsModel,
             type: "VOICE",
-            provider,
-            meta: { durationMinutes: ttsDuration, detectedLang },
+            provider: ttsModel,
+            meta: { durationMinutes: ttsDuration, detectedLang }
         });
 
         // ── 4. Respond ─────────────────────────────────────────
         const audioBuffer = fs.readFileSync(audioPath);
         const audioBase64 = audioBuffer.toString("base64");
-        const mimeType = getAudioMimeType(provider);
+        const mimeType = getAudioMimeType(ttsModel);
         safeUnlink(audioPath);
-        ttsAudioPath = null; // cleared — file is gone
+        ttsAudioPath = null;
 
         res.status(200).json({
             success: true,
@@ -494,15 +517,14 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
                 userText,
                 reply: aiMessage.content,
                 audioUrl: `data:${mimeType};base64,${audioBase64}`,
-                provider,
+                models: { stt: sttModel, llm: voiceModel, tts: ttsModel },
                 billing: {
                     stt: { model: sttModel, credits: sttCredits, durationMinutes: sttDuration },
-                    tts: { model: ttsModel, credits: ttsCredits, durationMinutes: ttsDuration, detectedLang },
-                },
-            },
+                    tts: { model: ttsModel, credits: ttsCredits, durationMinutes: ttsDuration, detectedLang }
+                }
+            }
         });
     } catch (error) {
-        // Clean up any temp files left behind
         safeUnlink(req.file?.path);
         safeUnlink(ttsAudioPath);
         throw error;
@@ -518,15 +540,16 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
     if (!req.file) throw new ApiError(400, "Audio file is required");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    const provider = getUserProvider(user);
-    const sttModel = getSTTModelName(provider);
+    const sttModel = VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
 
     await checkCreditBalance(userId, calcVoiceCost(sttModel, 1));
 
     try {
-        const { text, durationMinutes } = await transcribeAudio(req.file.path, provider, {
-            languageCode: user.aiSarvamLang || "unknown",
-        });
+        const { text, durationMinutes } = await transcribeAudio(
+            req.file.path,
+            sttModel,
+            { languageCode: user.aiSarvamLang || "unknown" }
+        );
 
         const credits = calcVoiceCost(sttModel, durationMinutes);
         await deductCredits({
@@ -535,15 +558,15 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
             credits,
             model: sttModel,
             type: "VOICE",
-            provider,
-            meta: { durationMinutes },
+            provider: sttModel,
+            meta: { durationMinutes }
         });
 
         safeUnlink(req.file.path);
 
         res.status(200).json({
             success: true,
-            data: { text, provider, model: sttModel, billing: { credits, durationMinutes } },
+            data: { text, model: sttModel, billing: { credits, durationMinutes } }
         });
     } catch (error) {
         safeUnlink(req.file?.path);
@@ -559,10 +582,10 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
  * POST /api/ai/voice/tts
  *
  * Body:
- *   text    : string  (required) — text to synthesize
- *   speaker : string  (optional) — override user's default speaker
+ *   text    : string  (required)
+ *   speaker : string  (optional, overrides user's default for this call only)
  *
- * NOTE: languageCode is intentionally NOT accepted.
+ * NOTE: ttsLang is intentionally NOT accepted.
  * TTS language is always auto-detected from text content.
  */
 export const synthesizeVoice = asyncHandler(async (req, res) => {
@@ -572,8 +595,7 @@ export const synthesizeVoice = asyncHandler(async (req, res) => {
     if (!text) throw new ApiError(400, "Text is required");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    const provider = getUserProvider(user);
-    const ttsModel = getTTSModelName(provider);
+    const ttsModel = VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
 
     await checkCreditBalance(userId, calcVoiceCost(ttsModel, 1));
 
@@ -582,8 +604,8 @@ export const synthesizeVoice = asyncHandler(async (req, res) => {
     try {
         const result = await speakText({
             text,
-            provider,
-            speaker: speaker || user.aiSarvamSpeaker || DEFAULT_SPEAKER,
+            ttsModel,
+            speaker: speaker || user.aiSarvamSpeaker || DEFAULT_SPEAKER
         });
 
         audioPath = result.audioPath;
@@ -596,13 +618,13 @@ export const synthesizeVoice = asyncHandler(async (req, res) => {
             credits,
             model: ttsModel,
             type: "VOICE",
-            provider,
-            meta: { durationMinutes, detectedLang },
+            provider: ttsModel,
+            meta: { durationMinutes, detectedLang }
         });
 
         const audioBuffer = fs.readFileSync(audioPath);
         const audioBase64 = audioBuffer.toString("base64");
-        const mimeType = getAudioMimeType(provider);
+        const mimeType = getAudioMimeType(ttsModel);
         safeUnlink(audioPath);
         audioPath = null;
 
@@ -610,14 +632,13 @@ export const synthesizeVoice = asyncHandler(async (req, res) => {
             success: true,
             data: {
                 audioUrl: `data:${mimeType};base64,${audioBase64}`,
-                provider,
                 model: ttsModel,
                 detectedLang,
-                billing: { credits, durationMinutes },
-            },
+                billing: { credits, durationMinutes }
+            }
         });
     } catch (error) {
-        safeUnlink(audioPath); // clean up if deductCredits or read failed
+        safeUnlink(audioPath);
         throw error;
     }
 });

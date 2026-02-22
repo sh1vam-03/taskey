@@ -14,11 +14,31 @@
  *
  * TOOL:
  *   credits = per_request
+ *
+ * FIX: estimateChatTokens now normalizes content before measuring length.
+ * Previously, array content from Gemini would produce "[object Object]"
+ * in the joined string, giving wrong (under-counted) token estimates.
  */
 
 import prisma from "../../config/db.js";
 import { AI_COSTS } from "../../config/plans.config.js";
 import ApiError from "../../utils/ApiError.js";
+
+// ─────────────────────────────────────────────────────────────
+// CONTENT NORMALIZER (inline — avoids circular imports)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Converts any LangChain message content to a plain string.
+ * Handles: string | Array<{type,text}> | null | undefined
+ */
+const normalizeContent = (content) => {
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) {
+        return content.map(p => (typeof p === "string" ? p : p?.text || "")).filter(Boolean).join("");
+    }
+    return "";
+};
 
 // ─────────────────────────────────────────────────────────────
 // COST CALCULATORS
@@ -27,8 +47,8 @@ import ApiError from "../../utils/ApiError.js";
 /**
  * Calculates the credit cost for a CHAT request.
  *
- * @param {string} model        - e.g. "gpt-4o-mini", "sarvam-m"
- * @param {number} totalTokens  - estimated prompt + completion tokens
+ * @param {string} model       - e.g. "gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"
+ * @param {number} totalTokens - estimated prompt + completion tokens
  * @returns {number} Credits to deduct (integer, minimum 1)
  */
 export const calcChatCost = (model, totalTokens = 0) => {
@@ -37,7 +57,6 @@ export const calcChatCost = (model, totalTokens = 0) => {
         console.warn(`[AI Cost] Unknown chat model "${model}" — defaulting to 10 credits`);
         return 10;
     }
-
     const tokenBlocks = Math.ceil(Math.max(0, totalTokens) / 1000);
     const raw = config.base + tokenBlocks * config.per_1000_tokens;
     const capped = Math.min(raw, config.max_per_call);
@@ -47,8 +66,8 @@ export const calcChatCost = (model, totalTokens = 0) => {
 /**
  * Calculates the credit cost for a VOICE request (STT or TTS).
  *
- * @param {string} model            - e.g. "whisper-1", "saaras:v3", "tts-1", "bulbul:v3"
- * @param {number} durationMinutes  - Audio duration in minutes (float)
+ * @param {string} model           - e.g. "whisper-1", "saaras:v3", "tts-1", "bulbul:v3"
+ * @param {number} durationMinutes - Audio duration in minutes (float)
  * @returns {number} Credits to deduct (integer, minimum 1)
  */
 export const calcVoiceCost = (model, durationMinutes = 0.1) => {
@@ -57,16 +76,15 @@ export const calcVoiceCost = (model, durationMinutes = 0.1) => {
         console.warn(`[AI Cost] Unknown voice model "${model}" — defaulting to 10 credits`);
         return 10;
     }
-
     const minutes = Math.max(0.1, durationMinutes); // minimum 6 seconds
-    const raw = Math.ceil(minutes) * config.per_minute; // "ceil" rounding per spec
+    const raw = Math.ceil(minutes) * config.per_minute;
     return Math.max(1, Math.ceil(raw));
 };
 
 /**
  * Calculates the credit cost for a TOOL call.
  *
- * @param {string} toolName  - e.g. "tavily"
+ * @param {string} toolName - e.g. "tavily"
  * @returns {number} Credits to deduct (integer, minimum 1)
  */
 export const calcToolCost = (toolName) => {
@@ -79,12 +97,11 @@ export const calcToolCost = (toolName) => {
 };
 
 /**
- * Pre-flight cost estimate for a chat request.
- * Used for the billing pre-check BEFORE the actual API call.
- * Assumes a conservative token count (up to max_per_call).
+ * Conservative pre-flight estimate for a chat request.
+ * Used to check balance BEFORE the actual API call.
  *
  * @param {string} model
- * @returns {number} Estimated max credits for this model
+ * @returns {number} Worst-case credits for this model (= max_per_call)
  */
 export const estimateMaxChatCost = (model) => {
     const config = AI_COSTS.CHAT?.[model];
@@ -97,11 +114,10 @@ export const estimateMaxChatCost = (model) => {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Rough token estimation: 4 characters ≈ 1 token.
- * Used when the API doesn't return a token count.
+ * Rough token estimate: 4 characters ≈ 1 token.
  *
  * @param {string} text
- * @returns {number} Estimated token count
+ * @returns {number}
  */
 export const countTokens = (text) => {
     if (!text) return 0;
@@ -110,31 +126,37 @@ export const countTokens = (text) => {
 
 /**
  * Estimates total tokens for a chat exchange.
- * Combines all message content (prompt) + AI response.
+ * Combines all message content (prompt history) + AI response.
  *
- * @param {Array<{content: string}>} messages - Full message history sent to LLM
- * @param {string} responseText               - AI reply text
+ * FIX: content fields are normalized to string before measurement.
+ * Previously, Gemini array content produced "[object Object]" in the
+ * concatenated text, causing badly under-counted token estimates.
+ *
+ * @param {Array<{content: string|Array|null}>} messages - Message history
+ * @param {string} responseText                          - AI reply (already normalized string)
  * @returns {number} Estimated total tokens
  */
 export const estimateChatTokens = (messages = [], responseText = "") => {
-    const promptText = messages.map((m) => m.content || "").join(" ");
+    const promptText = messages
+        .map(m => normalizeContent(m.content))
+        .join(" ");
     return countTokens(promptText) + countTokens(responseText);
 };
 
 // ─────────────────────────────────────────────────────────────
-// 1. CREDIT BALANCE CHECK
+// CREDIT BALANCE CHECK
 // ─────────────────────────────────────────────────────────────
 
 /**
  * Throws HTTP 402 if user's AI credit balance is below the required minimum.
  *
  * @param {string} userId
- * @param {number} minCredits  - Minimum credits required (default: 5)
+ * @param {number} minCredits - Minimum credits required (default: 5)
  */
 export const checkCreditBalance = async (userId, minCredits = 5) => {
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { aiCreditBalance: true },
+        select: { aiCreditBalance: true }
     });
 
     if (!user) throw new ApiError(404, "User not found");
@@ -148,25 +170,25 @@ export const checkCreditBalance = async (userId, minCredits = 5) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// 2. CREDIT DEDUCTION (atomic with full audit trail)
+// CREDIT DEDUCTION (atomic, full audit trail)
 // ─────────────────────────────────────────────────────────────
 
 /**
  * Atomically deducts credits and writes the full audit trail:
- *   - User.aiCreditBalance   (decremented)
- *   - AiUsage log            (model, type, credits, metadata)
- *   - AiCreditLedger entry   (financial record)
- *   - AiConversation total   (aggregate, if conversationId provided)
+ *   - User.aiCreditBalance    (decremented)
+ *   - AiUsage log             (model, type, credits)
+ *   - AiCreditLedger entry    (immutable financial record)
+ *   - AiConversation total    (aggregate, if conversationId provided)
  *
  * @param {Object} params
- * @param {string} params.userId
+ * @param {string}      params.userId
  * @param {string|null} params.conversationId
- * @param {number} params.credits         - Exact amount to deduct (pre-calculated)
- * @param {string} params.source          - Ledger source tag (default: "AI_USAGE")
- * @param {string} params.model           - Model used (for audit log)
- * @param {string} params.type            - "CHAT" | "VOICE" | "TOOL"
- * @param {string} params.provider        - "openai" | "sarvam"
- * @param {Object} params.meta            - Extra billing metadata (tokens, duration, etc.)
+ * @param {number}      params.credits         - Pre-calculated amount to deduct
+ * @param {string}      params.source          - Ledger source tag (default: "AI_USAGE")
+ * @param {string}      params.model           - Model used
+ * @param {string}      params.type            - "CHAT" | "VOICE" | "TOOL"
+ * @param {string}      params.provider        - Model ID (audit trail)
+ * @param {Object}      params.meta            - Extra billing metadata
  */
 export const deductCredits = async ({
     userId,
@@ -175,8 +197,8 @@ export const deductCredits = async ({
     source = "AI_USAGE",
     model,
     type,
-    provider = "openai",
-    meta = {},
+    provider = "unknown",
+    meta = {}
 }) => {
     const amount = Math.max(1, Math.ceil(credits));
 
@@ -184,7 +206,7 @@ export const deductCredits = async ({
         // 1. Decrement user balance
         await tx.user.update({
             where: { id: userId },
-            data: { aiCreditBalance: { decrement: amount } },
+            data: { aiCreditBalance: { decrement: amount } }
         });
 
         // 2. Granular usage log
@@ -194,27 +216,25 @@ export const deductCredits = async ({
                 conversationId,
                 model: model || "unknown",
                 type: type || "CHAT",
-                creditsUsed: amount,
-                // If your AiUsage schema has a JSON metadata column, uncomment:
-                // metadata: { provider, ...meta },
-            },
+                creditsUsed: amount
+            }
         });
 
-        // 3. Financial ledger (immutable record)
+        // 3. Financial ledger (immutable)
         await tx.aiCreditLedger.create({
             data: {
                 userId,
                 credits: -amount,
                 source,
-                conversationId,
-            },
+                conversationId
+            }
         });
 
-        // 4. Conversation aggregate (optional but useful for analytics)
+        // 4. Conversation aggregate
         if (conversationId) {
             await tx.aiConversation.update({
                 where: { id: conversationId },
-                data: { totalCreditsUsed: { increment: amount } },
+                data: { totalCreditsUsed: { increment: amount } }
             });
         }
     });

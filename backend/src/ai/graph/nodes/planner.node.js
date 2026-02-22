@@ -1,18 +1,28 @@
 import { SystemMessage } from "@langchain/core/messages";
+import { normalizeContent } from "../contentUtils.js";
 
 /**
  * Planner Node
  * Analyzes the conversation to determine high-level intent.
  * Injects guidance into the state to help the Agent Node focus.
+ *
+ * FIX: lastMessage.content can be Array<{type,text}> (Gemini multipart) or null.
+ * Calling .toLowerCase() on an array throws TypeError: content.toLowerCase is not a function.
+ * All content access now goes through normalizeContent() first.
  */
 export const createPlannerNode = (model) => {
     return async (state) => {
         const { messages } = state;
         const lastMessage = messages[messages.length - 1];
 
-        if (!lastMessage || !lastMessage.content) return {};
+        if (!lastMessage) return {};
 
-        const content = lastMessage.content.toLowerCase();
+        // Normalize to string — safe for all LangChain message types
+        const content = normalizeContent(lastMessage.content).toLowerCase();
+
+        // Guard: skip planner logic if there's no meaningful text content
+        // (e.g. pure tool-call messages have empty content after normalization)
+        if (!content.trim()) return {};
 
         let intentHint = "";
 
@@ -23,7 +33,7 @@ export const createPlannerNode = (model) => {
             content.includes("find") ||
             content.includes("holiday") ||
             content.includes("festival") ||
-            content.includes("diwali") || // Specific user example
+            content.includes("diwali") ||
             content.includes("date")
         ) {
             intentHint = "User Intent: RESEARCH/INFO. Use 'web_search' to verify facts/dates before planning.";
@@ -49,33 +59,38 @@ export const createPlannerNode = (model) => {
         }
 
         // 4. Analysis / Reflection
-        else if (content.includes("analyze") || content.includes("how was") || content.includes("stats")) {
+        else if (
+            content.includes("analyze") ||
+            content.includes("how was") ||
+            content.includes("stats")
+        ) {
             intentHint = "User Intent: REFLECTION. Analyze past behavior/logs.";
         }
 
         if (intentHint) {
-            // We inject this as a transient System Message (or we could start a separate 'plan' channel)
             return {
                 messages: [new SystemMessage(`[PLANNER GUIDE]: ${intentHint}`)]
             };
         }
 
-        // 5. Fallback: Ask Model (Advanced Planning)
-        // If no regex matched, we ask the model to clarify intent briefly.
-        // This makes the planner "real" instead of just heuristic.
+        // 5. Fallback: ask the model to classify intent
         try {
             const plannerResponse = await model.invoke([
-                new SystemMessage("Analyze the user's latest message. Return a single sentence 'GUIDANCE' to help the agent focus. If unsure, return empty string."),
+                new SystemMessage(
+                    "Analyze the user's latest message. Return a single sentence 'GUIDANCE' " +
+                    "to help the agent focus. If unsure, return empty string."
+                ),
                 lastMessage
             ]);
 
-            if (plannerResponse.content && plannerResponse.content.length > 5) {
+            const guidance = normalizeContent(plannerResponse.content).trim();
+            if (guidance.length > 5) {
                 return {
-                    messages: [new SystemMessage(`[PLANNER GUIDE]: ${plannerResponse.content}`)]
+                    messages: [new SystemMessage(`[PLANNER GUIDE]: ${guidance}`)]
                 };
             }
-        } catch (e) {
-            // Fallback to no guidance
+        } catch {
+            // Non-fatal — planner falls back to no guidance
         }
 
         return {};

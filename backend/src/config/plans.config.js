@@ -9,29 +9,32 @@ import { PlanType } from "@prisma/client";
  * AI_COSTS defines the credit billing rules for every model.
  *
  * CHAT models:
- *   base           – flat credits charged per request (covers overhead)
+ *   base            – flat credits per request (covers overhead)
  *   per_1000_tokens – credits per 1,000 tokens (prompt + completion)
- *   max_per_call    – hard cap per single request (protects against runaway prompts)
+ *   max_per_call    – hard cap per single request
  *
  * VOICE models:
- *   per_minute  – credits per minute of audio processed / generated
- *   rounding    – "ceil" (always round up to next full minute)
+ *   per_minute – credits per minute of audio processed / generated
+ *   rounding   – "ceil" (always round up to next full minute)
  *
  * TOOL usage:
- *   per_request         – cost for a standard Tavily search
- *   advanced_multiplier – unused for now; reserved for deep-research tier
- *
- * All values are in your internal "credits" unit.
- * Adjust to match your business pricing strategy.
+ *   per_request – cost for a standard Tavily search
  */
 
 export const AI_COSTS = {
     CHAT: {
+        // ── Google Gemini ──────────────────────────────────────
+        "gemini-1.5-flash": {
+            base: 1,
+            per_1000_tokens: 1,    // Most affordable — ideal default for all users
+            max_per_call: 80
+        },
+
         // ── OpenAI ────────────────────────────────────────────
         "gpt-4o-mini": {
-            base: 1,              // flat per request
-            per_1000_tokens: 2,   // per 1k tokens (prompt + completion)
-            max_per_call: 200     // safety cap
+            base: 1,
+            per_1000_tokens: 2,
+            max_per_call: 200
         },
         "gpt-4o": {
             base: 2,
@@ -40,32 +43,32 @@ export const AI_COSTS = {
         },
 
         // ── Sarvam ────────────────────────────────────────────
-        "sarvam-m": {
+        "sarvam-30b": {
             base: 1,
-            per_1000_tokens: 2,   // Same rate for now — tune after real usage data
+            per_1000_tokens: 2,
             max_per_call: 200
         }
     },
 
     VOICE: {
-        // ── OpenAI STT ────────────────────────────────────────
+        // ── STT: OpenAI Whisper ───────────────────────────────
         "whisper-1": {
             per_minute: 10,
             rounding: "ceil"
         },
-        // ── OpenAI TTS ────────────────────────────────────────
+        // ── TTS: OpenAI ───────────────────────────────────────
         "tts-1": {
             per_minute: 20,
             rounding: "ceil"
         },
-        // ── Sarvam STT ────────────────────────────────────────
+        // ── STT: Sarvam Saaras ────────────────────────────────
         "saaras:v3": {
-            per_minute: 8,        // ~20% cheaper than Whisper — good selling point for India
+            per_minute: 8,
             rounding: "ceil"
         },
-        // ── Sarvam TTS ────────────────────────────────────────
+        // ── TTS: Sarvam Bulbul ────────────────────────────────
         "bulbul:v3": {
-            per_minute: 15,       // ~25% cheaper than OpenAI TTS
+            per_minute: 15,
             rounding: "ceil"
         }
     },
@@ -73,10 +76,136 @@ export const AI_COSTS = {
     TOOL: {
         "tavily": {
             per_request: 10,
-            advanced_multiplier: 20   // reserved for future "deep research" mode
+            advanced_multiplier: 20
         }
     }
 };
+
+// ─────────────────────────────────────────────────────────────
+// MODEL_INFO — display catalog for the frontend settings UI.
+// Frontend uses this to render pricing cards so users can
+// compare cost before choosing a model.
+// ─────────────────────────────────────────────────────────────
+
+export const MODEL_INFO = {
+    // ── LLM options (used for both text chat AND voice thinking) ──
+    CHAT_MODELS: [
+        {
+            id: "gemini-1.5-flash",
+            name: "Gemini 1.5 Flash",
+            provider: "Google",
+            description: "Fast, smart and multilingual. Best balance of speed, capability and cost.",
+            isDefault: true,
+            badge: "⚡ Recommended",
+            pricing: {
+                label: "1 credit/request + 1 credit/1k tokens",
+                base: AI_COSTS.CHAT["gemini-1.5-flash"].base,
+                per_1000_tokens: AI_COSTS.CHAT["gemini-1.5-flash"].per_1000_tokens,
+                max_per_call: AI_COSTS.CHAT["gemini-1.5-flash"].max_per_call
+            },
+            supportsTools: true,
+            supportsVoice: true
+        },
+        {
+            id: "sarvam-30b",
+            name: "Sarvam 30B",
+            provider: "Sarvam AI",
+            description: "Optimised for Indian languages — Hindi, Marathi, Tamil and more. Full tool calling.",
+            isDefault: false,
+            badge: "🇮🇳 Indian Languages",
+            pricing: {
+                label: "1 credit/request + 2 credits/1k tokens",
+                base: AI_COSTS.CHAT["sarvam-30b"].base,
+                per_1000_tokens: AI_COSTS.CHAT["sarvam-30b"].per_1000_tokens,
+                max_per_call: AI_COSTS.CHAT["sarvam-30b"].max_per_call
+            },
+            supportsTools: true,
+            supportsVoice: true
+        },
+        {
+            id: "gpt-4o-mini",
+            name: "GPT-4o Mini",
+            provider: "OpenAI",
+            description: "Powerful reasoning and tool use. Excellent for complex multi-step tasks.",
+            isDefault: false,
+            badge: "🤖 OpenAI",
+            pricing: {
+                label: "1 credit/request + 2 credits/1k tokens",
+                base: AI_COSTS.CHAT["gpt-4o-mini"].base,
+                per_1000_tokens: AI_COSTS.CHAT["gpt-4o-mini"].per_1000_tokens,
+                max_per_call: AI_COSTS.CHAT["gpt-4o-mini"].max_per_call
+            },
+            supportsTools: true,
+            supportsVoice: true
+        }
+    ],
+
+    // ── TTS options ───────────────────────────────────────────
+    TTS_MODELS: [
+        {
+            id: "bulbul:v3",
+            name: "Sarvam Bulbul v3",
+            provider: "Sarvam AI",
+            description: "Indian voices with auto-language detection. Supports Hindi, English, Tamil and 8 more.",
+            isDefault: true,
+            badge: "🇮🇳 Indian Voices",
+            pricing: {
+                label: "15 credits/minute",
+                per_minute: AI_COSTS.VOICE["bulbul:v3"].per_minute
+            }
+        },
+        {
+            id: "tts-1",
+            name: "OpenAI TTS",
+            provider: "OpenAI",
+            description: "Natural, expressive English voice. High quality output.",
+            isDefault: false,
+            badge: "🤖 OpenAI",
+            pricing: {
+                label: "20 credits/minute",
+                per_minute: AI_COSTS.VOICE["tts-1"].per_minute
+            }
+        }
+    ],
+
+    // ── STT options ───────────────────────────────────────────
+    STT_MODELS: [
+        {
+            id: "saaras:v3",
+            name: "Sarvam Saaras v3",
+            provider: "Sarvam AI",
+            description: "Best accuracy for Indian languages and accents. Supports Hindi, English, Tamil and more.",
+            isDefault: true,
+            badge: "🇮🇳 Indian Accents",
+            pricing: {
+                label: "8 credits/minute",
+                per_minute: AI_COSTS.VOICE["saaras:v3"].per_minute
+            }
+        },
+        {
+            id: "whisper-1",
+            name: "OpenAI Whisper",
+            provider: "OpenAI",
+            description: "Universal transcription. Excellent for English and international languages.",
+            isDefault: false,
+            badge: "🤖 OpenAI",
+            pricing: {
+                label: "10 credits/minute",
+                per_minute: AI_COSTS.VOICE["whisper-1"].per_minute
+            }
+        }
+    ]
+};
+
+/** Valid model ID sets — used for input validation in the controller */
+export const VALID_CHAT_MODELS = MODEL_INFO.CHAT_MODELS.map(m => m.id);
+// ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"]
+
+export const VALID_TTS_MODELS = MODEL_INFO.TTS_MODELS.map(m => m.id);
+// ["bulbul:v3", "tts-1"]
+
+export const VALID_STT_MODELS = MODEL_INFO.STT_MODELS.map(m => m.id);
+// ["saaras:v3", "whisper-1"]
 
 // ==========================================
 // 1.5. TOP-UP PACKS
