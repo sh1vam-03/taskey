@@ -1,383 +1,373 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import aiService from '@/features/ai/ai.services';
-import { useToast } from '@/context/ToastContext';
-import { useAuth } from '@/context/AuthContext';
 
 const AiContext = createContext(null);
 
-export function AiProvider({ children }) {
-    const { user } = useAuth();
-    const { success, error: showError } = useToast();
+// ── Initial State ─────────────────────────────────────────────
 
-    // ─── Settings State ─────────────────────────────────────────
-    const [settings, setSettings] = useState({
-        provider: 'openai',
+const initialState = {
+    // Settings — loaded once on mount, updated on PATCH response
+    settings: {
+        chatModel: 'gemini-1.5-flash',
+        voiceModel: 'gemini-1.5-flash',
+        ttsModel: 'bulbul:v3',
+        sttModel: 'saaras:v3',
         sttLang: 'unknown',
         speaker: 'shubh',
         creditBalance: 0,
         plan: 'FREE',
-        ttsLanguageMode: 'auto',
-        availableProviders: [],
+
+        // Catalog arrays — populated from GET /settings
+        availableChatModels: [],
+        availableVoiceModels: [],
+        availableTtsModels: [],
+        availableSttModels: [],
         availableSttLangs: [],
         availableSpeakers: [],
-    });
+        ttsLanguageMode: 'auto',
+    },
 
-    // ─── Conversations State ────────────────────────────────────
-    const [conversations, setConversations] = useState([]);
-    const [activeConversationId, setActiveConversationId] = useState(null);
-    const [messages, setMessages] = useState([]);
+    // Conversations
+    conversations: [],
+    activeConversationId: null,
+    messages: [],
 
-    // ─── UI State ───────────────────────────────────────────────
-    const [isLoadingConversations, setIsLoadingConversations] = useState(false);
-    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-    const [isSendingMessage, setIsSendingMessage] = useState(false);
-    const [isStreaming, setIsStreaming] = useState(false);
-    const [streamingContent, setStreamingContent] = useState('');
-    const [isRecording, setIsRecording] = useState(false);
-    const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-    const [voiceResponse, setVoiceResponse] = useState(null);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [error, setError] = useState(null);
+    // Loading states
+    isLoadingSettings: false,
+    isLoadingConversations: false,
+    isLoadingMessages: false,
+    isSendingMessage: false,
+    isStreaming: false,
+    streamingContent: '',
+    isRecording: false,
+    isProcessingVoice: false,
 
-    // Ref to hold abort function for active stream
-    const abortStreamRef = useRef(null);
+    // Voice response from last voice call
+    voiceResponse: null,
 
-    // ─── Load Settings on Mount ─────────────────────────────────
+    // Settings panel open state
+    isSettingsOpen: false,
+
+    // Error
+    error: null,
+};
+
+// ── Reducer ───────────────────────────────────────────────────
+
+const reducer = (state, action) => {
+    switch (action.type) {
+        case 'SET_SETTINGS':
+            return { ...state, settings: { ...state.settings, ...action.payload }, isLoadingSettings: false };
+
+        case 'SET_CONVERSATIONS':
+            return { ...state, conversations: action.payload, isLoadingConversations: false };
+
+        case 'SET_ACTIVE_CONVERSATION':
+            return { ...state, activeConversationId: action.payload, messages: [], streamingContent: '' };
+
+        case 'SET_MESSAGES':
+            return { ...state, messages: action.payload, isLoadingMessages: false };
+
+        case 'APPEND_MESSAGE':
+            return { ...state, messages: [...state.messages, action.payload] };
+
+        case 'UPDATE_LAST_USER_MESSAGE':
+            return {
+                ...state,
+                messages: state.messages.map((m, i) =>
+                    i === state.messages.length - 1 && m.role === 'user'
+                        ? { ...m, content: action.payload }
+                        : m
+                ),
+            };
+
+        case 'SET_STREAMING':
+            return { ...state, isStreaming: action.payload, streamingContent: action.payload ? state.streamingContent : '' };
+
+        case 'APPEND_STREAM_TOKEN':
+            return { ...state, streamingContent: state.streamingContent + action.payload };
+
+        case 'STREAM_DONE':
+            return {
+                ...state,
+                isStreaming: false,
+                streamingContent: '',
+                isSendingMessage: false,
+                messages: [
+                    ...state.messages,
+                    { id: Date.now().toString(), role: 'assistant', content: action.payload, createdAt: new Date().toISOString() },
+                ],
+            };
+
+        case 'SET_VOICE_RESPONSE':
+            return { ...state, voiceResponse: action.payload, isProcessingVoice: false };
+
+        case 'UPDATE_CONVERSATION_IN_LIST': {
+            const updated = action.payload;
+            return {
+                ...state,
+                conversations: state.conversations.map(c => c.id === updated.id ? { ...c, ...updated } : c),
+            };
+        }
+
+        case 'REMOVE_CONVERSATION':
+            return {
+                ...state,
+                conversations: state.conversations.filter(c => c.id !== action.payload),
+                activeConversationId: state.activeConversationId === action.payload ? null : state.activeConversationId,
+            };
+
+        case 'ADD_CONVERSATION':
+            return { ...state, conversations: [action.payload, ...state.conversations] };
+
+        case 'SET_LOADING':
+            return { ...state, [action.key]: action.value };
+
+        case 'SET_ERROR':
+            return { ...state, error: action.payload };
+
+        case 'CLEAR_ERROR':
+            return { ...state, error: null };
+
+        default:
+            return state;
+    }
+};
+
+// ── Provider ──────────────────────────────────────────────────
+
+export function AiProvider({ children }) {
+    const [state, dispatch] = useReducer(reducer, initialState);
+
+    // Load settings on mount
     const loadSettings = useCallback(async () => {
+        dispatch({ type: 'SET_LOADING', key: 'isLoadingSettings', value: true });
         try {
             const data = await aiService.getAiSettings();
-            setSettings(prev => ({ ...prev, ...data }));
+            dispatch({ type: 'SET_SETTINGS', payload: data });
         } catch (err) {
             console.error('Failed to load AI settings:', err);
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to load AI settings' });
         }
     }, []);
 
-    // ─── Update Settings ────────────────────────────────────────
+    /**
+     * Updates any subset of model settings.
+     * Accepts: { chatModel?, voiceModel?, ttsModel?, sttModel?, sttLang?, speaker? }
+     */
     const updateSettings = useCallback(async (patch) => {
         try {
-            const data = await aiService.updateAiSettings(patch);
-            setSettings(prev => ({ ...prev, ...data, ...patch }));
-            success('Settings updated');
-        } catch (err) {
-            console.error('Failed to update settings:', err);
-            showError('Failed to update settings');
-        }
-    }, [success, showError]);
-
-    // ─── Load Conversations ─────────────────────────────────────
-    const loadConversations = useCallback(async () => {
-        try {
-            setIsLoadingConversations(true);
-            const data = await aiService.getConversations();
-            setConversations(data || []);
-        } catch (err) {
-            console.error('Failed to load conversations:', err);
-        } finally {
-            setIsLoadingConversations(false);
+            await aiService.updateAiSettings(patch);
+            // Refresh full settings to get updated catalog data
+            const fresh = await aiService.getAiSettings();
+            dispatch({ type: 'SET_SETTINGS', payload: fresh });
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to update settings' });
         }
     }, []);
 
-    // ─── Open Conversation ──────────────────────────────────────
+    const loadConversations = useCallback(async () => {
+        dispatch({ type: 'SET_LOADING', key: 'isLoadingConversations', value: true });
+        try {
+            const data = await aiService.getConversations();
+            dispatch({ type: 'SET_CONVERSATIONS', payload: data || [] });
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to load conversations' });
+        }
+    }, []);
+
     const openConversation = useCallback(async (id) => {
-        setActiveConversationId(id);
-        setMessages([]);
-        setStreamingContent('');
-        setIsStreaming(false);
-
+        dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: id });
+        dispatch({ type: 'SET_LOADING', key: 'isLoadingMessages', value: true });
         try {
-            setIsLoadingMessages(true);
-            const msgs = await aiService.getMessages(id);
-            setMessages(msgs || []);
-        } catch (err) {
-            console.error('Failed to load messages:', err);
-            showError('Failed to load messages');
-        } finally {
-            setIsLoadingMessages(false);
+            const data = await aiService.getMessages(id);
+            dispatch({ type: 'SET_MESSAGES', payload: data || [] });
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to load messages' });
         }
-    }, [showError]);
+    }, []);
 
-    // ─── Create New Conversation ────────────────────────────────
-    const createNewConversation = useCallback(async (initialMessage) => {
+    const createNewConversation = useCallback(async () => {
         try {
-            const data = await aiService.createConversation(initialMessage);
-            const newConv = data.conversation || data;
-            setConversations(prev => [newConv, ...prev]);
-            setActiveConversationId(newConv.id);
-            setMessages([]);
-            return newConv;
-        } catch (err) {
-            console.error('Failed to create conversation:', err);
-            showError('Failed to create new chat');
-            throw err;
+            const data = await aiService.createConversation();
+            const conv = data.conversation || data;
+            dispatch({ type: 'ADD_CONVERSATION', payload: conv });
+            dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: conv.id });
+            dispatch({ type: 'SET_MESSAGES', payload: [] });
+            return conv.id;
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to create conversation' });
         }
-    }, [showError]);
+    }, []);
 
-    // ─── Delete Conversation ────────────────────────────────────
-    const deleteConversation = useCallback(async (id) => {
-        try {
-            await aiService.deleteConversation(id);
-            setConversations(prev => prev.filter(c => c.id !== id));
-            if (activeConversationId === id) {
-                setActiveConversationId(null);
-                setMessages([]);
-            }
-            success('Conversation deleted');
-        } catch (err) {
-            console.error('Failed to delete conversation:', err);
-            showError('Failed to delete conversation');
-        }
-    }, [activeConversationId, success, showError]);
-
-    // ─── Rename Conversation ────────────────────────────────────
     const renameConversation = useCallback(async (id, title) => {
         try {
             await aiService.updateConversation(id, title);
-            setConversations(prev =>
-                prev.map(c => c.id === id ? { ...c, title } : c)
-            );
-            success('Chat renamed');
-        } catch (err) {
-            console.error('Failed to rename conversation:', err);
-            showError('Failed to rename chat');
+            dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id, title } });
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to rename conversation' });
         }
-    }, [success, showError]);
+    }, []);
 
-    // ─── Send Message (with streaming) ──────────────────────────
+    const deleteConversation = useCallback(async (id) => {
+        try {
+            await aiService.deleteConversation(id);
+            dispatch({ type: 'REMOVE_CONVERSATION', payload: id });
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to delete conversation' });
+        }
+    }, []);
+
+    /**
+     * Sends a text message with streaming.
+     * Optimistically appends user bubble immediately, then streams AI response.
+     */
     const sendMessage = useCallback(async (text) => {
+        let convId = state.activeConversationId;
         if (!text.trim()) return;
-
-        let convId = activeConversationId;
 
         // Auto-create conversation if none active
         if (!convId) {
-            try {
-                const newConv = await createNewConversation();
-                convId = newConv.id;
-            } catch {
-                return;
-            }
+            convId = await createNewConversation();
+            if (!convId) return;
         }
 
-        // Optimistic: append user message immediately
-        const userMsg = {
+        // Optimistic user bubble
+        const optimisticUserMsg = {
             id: `temp-${Date.now()}`,
             role: 'user',
             content: text,
             createdAt: new Date().toISOString(),
         };
-        setMessages(prev => [...prev, userMsg]);
-        setIsSendingMessage(true);
-        setIsStreaming(true);
-        setStreamingContent('');
-        setError(null);
+        dispatch({ type: 'APPEND_MESSAGE', payload: optimisticUserMsg });
+        dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: true });
+        dispatch({ type: 'SET_STREAMING', payload: true });
 
-        // Stream the response
-        const abort = aiService.sendMessageStream(
+        aiService.sendMessageStream(
             convId,
             text,
-            // onToken
-            (token) => {
-                setStreamingContent(prev => prev + token);
-            },
-            // onDone
+            (token) => dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token }),
             (fullText) => {
-                const assistantMsg = {
-                    id: `msg-${Date.now()}`,
-                    role: 'assistant',
-                    content: fullText,
-                    createdAt: new Date().toISOString(),
-                };
-                setMessages(prev => [...prev, assistantMsg]);
-                setStreamingContent('');
-                setIsStreaming(false);
-                setIsSendingMessage(false);
-
-                // Refresh conversation list to reorder by updatedAt
+                dispatch({ type: 'STREAM_DONE', payload: fullText });
                 loadConversations();
-                // Refresh credits
-                loadSettings();
+                loadSettings(); // refresh credit balance
             },
-            // onError
             (err) => {
-                console.error('Streaming error:', err);
-                setIsStreaming(false);
-                setIsSendingMessage(false);
-                setStreamingContent('');
+                dispatch({ type: 'SET_STREAMING', payload: false });
+                dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
 
-                if (err.status === 402) {
-                    showError('Insufficient credits. Please upgrade your plan.');
-                    setMessages(prev => [...prev, {
-                        id: `err-${Date.now()}`,
-                        role: 'assistant',
-                        content: '⚠️ **Insufficient credits.** Please upgrade your plan to continue using AI features.',
-                        createdAt: new Date().toISOString(),
-                    }]);
+                const errMsg = typeof err === 'string' ? err : err?.message || 'Failed to get AI response';
+                const status = err?.status;
+
+                if (status === 402) {
+                    dispatch({
+                        type: 'APPEND_MESSAGE', payload: {
+                            id: `err-${Date.now()}`, role: 'assistant',
+                            content: '⚠️ **Insufficient credits.** Please upgrade your plan to continue.',
+                            createdAt: new Date().toISOString(),
+                        }
+                    });
                 } else {
-                    showError(err.message || 'Failed to get AI response');
-                    setMessages(prev => [...prev, {
-                        id: `err-${Date.now()}`,
-                        role: 'assistant',
-                        content: `⚠️ **Error**: ${err.message || 'Response interrupted. Please try again.'}`,
-                        createdAt: new Date().toISOString(),
-                    }]);
+                    dispatch({
+                        type: 'APPEND_MESSAGE', payload: {
+                            id: `err-${Date.now()}`, role: 'assistant',
+                            content: `⚠️ **Error**: ${errMsg}`,
+                            createdAt: new Date().toISOString(),
+                        }
+                    });
                 }
+                dispatch({ type: 'SET_ERROR', payload: errMsg });
             }
         );
+    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings]);
 
-        abortStreamRef.current = abort;
-    }, [activeConversationId, createNewConversation, loadConversations, loadSettings, showError]);
-
-    // ─── Send Voice Message ─────────────────────────────────────
+    /**
+     * Full voice pipeline.
+     * Optimistically shows "🎤 Processing audio..." then replaces with real transcript.
+     */
     const sendVoiceMessage = useCallback(async (audioBlob) => {
-        let convId = activeConversationId;
+        let convId = state.activeConversationId;
 
         if (!convId) {
-            try {
-                const newConv = await createNewConversation();
-                convId = newConv.id;
-            } catch {
-                return;
-            }
+            convId = await createNewConversation();
+            if (!convId) return;
         }
 
-        // Optimistic: show placeholder
         const placeholderMsg = {
-            id: `voice-${Date.now()}`,
+            id: `voice-temp-${Date.now()}`,
             role: 'user',
             content: '🎤 Processing audio...',
             createdAt: new Date().toISOString(),
         };
-        setMessages(prev => [...prev, placeholderMsg]);
-        setIsProcessingVoice(true);
-        setError(null);
+        dispatch({ type: 'APPEND_MESSAGE', payload: placeholderMsg });
+        dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: true });
 
         try {
-            const response = await aiService.sendVoiceMessage(convId, audioBlob);
+            const res = await aiService.sendVoiceMessage(convId, audioBlob);
+            const data = res.data || res;
+            const { userText, reply, audioUrl, billing, models } = data;
 
-            // Update user message with actual transcript
-            setMessages(prev => {
-                const updated = [...prev];
-                const idx = updated.findIndex(m => m.id === placeholderMsg.id);
-                if (idx !== -1 && response.userText) {
-                    updated[idx] = { ...updated[idx], content: response.userText };
-                }
-                // Add AI response
-                updated.push({
-                    id: `voice-reply-${Date.now()}`,
-                    role: 'assistant',
-                    content: response.reply,
-                    createdAt: new Date().toISOString(),
-                });
-                return updated;
+            // Replace placeholder with real transcript
+            dispatch({ type: 'UPDATE_LAST_USER_MESSAGE', payload: userText || '🎤 Voice message' });
+
+            // Add AI response
+            dispatch({
+                type: 'APPEND_MESSAGE',
+                payload: { id: `ai-${Date.now()}`, role: 'assistant', content: reply, createdAt: new Date().toISOString() },
             });
 
-            // Store voice response for audio playback
-            if (response.audioUrl) {
-                setVoiceResponse({ audioUrl: response.audioUrl });
-            }
+            // Store audio + billing info for VoicePlayer
+            dispatch({ type: 'SET_VOICE_RESPONSE', payload: { audioUrl, userText, reply, billing, models } });
 
-            // Refresh
             loadConversations();
             loadSettings();
         } catch (err) {
-            console.error('Voice processing error:', err);
-            const errMsg = err.response?.status === 402
-                ? 'Insufficient credits for voice processing.'
-                : (err.response?.data?.message || 'Voice processing failed.');
-            showError(errMsg);
-            setMessages(prev => [...prev, {
-                id: `err-${Date.now()}`,
-                role: 'assistant',
-                content: `⚠️ **Error**: ${errMsg}`,
-                createdAt: new Date().toISOString(),
-            }]);
-        } finally {
-            setIsProcessingVoice(false);
+            dispatch({ type: 'UPDATE_LAST_USER_MESSAGE', payload: '🎤 Voice message failed' });
+            dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: false });
+            dispatch({ type: 'SET_ERROR', payload: 'Voice processing failed' });
         }
-    }, [activeConversationId, createNewConversation, loadConversations, loadSettings, showError]);
+    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings]);
 
-    // ─── Stop Streaming ─────────────────────────────────────────
     const stopStreaming = useCallback(() => {
-        if (abortStreamRef.current) {
-            abortStreamRef.current();
-            abortStreamRef.current = null;
+        // No abort ref in reducer pattern — just commit what we have
+        if (state.streamingContent) {
+            dispatch({ type: 'STREAM_DONE', payload: state.streamingContent + '\n\n*[Response stopped]*' });
+        } else {
+            dispatch({ type: 'SET_STREAMING', payload: false });
+            dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
         }
-        if (streamingContent) {
-            setMessages(prev => [...prev, {
-                id: `stopped-${Date.now()}`,
-                role: 'assistant',
-                content: streamingContent + '\n\n*[Response stopped]*',
-                createdAt: new Date().toISOString(),
-            }]);
-        }
-        setIsStreaming(false);
-        setStreamingContent('');
-        setIsSendingMessage(false);
-    }, [streamingContent]);
+    }, [state.streamingContent]);
 
-    // ─── Clear Error ────────────────────────────────────────────
-    const clearError = useCallback(() => setError(null), []);
+    const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
+    const clearVoiceResponse = useCallback(() => dispatch({ type: 'SET_VOICE_RESPONSE', payload: null }), []);
 
-    // ─── Clear Voice Response ───────────────────────────────────
-    const clearVoiceResponse = useCallback(() => setVoiceResponse(null), []);
-
-    // ─── Init on User Login ─────────────────────────────────────
+    // ── Init on mount ─────────────────────────────────────────
     useEffect(() => {
-        if (user) {
-            loadSettings();
-            loadConversations();
-        }
-    }, [user, loadSettings, loadConversations]);
+        loadSettings();
+        loadConversations();
+    }, [loadSettings, loadConversations]);
 
     const value = {
-        // Settings
-        settings,
+        ...state,
         loadSettings,
         updateSettings,
-
-        // Conversations
-        conversations,
-        activeConversationId,
-        messages,
+        loadConversations,
         openConversation,
         createNewConversation,
-        deleteConversation,
         renameConversation,
-        loadConversations,
-
-        // Messaging
+        deleteConversation,
         sendMessage,
-        stopStreaming,
-
-        // Voice
         sendVoiceMessage,
-        isRecording,
-        setIsRecording,
-        voiceResponse,
-        clearVoiceResponse,
-
-        // UI State
-        isLoadingConversations,
-        isLoadingMessages,
-        isSendingMessage,
-        isStreaming,
-        streamingContent,
-        isProcessingVoice,
-        isSettingsOpen,
-        setIsSettingsOpen,
-
-        // Error
-        error,
+        stopStreaming,
         clearError,
+        clearVoiceResponse,
+        setIsSettingsOpen: (v) => dispatch({ type: 'SET_LOADING', key: 'isSettingsOpen', value: v }),
+        setIsRecording: (v) => dispatch({ type: 'SET_LOADING', key: 'isRecording', value: v }),
     };
 
-    return (
-        <AiContext.Provider value={value}>
-            {children}
-        </AiContext.Provider>
-    );
+    return <AiContext.Provider value={value}>{children}</AiContext.Provider>;
 }
 
 export { AiContext };

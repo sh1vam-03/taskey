@@ -25,7 +25,6 @@ function AiLayoutInner({ children }) {
                 {/* Top Header Bar */}
                 <header className="h-14 flex items-center justify-between px-4 border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-xl shrink-0 z-10">
                     <div className="flex items-center gap-3">
-                        {/* Mobile menu button */}
                         <button
                             onClick={() => setSidebarOpen(true)}
                             className="md:hidden p-1.5 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors"

@@ -7,6 +7,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
 import VoicePlayer from '@/components/ai/VoicePlayer';
+import ModelBadge from '@/components/ai/ModelBadge';
+import { useAi } from '@/features/ai/useAi';
 
 export default function MessageBubble({ message, audioUrl }) {
     const isUser = message.role === 'user';
@@ -43,6 +45,7 @@ function UserBubble({ message }) {
 
 function AssistantBubble({ message, audioUrl }) {
     const [showTime, setShowTime] = useState(false);
+    const { settings } = useAi();
 
     return (
         <div
@@ -51,6 +54,11 @@ function AssistantBubble({ message, audioUrl }) {
             onMouseLeave={() => setShowTime(false)}
         >
             <div className="max-w-[90%] md:max-w-[80%] relative">
+                {/* Model badge */}
+                <div className="mb-1.5">
+                    <ModelBadge model={settings.chatModel} className="text-[9px] py-0.5 px-2 cursor-default" />
+                </div>
+
                 <div className="prose prose-invert prose-sm max-w-none text-[14px] leading-7 text-gray-200
                     prose-p:my-2 prose-headings:text-white prose-headings:font-semibold
                     prose-strong:text-cyan-300 prose-strong:font-semibold

@@ -55,7 +55,8 @@ const buildGeminiModel = (streaming = false) =>
         apiKey: process.env.GEMINI_API_KEY,
         temperature: 0,
         streaming,
-        maxRetries: 2
+        maxRetries: 2,
+        apiVersion: "v1",
     });
 
 /**

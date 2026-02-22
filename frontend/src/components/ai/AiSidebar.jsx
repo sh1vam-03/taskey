@@ -6,7 +6,7 @@ import { Plus, Trash2, Pencil, Check, X, MoreVertical, MessageSquare, ChevronLef
 import { useAi } from '@/features/ai/useAi';
 import { useAuth } from '@/context/AuthContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import ProviderBadge from '@/components/ai/ProviderBadge';
+import ModelBadge from '@/components/ai/ModelBadge';
 import CreditBadge from '@/components/ai/CreditBadge';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
@@ -21,6 +21,7 @@ export default function AiSidebar({ isOpen, onClose }) {
         renameConversation,
         isLoadingConversations,
         settings,
+        setIsSettingsOpen,
     } = useAi();
 
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
@@ -85,6 +86,10 @@ export default function AiSidebar({ isOpen, onClose }) {
         } catch {
             return '';
         }
+    };
+
+    const openSettings = () => {
+        setIsSettingsOpen(true);
     };
 
     return (
@@ -217,10 +222,29 @@ export default function AiSidebar({ isOpen, onClose }) {
                     </div>
                 </div>
 
-                {/* Footer: Provider + Credits + User */}
+                {/* Footer: Model Badges + Credits + User */}
                 <div className="border-t border-white/[0.06] p-3 space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                        <ProviderBadge provider={settings.provider} />
+                    {/* 4 Model Quick-Info Lines */}
+                    <div className="space-y-1.5 px-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">Chat</span>
+                            <ModelBadge model={settings.chatModel} onClick={openSettings} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">Voice</span>
+                            <ModelBadge model={settings.voiceModel} onClick={openSettings} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">TTS</span>
+                            <ModelBadge model={settings.ttsModel} onClick={openSettings} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">STT</span>
+                            <ModelBadge model={settings.sttModel} onClick={openSettings} />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-center px-1">
                         <CreditBadge balance={settings.creditBalance} plan={settings.plan} />
                     </div>
 
