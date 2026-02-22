@@ -11,8 +11,8 @@
  *   7. Generate conversation title (on first message)
  *
  * Model resolution:
- *   mode = "TEXT"  → uses user.aiChatModel  (default: "gemini-1.5-flash")
- *   mode = "VOICE" → uses user.aiVoiceModel (default: "gemini-1.5-flash")
+ *   mode = "TEXT"  → uses user.aiChatModel  (default: "gemini-2.0-flash")
+ *   mode = "VOICE" → uses user.aiVoiceModel (default: "gemini-2.0-flash")
  *
  * FIX: Gemini (and other models) can return .content as Array<{type,text}>.
  * All content is now normalized through normalizeContent() before:
@@ -40,7 +40,7 @@ import { sarvamChat } from "./sarvam.service.js";
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"];
+const VALID_CHAT_MODELS = ["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"];
 
 // ─────────────────────────────────────────────────────────────
 // MODEL RESOLVERS
@@ -52,7 +52,7 @@ const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"];
  */
 const resolveChatModel = (user) => {
     const m = user?.aiChatModel;
-    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-1.5-flash";
+    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-2.0-flash";
 };
 
 /**
@@ -61,7 +61,7 @@ const resolveChatModel = (user) => {
  */
 const resolveVoiceModel = (user) => {
     const m = user?.aiVoiceModel;
-    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-1.5-flash";
+    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-2.0-flash";
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
 
         let title = "";
 
-        if (chatModel === "gemini-1.5-flash") {
+        if (chatModel === "gemini-2.0-flash") {
             title = await geminiChat(
                 [{ role: "user", content: prompt }],
                 { maxTokens: 20 }

@@ -10,8 +10,8 @@ const AiContext = createContext(null);
 const initialState = {
     // Settings — loaded once on mount, updated on PATCH response
     settings: {
-        chatModel: 'gemini-1.5-flash',
-        voiceModel: 'gemini-1.5-flash',
+        chatModel: 'gemini-2.0-flash',
+        voiceModel: 'gemini-2.0-flash',
         ttsModel: 'bulbul:v3',
         sttModel: 'saaras:v3',
         sttLang: 'unknown',

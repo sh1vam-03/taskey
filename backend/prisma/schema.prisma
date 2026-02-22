@@ -121,8 +121,8 @@ model User {
 
   aiCreditBalance Int @default(0)
 
-  aiChatModel  String @default("gemini-1.5-flash")
-  aiVoiceModel String @default("gemini-1.5-flash")
+  aiChatModel  String @default("gemini-2.0-flash")
+  aiVoiceModel String @default("gemini-2.0-flash")
   aiTtsModel   String @default("bulbul:v3")
   aiSttModel   String @default("saaras:v3")
 

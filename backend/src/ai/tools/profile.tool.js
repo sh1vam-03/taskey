@@ -48,16 +48,16 @@ export const updateProfileTool = () => {
                 .describe("IANA timezone e.g. 'Asia/Kolkata'"),
 
             // ── LLM for text chat ───────────────────────────────
-            aiChatModel: z.enum(["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"]).optional()
+            aiChatModel: z.enum(["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"]).optional()
                 .describe(
                     "LLM for text chat conversations. " +
-                    "'gemini-1.5-flash' = Gemini 1.5 Flash (Google, fast, cheap, default). " +
+                    "'gemini-2.0-flash' = Gemini 2.0 Flash (Google, fast, cheap, default). " +
                     "'sarvam-30b' = Sarvam 30B (Indian languages optimised). " +
                     "'gpt-4o-mini' = GPT-4o Mini (OpenAI, strong reasoning)."
                 ),
 
             // ── LLM for voice thinking ──────────────────────────
-            aiVoiceModel: z.enum(["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"]).optional()
+            aiVoiceModel: z.enum(["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"]).optional()
                 .describe(
                     "LLM used to generate responses in voice mode. Same options as aiChatModel."
                 ),
@@ -139,7 +139,7 @@ export const updateProfileTool = () => {
 
                 // Human-readable change descriptions
                 const MODEL_LABELS = {
-                    "gemini-1.5-flash": "Gemini 1.5 Flash (Google)",
+                    "gemini-2.0-flash": "Gemini 2.0 Flash (Google)",
                     "sarvam-30b": "Sarvam 30B (Indian languages)",
                     "gpt-4o-mini": "GPT-4o Mini (OpenAI)",
                     "bulbul:v3": "Sarvam Bulbul v3",

@@ -24,7 +24,7 @@ import { PlanType } from "@prisma/client";
 export const AI_COSTS = {
     CHAT: {
         // ── Google Gemini ──────────────────────────────────────
-        "gemini-1.5-flash": {
+        "gemini-2.0-flash": {
             base: 1,
             per_1000_tokens: 1,    // Most affordable — ideal default for all users
             max_per_call: 80
@@ -91,17 +91,17 @@ export const MODEL_INFO = {
     // ── LLM options (used for both text chat AND voice thinking) ──
     CHAT_MODELS: [
         {
-            id: "gemini-1.5-flash",
-            name: "Gemini 1.5 Flash",
+            id: "gemini-2.0-flash",
+            name: "Gemini 2.0 Flash",
             provider: "Google",
             description: "Fast, smart and multilingual. Best balance of speed, capability and cost.",
             isDefault: true,
             badge: "⚡ Recommended",
             pricing: {
                 label: "1 credit/request + 1 credit/1k tokens",
-                base: AI_COSTS.CHAT["gemini-1.5-flash"].base,
-                per_1000_tokens: AI_COSTS.CHAT["gemini-1.5-flash"].per_1000_tokens,
-                max_per_call: AI_COSTS.CHAT["gemini-1.5-flash"].max_per_call
+                base: AI_COSTS.CHAT["gemini-2.0-flash"].base,
+                per_1000_tokens: AI_COSTS.CHAT["gemini-2.0-flash"].per_1000_tokens,
+                max_per_call: AI_COSTS.CHAT["gemini-2.0-flash"].max_per_call
             },
             supportsTools: true,
             supportsVoice: true
@@ -199,7 +199,7 @@ export const MODEL_INFO = {
 
 /** Valid model ID sets — used for input validation in the controller */
 export const VALID_CHAT_MODELS = MODEL_INFO.CHAT_MODELS.map(m => m.id);
-// ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"]
+// ["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"]
 
 export const VALID_TTS_MODELS = MODEL_INFO.TTS_MODELS.map(m => m.id);
 // ["bulbul:v3", "tts-1"]

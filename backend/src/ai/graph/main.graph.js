@@ -5,7 +5,7 @@
  *   Planner → Agent (with tools) → Reflection → Summarize → Finalize
  *
  * Supported chat/voice model IDs:
- *   "gemini-1.5-flash" → LangChain ChatGoogleGenerativeAI (DEFAULT)
+ *   "gemini-2.0-flash" → LangChain ChatGoogleGenerativeAI (DEFAULT)
  *   "sarvam-30b"       → LangChain ChatOpenAI @ Sarvam OpenAI-compatible endpoint
  *   "gpt-4o-mini"      → LangChain ChatOpenAI @ OpenAI
  *
@@ -14,7 +14,7 @@
  * in voice/stt.service.js and voice/tts.service.js.
  *
  * Graph cache key: "<modelId>-sync" or "<modelId>-stream"
- * e.g. "gemini-1.5-flash-sync", "sarvam-30b-stream"
+ * e.g. "gemini-2.0-flash-sync", "sarvam-30b-stream"
  *
  * Requires: npm install @langchain/google-genai
  */
@@ -35,7 +35,7 @@ import { shouldContinue } from "./edges.js";
 // ─────────────────────────────────────────────────────────────
 // GRAPH CACHE
 // Compiled graphs are expensive — cache by modelId + streaming mode.
-// Keys: "gemini-1.5-flash-sync" | "gemini-1.5-flash-stream"
+// Keys: "gemini-2.0-flash-sync" | "gemini-2.0-flash-stream"
 //       "sarvam-30b-sync"       | "sarvam-30b-stream"
 //       "gpt-4o-mini-sync"      | "gpt-4o-mini-stream"
 // ─────────────────────────────────────────────────────────────
@@ -51,12 +51,12 @@ const graphCache = new Map();
  */
 const buildGeminiModel = (streaming = false) =>
     new ChatGoogleGenerativeAI({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         apiKey: process.env.GEMINI_API_KEY,
         temperature: 0,
         streaming,
         maxRetries: 2,
-        apiVersion: "v1",
+        apiVersion: "v1beta",
     });
 
 /**
@@ -100,13 +100,13 @@ const buildOpenAIModel = (streaming = false) =>
  * Returns the correct LangChain model instance for a given model ID.
  * Falls back to Gemini if an unknown ID is passed.
  *
- * @param {string} modelId - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ * @param {string} modelId - "gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini"
  * @param {boolean} streaming
  * @returns {BaseChatModel}
  */
 const buildModel = (modelId, streaming = false) => {
     switch (modelId) {
-        case "gemini-1.5-flash": return buildGeminiModel(streaming);
+        case "gemini-2.0-flash": return buildGeminiModel(streaming);
         case "sarvam-30b": return buildSarvamModel(streaming);
         case "gpt-4o-mini": return buildOpenAIModel(streaming);
         default:
@@ -146,7 +146,7 @@ const compileAgentGraph = (model) => {
 /**
  * Returns a cached compiled graph for the given model ID + streaming mode.
  *
- * @param {string}  modelId   - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ * @param {string}  modelId   - "gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini"
  * @param {boolean} streaming
  * @returns {CompiledGraph}
  */
@@ -173,7 +173,7 @@ const getGraph = (modelId, streaming = false) => {
  * @param {Array}  params.messages        - LangChain message objects
  * @param {Object} params.user            - Full Prisma user record
  * @param {string} params.conversationId
- * @param {string} params.chatModel       - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ * @param {string} params.chatModel       - "gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini"
  * @returns {Promise<AIMessage>}
  */
 export const runAgentGraph = async ({
@@ -181,7 +181,7 @@ export const runAgentGraph = async ({
     messages,
     user,
     conversationId,
-    chatModel = "gemini-1.5-flash"
+    chatModel = "gemini-2.0-flash"
 }) => {
     const app = getGraph(chatModel, false);
 
@@ -208,7 +208,7 @@ export const streamAgentGraph = async function* ({
     messages,
     user,
     conversationId,
-    chatModel = "gemini-1.5-flash"
+    chatModel = "gemini-2.0-flash"
 }) {
     const app = getGraph(chatModel, true);
 

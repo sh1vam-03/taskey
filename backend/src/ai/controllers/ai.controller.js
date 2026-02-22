@@ -2,7 +2,7 @@
  * AI Controller (Multi-Model, Decoupled, Tiered Billing)
  *
  * Users independently choose FOUR things:
- *   aiChatModel  → LLM for text chat         (gemini-1.5-flash | sarvam-30b | gpt-4o-mini)
+ *   aiChatModel  → LLM for text chat         (gemini-2.0-flash | sarvam-30b | gpt-4o-mini)
  *   aiVoiceModel → LLM for voice thinking    (same options)
  *   aiTtsModel   → Text-to-Speech model      (bulbul:v3 | tts-1)
  *   aiSttModel   → Speech-to-Text model      (saaras:v3 | whisper-1)
@@ -154,8 +154,8 @@ export const getAiSettings = asyncHandler(async (req, res) => {
         success: true,
         data: {
             // ── Current user selections ──────────────────────────
-            chatModel: user.aiChatModel || "gemini-1.5-flash",
-            voiceModel: user.aiVoiceModel || "gemini-1.5-flash",
+            chatModel: user.aiChatModel || "gemini-2.0-flash",
+            voiceModel: user.aiVoiceModel || "gemini-2.0-flash",
             ttsModel: user.aiTtsModel || "bulbul:v3",
             sttModel: user.aiSttModel || "saaras:v3",
             sttLang: user.aiSarvamLang || "unknown",
@@ -208,7 +208,7 @@ export const getAiSettings = asyncHandler(async (req, res) => {
  * Any combination of fields can be updated in a single request.
  *
  * Body:
- *   chatModel  : "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
+ *   chatModel  : "gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini"
  *   voiceModel : same options as chatModel
  *   ttsModel   : "bulbul:v3" | "tts-1"
  *   sttModel   : "saaras:v3" | "whisper-1"
@@ -440,7 +440,7 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
     // Resolve models with safe fallbacks to defaults
     const sttModel = VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
     const ttsModel = VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
-    const voiceModel = VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-1.5-flash";
+    const voiceModel = VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-2.0-flash";
 
     // Conservative pre-check: 1 min STT + max LLM cost + 1 min TTS
     await checkCreditBalance(

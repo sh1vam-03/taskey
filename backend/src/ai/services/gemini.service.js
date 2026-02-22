@@ -13,8 +13,8 @@
  *   Env var: GEMINI_API_KEY (from Google AI Studio: aistudio.google.com)
  */
 
-const GEMINI_MODEL = "gemini-1.5-flash";
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1";
+const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 const getGeminiKey = () => {
     const key = process.env.GEMINI_API_KEY;

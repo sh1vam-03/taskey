@@ -8,7 +8,7 @@
  *
  * Model resolution (all from user record):
  *   STT: user.aiSttModel      ("saaras:v3" | "whisper-1")
- *   LLM: user.aiVoiceModel    ("gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini")
+ *   LLM: user.aiVoiceModel    ("gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini")
  *   TTS: user.aiTtsModel      ("bulbul:v3" | "tts-1")
  *
  * STT language: user.aiSarvamLang    (input language hint for Saaras v3)
@@ -42,11 +42,11 @@ import fs from "fs";
 
 const VALID_STT_MODELS = ["saaras:v3", "whisper-1"];
 const VALID_TTS_MODELS = ["bulbul:v3", "tts-1"];
-const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"];
+const VALID_CHAT_MODELS = ["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"];
 
 const resolveSttModel = (user) => VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
 const resolveTtsModel = (user) => VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
-const resolveVoiceModel = (user) => VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-1.5-flash";
+const resolveVoiceModel = (user) => VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-2.0-flash";
 
 /** Safely delete a temp file — warns on failure but never throws. */
 const safeUnlink = (filePath) => {
