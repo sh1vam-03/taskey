@@ -1,22 +1,21 @@
 /**
  * AI Controller (Multi-Provider, Tiered Billing)
  *
- * Chat billing:  handled inside aiOrchestrator.service.js
- * Voice billing: per-minute via calcVoiceCost in aiToken.service.js
+ * Chat billing:  handled inside aiOrchestrator.service.js (token-based)
+ * Voice billing: per-minute via calcVoiceCost (STT + TTS separate)
  *
  * ── Provider Selection ────────────────────────────────────────
- *   GET  /api/ai/settings   → read current provider, speaker, STT language
- *   PATCH /api/ai/settings  → switch provider / speaker / STT language
+ *   GET  /api/ai/settings   → current provider, speaker, STT language
+ *   PATCH /api/ai/settings  → update provider / speaker / STT language
  *
- * ── TTS Language Auto-Detection ──────────────────────────────
- * Bulbul v3 TTS language is AUTOMATICALLY DETECTED from the LLM output text.
- * Users cannot and do not need to select TTS language manually.
- * The detection lives in voice/languageDetect.js and runs inside tts.service.js.
+ * ── TTS Language (AUTO-DETECTED) ─────────────────────────────
+ * Bulbul v3 TTS language is detected from LLM output text automatically.
+ * Users cannot set TTS language — they only choose their speaker voice.
+ * Detection runs inside voice/tts.service.js via voice/languageDetect.js.
  *
  * ── STT Language (aiSarvamLang) ──────────────────────────────
- * aiSarvamLang is used only for SPEECH-TO-TEXT (Saaras v3 input).
- * It helps Saaras accurately transcribe the user's spoken language.
- * "unknown" = auto-detect by Saaras (works well but slightly less accurate).
+ * Used only for Saaras v3 input transcription accuracy.
+ * "unknown" = Saaras auto-detects the spoken language.
  */
 
 import prisma from "../../config/db.js";
@@ -25,7 +24,13 @@ import fs from "fs";
 import ApiError from "../../utils/ApiError.js";
 import { processAiRequest, processAiRequestStream } from "../services/aiOrchestrator.service.js";
 import { transcribeAudio, getSTTModelName } from "../voice/stt.service.js";
-import { speakText, getAudioMimeType, getTTSModelName, BULBUL_SPEAKERS, DEFAULT_SPEAKER } from "../voice/tts.service.js";
+import {
+    speakText,
+    getAudioMimeType,
+    getTTSModelName,
+    BULBUL_SPEAKERS,
+    DEFAULT_SPEAKER,
+} from "../voice/tts.service.js";
 import {
     checkCreditBalance,
     deductCredits,
@@ -37,22 +42,21 @@ import {
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-// Valid STT input languages (user sets this for better transcription accuracy)
+/** Valid STT input language codes. User sets this for better Saaras v3 accuracy. */
 const VALID_STT_LANGS = [
+    "unknown",
     "en-IN", "hi-IN", "mr-IN", "ta-IN", "te-IN", "kn-IN",
-    "ml-IN", "gu-IN", "bn-IN", "pa-IN", "od-IN", "unknown",
+    "ml-IN", "gu-IN", "bn-IN", "pa-IN", "od-IN",
 ];
 
-// Speaker metadata for frontend display
+/** Speaker display metadata used by getAiSettings response. */
 const SPEAKER_META = {
-    // Male
     shubh: { gender: "M", label: "Shubh" },
     amit: { gender: "M", label: "Amit" },
     sumit: { gender: "M", label: "Sumit" },
     manan: { gender: "M", label: "Manan" },
     rahul: { gender: "M", label: "Rahul" },
     ratan: { gender: "M", label: "Ratan" },
-    // Female
     ritu: { gender: "F", label: "Ritu" },
     pooja: { gender: "F", label: "Pooja" },
     simran: { gender: "F", label: "Simran" },
@@ -79,6 +83,15 @@ const getUserProvider = (user) => {
     return p === "sarvam" || p === "openai" ? p : "openai";
 };
 
+/** Safely unlink a file — logs a warning on failure but never throws. */
+const safeUnlink = (filePath) => {
+    if (filePath && fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {
+            console.warn(`[AI Controller] Failed to delete temp file ${filePath}:`, e.message);
+        }
+    }
+};
+
 // ─────────────────────────────────────────────────────────────
 // AI SETTINGS — Read & Update
 // ─────────────────────────────────────────────────────────────
@@ -86,11 +99,13 @@ const getUserProvider = (user) => {
 /**
  * GET /api/ai/settings
  *
- * Returns user's current AI provider config.
- * Key distinction:
- *   - sttLang:     User-configurable. Helps Saaras v3 transcribe speech accurately.
- *   - sarvamSpeaker: User-configurable. The Bulbul v3 voice they hear.
- *   - TTS Language: NOT user-configurable. Auto-detected from LLM output text.
+ * Returns the user's current AI configuration.
+ * Includes static option lists so the frontend doesn't need to hard-code them.
+ *
+ * Key distinctions:
+ *   sttLang  → User-set. Helps Saaras accurately transcribe spoken input.
+ *   speaker  → User-set. The Bulbul v3 voice the user hears.
+ *   TTS lang → Never user-set. Auto-detected per-response from LLM output text.
  */
 export const getAiSettings = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -108,7 +123,6 @@ export const getAiSettings = asyncHandler(async (req, res) => {
 
     if (!user) throw new ApiError(404, "User not found");
 
-    // Build speaker list with gender labels
     const availableSpeakers = BULBUL_SPEAKERS.map((id) => ({
         id,
         label: SPEAKER_META[id]?.label || id,
@@ -118,17 +132,16 @@ export const getAiSettings = asyncHandler(async (req, res) => {
     res.status(200).json({
         success: true,
         data: {
-            // Current settings
+            // Current values
             provider: user.aiProvider,
-            sttLang: user.aiSarvamLang,     // STT input language (Saaras v3)
-            speaker: user.aiSarvamSpeaker,   // TTS speaker voice (Bulbul v3)
-
+            sttLang: user.aiSarvamLang,    // STT input language hint (Saaras v3)
+            speaker: user.aiSarvamSpeaker,  // TTS voice (Bulbul v3)
             creditBalance: user.aiCreditBalance,
             plan: user.plan,
 
-            // Metadata for frontend UI
-            ttsLanguageMode: "auto",  // Always auto-detected — display this to user
-            ttsLanguageNote: "TTS language is automatically detected from the AI response text.",
+            // TTS language is always automatic
+            ttsLanguageMode: "auto",
+            ttsLanguageNote: "TTS language is automatically detected from the AI response text. It cannot be manually set.",
 
             availableProviders: [
                 {
@@ -147,7 +160,7 @@ export const getAiSettings = asyncHandler(async (req, res) => {
                 },
             ],
 
-            // STT language options (user sets this for better transcription)
+            // STT language options — user sets this for better transcription accuracy
             availableSttLangs: [
                 { code: "unknown", label: "Auto-detect (default)" },
                 { code: "en-IN", label: "English" },
@@ -163,7 +176,7 @@ export const getAiSettings = asyncHandler(async (req, res) => {
                 { code: "od-IN", label: "Odia" },
             ],
 
-            // Speaker options (user picks their preferred voice)
+            // Speaker options — user picks the voice they hear
             availableSpeakers,
         },
     });
@@ -172,13 +185,15 @@ export const getAiSettings = asyncHandler(async (req, res) => {
 /**
  * PATCH /api/ai/settings
  *
- * Updates user's AI provider preferences.
- * Body (all optional — send only what's changing):
- *   provider  : "openai" | "sarvam"
- *   sttLang   : BCP-47 e.g. "hi-IN" | "unknown"  (for Saaras STT accuracy)
- *   speaker   : Bulbul v3 voice name e.g. "priya" (for TTS output voice)
+ * Updates the user's AI provider preferences.
+ * All body fields are optional — send only what's changing.
  *
- * NOTE: There is no `ttsLang` field — TTS language is always auto-detected.
+ * Body:
+ *   provider : "openai" | "sarvam"
+ *   sttLang  : BCP-47 e.g. "hi-IN" | "unknown"   (Saaras STT accuracy hint)
+ *   speaker  : Bulbul v3 voice name e.g. "priya"  (user-chosen TTS voice)
+ *
+ * There is intentionally NO ttsLang field — TTS language is always auto-detected.
  */
 export const updateAiSettings = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -346,7 +361,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
             }
             res.end();
         } catch (error) {
-            console.error("Streaming Error:", error);
+            console.error("[Controller] Streaming error:", error);
             res.write(`\n[ERROR: ${error.message}]`);
             res.end();
         }
@@ -369,16 +384,17 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/ai/conversations/:id/voice
- * Audio → STT (Saaras v3) → LLM → TTS (Bulbul v3, auto-lang) → Audio
+ *
+ * Full pipeline: Audio → STT → LLM → TTS (auto-lang) → Audio response
  *
  * Billing:
  *   STT: calcVoiceCost(sttModel, actualAudioDuration)
  *   LLM: token-based inside processAiRequest
- *   TTS: calcVoiceCost(ttsModel, actualAudioDuration)
+ *   TTS: calcVoiceCost(ttsModel, actualTTSDuration)
  *
  * Language handling:
- *   STT: uses user.aiSarvamLang ("unknown" = auto-detect by Saaras)
- *   TTS: language is auto-detected from LLM text by languageDetect.js
+ *   STT: user.aiSarvamLang ("unknown" = Saaras auto-detect)
+ *   TTS: auto-detected from LLM response text by languageDetect.js
  */
 export const processVoiceMessage = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -391,15 +407,16 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
     const sttModel = getSTTModelName(provider);
     const ttsModel = getTTSModelName(provider);
 
-    // Conservative pre-check: 1 min STT + max LLM + 1 min TTS
+    // Conservative pre-check: assume 1 min STT + max LLM + 1 min TTS
     const sttMax = calcVoiceCost(sttModel, 1);
     const llmMax = estimateMaxChatCost(provider === "sarvam" ? "sarvam-m" : "gpt-4o-mini");
     const ttsMax = calcVoiceCost(ttsModel, 1);
     await checkCreditBalance(userId, sttMax + llmMax + ttsMax);
 
+    let ttsAudioPath = null;
+
     try {
         // ── 1. STT ─────────────────────────────────────────────
-        // aiSarvamLang = user's spoken language hint for better STT accuracy
         const { text: userText, durationMinutes: sttDuration } = await transcribeAudio(
             req.file.path,
             provider,
@@ -417,11 +434,11 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             meta: { durationMinutes: sttDuration },
         });
 
-        fs.unlinkSync(req.file.path);
+        safeUnlink(req.file.path);
 
         if (!userText?.trim()) throw new ApiError(400, "Could not understand audio");
 
-        // ── 2. LLM (billing inside orchestrator) ───────────────
+        // ── 2. LLM (billing handled inside orchestrator) ───────
         const aiMessage = await processAiRequest({
             userId,
             conversationId: id,
@@ -429,21 +446,18 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             mode: "VOICE",
         });
 
-        // ── 3. TTS — language is AUTO-DETECTED inside speakText ─
+        // ── 3. TTS — language auto-detected from text ──────────
         const { inferVoiceEmotion } = await import("../voice/voice.emotion.js");
         const emotion = inferVoiceEmotion({ summary: aiMessage.content });
 
-        const {
-            audioPath,
-            durationMinutes: ttsDuration,
-            detectedLang,  // returned by speakText for logging
-        } = await speakText({
+        const { audioPath, durationMinutes: ttsDuration, detectedLang } = await speakText({
             text: aiMessage.content,
             emotion,
             provider,
-            // NOTE: NO languageCode passed here — auto-detected from text
             speaker: user.aiSarvamSpeaker || DEFAULT_SPEAKER,
         });
+
+        ttsAudioPath = audioPath; // track for cleanup on error
 
         const ttsCredits = calcVoiceCost(ttsModel, ttsDuration);
         await deductCredits({
@@ -460,15 +474,15 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         const audioBuffer = fs.readFileSync(audioPath);
         const audioBase64 = audioBuffer.toString("base64");
         const mimeType = getAudioMimeType(provider);
-        const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
-        fs.unlinkSync(audioPath);
+        safeUnlink(audioPath);
+        ttsAudioPath = null; // cleared — file is gone
 
         res.status(200).json({
             success: true,
             data: {
                 userText,
                 reply: aiMessage.content,
-                audioUrl: audioDataUrl,
+                audioUrl: `data:${mimeType};base64,${audioBase64}`,
                 provider,
                 billing: {
                     stt: { model: sttModel, credits: sttCredits, durationMinutes: sttDuration },
@@ -477,7 +491,9 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             },
         });
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        // Clean up any temp files left behind
+        safeUnlink(req.file?.path);
+        safeUnlink(ttsAudioPath);
         throw error;
     }
 });
@@ -512,14 +528,14 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
             meta: { durationMinutes },
         });
 
-        fs.unlinkSync(req.file.path);
+        safeUnlink(req.file.path);
 
         res.status(200).json({
             success: true,
             data: { text, provider, model: sttModel, billing: { credits, durationMinutes } },
         });
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        safeUnlink(req.file?.path);
         throw error;
     }
 });
@@ -528,11 +544,20 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
 // VOICE — TTS Only
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * POST /api/ai/voice/tts
+ *
+ * Body:
+ *   text    : string  (required) — text to synthesize
+ *   speaker : string  (optional) — override user's default speaker
+ *
+ * NOTE: languageCode is intentionally NOT accepted.
+ * TTS language is always auto-detected from text content.
+ */
 export const synthesizeVoice = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { text, speaker } = req.body;
-    // NOTE: `languageCode` is intentionally NOT accepted from the request body.
-    // TTS language is always auto-detected from text content.
+
     if (!text) throw new ApiError(400, "Text is required");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -541,42 +566,47 @@ export const synthesizeVoice = asyncHandler(async (req, res) => {
 
     await checkCreditBalance(userId, calcVoiceCost(ttsModel, 1));
 
-    const {
-        audioPath,
-        durationMinutes,
-        detectedLang,
-    } = await speakText({
-        text,
-        provider,
-        // Language auto-detected from text
-        speaker: speaker || user.aiSarvamSpeaker || DEFAULT_SPEAKER,
-    });
+    let audioPath = null;
 
-    const credits = calcVoiceCost(ttsModel, durationMinutes);
-    await deductCredits({
-        userId,
-        conversationId: null,
-        credits,
-        model: ttsModel,
-        type: "VOICE",
-        provider,
-        meta: { durationMinutes, detectedLang },
-    });
-
-    const audioBuffer = fs.readFileSync(audioPath);
-    const audioBase64 = audioBuffer.toString("base64");
-    const mimeType = getAudioMimeType(provider);
-    const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
-    fs.unlinkSync(audioPath);
-
-    res.status(200).json({
-        success: true,
-        data: {
-            audioUrl: audioDataUrl,
+    try {
+        const result = await speakText({
+            text,
             provider,
+            speaker: speaker || user.aiSarvamSpeaker || DEFAULT_SPEAKER,
+        });
+
+        audioPath = result.audioPath;
+        const { durationMinutes, detectedLang } = result;
+
+        const credits = calcVoiceCost(ttsModel, durationMinutes);
+        await deductCredits({
+            userId,
+            conversationId: null,
+            credits,
             model: ttsModel,
-            detectedLang,
-            billing: { credits, durationMinutes },
-        },
-    });
+            type: "VOICE",
+            provider,
+            meta: { durationMinutes, detectedLang },
+        });
+
+        const audioBuffer = fs.readFileSync(audioPath);
+        const audioBase64 = audioBuffer.toString("base64");
+        const mimeType = getAudioMimeType(provider);
+        safeUnlink(audioPath);
+        audioPath = null;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                audioUrl: `data:${mimeType};base64,${audioBase64}`,
+                provider,
+                model: ttsModel,
+                detectedLang,
+                billing: { credits, durationMinutes },
+            },
+        });
+    } catch (error) {
+        safeUnlink(audioPath); // clean up if deductCredits or read failed
+        throw error;
+    }
 });

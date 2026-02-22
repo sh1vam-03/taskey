@@ -129,11 +129,15 @@ model User {
 
   // BCP-47 language code for Sarvam STT/TTS (e.g. "hi-IN", "mr-IN", "en-IN")
   // Used as languageCode param in sarvamTranscribe and sarvamSynthesize calls.
-  aiSarvamLang String @default("en-IN")
+  aiSarvamLang String @default("unknown")
 
-  // Sarvam TTS voice name (e.g. "meera", "priya", "arjun", "anushka")
+  // Sarvam TTS voice name (
+  //                  Male:   shubh, amit, sumit, manan, rahul, ratan
+  //                  Female: ritu, pooja, simran, kavya, priya, ishita, shreya, shruti
+  //                        )
   // Full voice list: https://docs.sarvam.ai/api-reference/text-to-speech
-  aiSarvamSpeaker String @default("meera")
+
+  aiSarvamSpeaker String @default("shubh")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
