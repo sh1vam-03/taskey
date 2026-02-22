@@ -1,20 +1,20 @@
 /**
  * Voice Controller
- * Handles standalone voice processing.
+ * Standalone voice pipeline handler.
  *
- * Note: The full voice pipeline (Audio → STT → LLM → TTS) lives in
- * ai.controller.js (processVoiceMessage) registered on ai.routes.js.
+ * All active voice routes are registered in ai.routes.js.
+ * This controller is retained as a shared implementation that can be
+ * mounted on additional routers if needed.
  *
- * This controller is retained for future use — e.g. if you want to mount
- * voice endpoints on a separate router or add voice-only features here.
- * Currently all active voice routes are in ai.routes.js.
+ * TTS Language: auto-detected from LLM output text (languageDetect.js).
+ * TTS Speaker:  taken from user.aiSarvamSpeaker (user preference).
+ * STT Language: taken from user.aiSarvamLang (user's spoken language hint).
  */
 
 import asyncHandler from "../../utils/asyncHandler.js";
 import prisma from "../../config/db.js";
-// ✅ FIX: Removed unused imports HumanMessage, AIMessage — not needed in this controller
 import { transcribeAudio, getSTTModelName } from "./stt.service.js";
-import { speakText, getAudioMimeType, getTTSModelName } from "./tts.service.js";
+import { speakText, getAudioMimeType, getTTSModelName, DEFAULT_SPEAKER } from "./tts.service.js";
 import { inferVoiceEmotion } from "./voice.emotion.js";
 import { validateInputSafety } from "../validators/safety.validator.js";
 import { processAiRequest } from "../services/aiOrchestrator.service.js";
@@ -33,19 +33,16 @@ const getUserProvider = (user) => {
 
 /**
  * Full voice pipeline: Audio → STT → LLM → TTS → Audio response.
- * This handler can be mounted on any route that supplies a file upload
- * and a conversation :id param.
  *
  * Billing:
- *   STT: per-minute via calcVoiceCost
+ *   STT: per-minute (Saaras v3 or Whisper-1)
  *   LLM: token-based inside processAiRequest
- *   TTS: per-minute via calcVoiceCost
+ *   TTS: per-minute (Bulbul v3 or tts-1)
  */
 export const sendVoiceMessage = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const reqUser = req.user;
 
-    const user = await prisma.user.findUnique({ where: { id: reqUser.id } });
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     const provider = getUserProvider(user);
     const sttModel = getSTTModelName(provider);
     const ttsModel = getTTSModelName(provider);
@@ -59,7 +56,7 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
     if (!req.file) throw new Error("Audio file is required");
 
     try {
-        // 1. STT
+        // 1. STT — uses user.aiSarvamLang as input language hint
         const { text: inputText, durationMinutes: sttDuration } = await transcribeAudio(
             req.file.path,
             provider,
@@ -81,7 +78,7 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
             meta: { durationMinutes: sttDuration },
         });
 
-        // 2. LLM (billing inside orchestrator)
+        // 2. LLM (billing handled inside orchestrator)
         const savedAiMsg = await processAiRequest({
             userId: user.id,
             conversationId: id,
@@ -91,14 +88,18 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
 
         const aiContentString = savedAiMsg.content;
 
-        // 3. TTS
+        // 3. TTS — language is AUTO-DETECTED from aiContentString inside speakText
         const emotion = inferVoiceEmotion({ summary: aiContentString });
-        const { audioPath, durationMinutes: ttsDuration } = await speakText({
+        const {
+            audioPath,
+            durationMinutes: ttsDuration,
+            detectedLang,
+        } = await speakText({
             text: aiContentString,
             emotion,
             provider,
-            languageCode: user.aiSarvamLang || "en-IN",
-            speaker: user.aiSarvamSpeaker || "meera",
+            // NOTE: No languageCode passed — auto-detected from text by languageDetect.js
+            speaker: user.aiSarvamSpeaker || DEFAULT_SPEAKER,
         });
 
         const ttsCredits = calcVoiceCost(ttsModel, ttsDuration);
@@ -109,10 +110,10 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
             model: ttsModel,
             type: "VOICE",
             provider,
-            meta: { durationMinutes: ttsDuration },
+            meta: { durationMinutes: ttsDuration, detectedLang },
         });
 
-        // 4. Clean up uploaded file
+        // 4. Cleanup input file
         try { fs.unlinkSync(req.file.path); } catch (e) {
             console.warn("[VoiceController] Failed to delete input file:", e.message);
         }
@@ -137,7 +138,7 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
                 provider,
                 billing: {
                     stt: { model: sttModel, credits: sttCredits, durationMinutes: sttDuration },
-                    tts: { model: ttsModel, credits: ttsCredits, durationMinutes: ttsDuration },
+                    tts: { model: ttsModel, credits: ttsCredits, durationMinutes: ttsDuration, detectedLang },
                 },
             },
         });
