@@ -1,42 +1,57 @@
+/**
+ * AI Controller (Multi-Provider, Tiered Billing)
+ *
+ * Chat billing is handled entirely inside aiOrchestrator.service.js.
+ * Voice billing uses per-minute calcVoiceCost from aiToken.service.js.
+ */
+
 import prisma from "../../config/db.js";
 import asyncHandler from "../../utils/asyncHandler.js";
 import fs from "fs";
 import ApiError from "../../utils/ApiError.js";
-import { processAiRequest } from "../services/aiOrchestrator.service.js";
-import { transcribeAudio } from "../voice/stt.service.js";
-import { speakText } from "../voice/tts.service.js";
-import { checkCreditBalance, deductCredits } from "../services/aiToken.service.js";
-import { AI_COSTS } from "../../config/plans.config.js";
+import { processAiRequest, processAiRequestStream } from "../services/aiOrchestrator.service.js";
+import { transcribeAudio, getSTTModelName } from "../voice/stt.service.js";
+import { speakText, getAudioMimeType, getTTSModelName } from "../voice/tts.service.js";
+import {
+    checkCreditBalance,
+    deductCredits,
+    calcVoiceCost,
+    estimateMaxChatCost, // ✅ calcChatCost removed — chat billing is inside orchestrator (was unused here)
+} from "../services/aiToken.service.js";
 
-// Helper to format messages
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
 const formatMessage = (msg) => ({
     id: msg.id,
     role: msg.role === "USER" ? "user" : "assistant",
     content: msg.content,
-    createdAt: msg.createdAt
+    createdAt: msg.createdAt,
 });
 
-/**
- * POST /api/ai/conversations
- */
+const getUserProvider = (user) => {
+    const p = user?.aiProvider;
+    return p === "sarvam" || p === "openai" ? p : "openai";
+};
+
+// ─────────────────────────────────────────────────────────────
+// CONVERSATION CRUD
+// ─────────────────────────────────────────────────────────────
+
 export const createConversation = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { message } = req.body;
 
-    // Create Conversation
-    const conversation = await prisma.aiConversation.create({
-        data: { userId }
-    });
-
+    const conversation = await prisma.aiConversation.create({ data: { userId } });
     let aiMessage = null;
 
-    // If initial message provided, process it
     if (message) {
         aiMessage = await processAiRequest({
             userId,
             conversationId: conversation.id,
             message,
-            mode: "TEXT"
+            mode: "TEXT",
         });
     }
 
@@ -44,171 +59,116 @@ export const createConversation = asyncHandler(async (req, res) => {
         success: true,
         data: {
             conversation,
-            message: aiMessage ? formatMessage(aiMessage) : null
-        }
+            message: aiMessage ? formatMessage(aiMessage) : null,
+        },
     });
 });
 
-/**
- * GET /api/ai/conversations
- */
 export const getConversations = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-
     const conversations = await prisma.aiConversation.findMany({
         where: { userId },
-        orderBy: { updatedAt: 'desc' },
-        take: 50
+        orderBy: { updatedAt: "desc" },
+        take: 50,
     });
-
-    res.status(200).json({
-        success: true,
-        data: conversations
-    });
+    res.status(200).json({ success: true, data: conversations });
 });
 
-/**
- * GET /api/ai/conversations/:id
- */
 export const getConversation = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-
-    const conversation = await prisma.aiConversation.findUnique({
-        where: { id, userId }
-    });
-
+    const conversation = await prisma.aiConversation.findUnique({ where: { id, userId } });
     if (!conversation) throw new ApiError(404, "Conversation not found");
-
-    res.status(200).json({
-        success: true,
-        data: conversation
-    });
+    res.status(200).json({ success: true, data: conversation });
 });
 
-/**
- * PUT /api/ai/conversations/:id
- */
 export const updateConversation = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
     const { title } = req.body;
-
     const conversation = await prisma.aiConversation.update({
         where: { id, userId },
-        data: { title }
+        data: { title },
     });
-
-    res.status(200).json({
-        success: true,
-        data: conversation
-    });
+    res.status(200).json({ success: true, data: conversation });
 });
 
-/**
- * DELETE /api/ai/conversations/:id
- */
 export const deleteConversation = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-
-    await prisma.aiConversation.delete({
-        where: { id, userId }
-    });
-
-    res.status(200).json({
-        success: true,
-        message: "Conversation deleted"
-    });
+    await prisma.aiConversation.delete({ where: { id, userId } });
+    res.status(200).json({ success: true, message: "Conversation deleted" });
 });
 
-/**
- * GET /api/ai/conversations/:id/messages
- */
 export const getMessages = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-
-    // Verify ownership
-    const conversation = await prisma.aiConversation.findUnique({
-        where: { id, userId }
-    });
+    const conversation = await prisma.aiConversation.findUnique({ where: { id, userId } });
     if (!conversation) throw new ApiError(404, "Conversation not found");
-
     const messages = await prisma.aiMessage.findMany({
         where: { conversationId: id },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: "asc" },
     });
-
-    res.status(200).json({
-        success: true,
-        data: messages.map(formatMessage)
-    });
+    res.status(200).json({ success: true, data: messages.map(formatMessage) });
 });
 
-/**
- * POST /api/ai/conversations/:id/message
- */
+// ─────────────────────────────────────────────────────────────
+// TEXT MESSAGE
+// ─────────────────────────────────────────────────────────────
+
 export const sendMessage = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-    const { message, stream } = req.body; // Can accept stream flag in body too
+    const { message, stream } = req.body;
 
     if (!message) throw new ApiError(400, "Message is required");
 
-    // STREAMING HANDLER
-    if (stream || req.query.stream === 'true') {
+    if (stream || req.query.stream === "true") {
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
-        res.setHeader("X-Accel-Buffering", "no"); // For Nginx if used
+        res.setHeader("X-Accel-Buffering", "no");
 
         try {
-            // Import dynamically to avoid circular deps with service if needed, 
-            // but standard import is fine if handled correctly.
-            const { processAiRequestStream } = await import("../services/aiOrchestrator.service.js");
-
             for await (const chunk of processAiRequestStream({
                 userId,
                 conversationId: id,
                 message,
-                mode: "TEXT"
+                mode: "TEXT",
             })) {
-                // SSE format: data: <chunk>\n\n
-                // But efficient streaming often just sends raw text chunks if client reads stream directly.
-                // Standard SSE needs 'data: '. 
-                // Let's use simple chunked transfer (raw text) which is easier for fetch() + getReader().
-                // Just write the chunk.
                 res.write(chunk);
             }
             res.end();
         } catch (error) {
-            console.error("Streaming Error Controller:", error);
-            // If headers sent, we can't send JSON error. 
-            // Send a specific error chunk?
+            console.error("Streaming Error:", error);
             res.write(`\n[ERROR: ${error.message}]`);
             res.end();
         }
         return;
     }
 
-    // STANDARD HANDLER
     const aiMessage = await processAiRequest({
         userId,
         conversationId: id,
         message,
-        mode: "TEXT"
+        mode: "TEXT",
     });
 
-    res.status(200).json({
-        success: true,
-        data: formatMessage(aiMessage)
-    });
+    res.status(200).json({ success: true, data: formatMessage(aiMessage) });
 });
+
+// ─────────────────────────────────────────────────────────────
+// VOICE — Full Voice-to-Voice
+// ─────────────────────────────────────────────────────────────
 
 /**
  * POST /api/ai/conversations/:id/voice
- * Handles Voice-to-Voice (Gemini Live style)
+ * Audio → STT → LLM → TTS → Audio
+ *
+ * Billing:
+ *   STT: calcVoiceCost(sttModel, actualAudioDuration)
+ *   LLM: handled inside processAiRequest (token-based, auto)
+ *   TTS: calcVoiceCost(ttsModel, estimatedSpeakingDuration)
  */
 export const processVoiceMessage = asyncHandler(async (req, res) => {
     const userId = req.user.id;
@@ -216,60 +176,77 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
 
     if (!req.file) throw new ApiError(400, "Audio file is required");
 
-    // 0. Billing Check (STT + LLM + TTS)
-    const totalCost = AI_COSTS.VOICE["whisper-1"] + AI_COSTS.CHAT["gpt-4o-mini"] + AI_COSTS.VOICE["tts-1"];
-    await checkCreditBalance(userId, totalCost);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const provider = getUserProvider(user);
+    const sttModel = getSTTModelName(provider);
+    const ttsModel = getTTSModelName(provider);
+
+    // Conservative pre-check: assume 1 min STT + max LLM + 1 min TTS
+    const sttMax = calcVoiceCost(sttModel, 1);
+    const llmMax = estimateMaxChatCost(provider === "sarvam" ? "sarvam-m" : "gpt-4o-mini");
+    const ttsMax = calcVoiceCost(ttsModel, 1);
+    await checkCreditBalance(userId, sttMax + llmMax + ttsMax);
 
     try {
-        // 1. STT: Transcribe
-        const userText = await transcribeAudio(req.file.path);
+        // 1. STT
+        const { text: userText, durationMinutes: sttDuration } = await transcribeAudio(
+            req.file.path,
+            provider,
+            { languageCode: user.aiSarvamLang || "unknown" }
+        );
 
-        // Deduct STT Credits
+        const sttCredits = calcVoiceCost(sttModel, sttDuration);
         await deductCredits({
             userId,
             conversationId: id,
-            credits: AI_COSTS.VOICE["whisper-1"],
-            source: "AI_USAGE",
-            model: "whisper-1",
-            type: "VOICE"
+            credits: sttCredits,
+            model: sttModel,
+            type: "VOICE",
+            provider,
+            meta: { durationMinutes: sttDuration },
         });
 
-        // Cleanup input file immediately
         fs.unlinkSync(req.file.path);
 
-        if (!userText || !userText.trim()) {
-            throw new ApiError(400, "Could not understand audio");
-        }
+        if (!userText?.trim()) throw new ApiError(400, "Could not understand audio");
 
-        // 2. AI: Process (LLM credits deducted internally)
+        // 2. LLM (billing inside orchestrator)
         const aiMessage = await processAiRequest({
             userId,
             conversationId: id,
             message: userText,
-            mode: "VOICE"
+            mode: "VOICE",
         });
 
-        // 3. TTS: Synthesize
-        const audioPath = await speakText({
-            text: aiMessage.content
+        // 3. TTS
+        // ✅ FIX: was import("./voice.emotion.js") — controller is in controllers/, file is in voice/
+        const { inferVoiceEmotion } = await import("../voice/voice.emotion.js");
+        const emotion = inferVoiceEmotion({ summary: aiMessage.content });
+
+        const { audioPath, durationMinutes: ttsDuration } = await speakText({
+            text: aiMessage.content,
+            emotion,
+            provider,
+            languageCode: user.aiSarvamLang || "en-IN",
+            speaker: user.aiSarvamSpeaker || "meera",
         });
 
-        // Deduct TTS Credits
+        const ttsCredits = calcVoiceCost(ttsModel, ttsDuration);
         await deductCredits({
             userId,
             conversationId: id,
-            credits: AI_COSTS.VOICE["tts-1"],
-            source: "AI_USAGE",
-            model: "tts-1",
-            type: "VOICE"
+            credits: ttsCredits,
+            model: ttsModel,
+            type: "VOICE",
+            provider,
+            meta: { durationMinutes: ttsDuration },
         });
 
-        // 4. Return Audio (Base64)
+        // 4. Respond
         const audioBuffer = fs.readFileSync(audioPath);
-        const audioBase64 = audioBuffer.toString('base64');
-        const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
-
-        // Cleanup output file
+        const audioBase64 = audioBuffer.toString("base64");
+        const mimeType = getAudioMimeType(provider);
+        const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
         fs.unlinkSync(audioPath);
 
         res.status(200).json({
@@ -277,47 +254,55 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
             data: {
                 userText,
                 reply: aiMessage.content,
-                audioUrl: audioDataUrl
-            }
+                audioUrl: audioDataUrl,
+                provider,
+                billing: {
+                    stt: { model: sttModel, credits: sttCredits, durationMinutes: sttDuration },
+                    tts: { model: ttsModel, credits: ttsCredits, durationMinutes: ttsDuration },
+                },
+            },
         });
-
     } catch (error) {
-        // Cleanup if error occurred and file still exists
         if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         throw error;
     }
 });
 
-/**
- * POST /api/ai/voice/transcribe
- * Only converts Audio -> Text
- */
+// ─────────────────────────────────────────────────────────────
+// VOICE — STT Only
+// ─────────────────────────────────────────────────────────────
+
 export const transcribeVoice = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     if (!req.file) throw new ApiError(400, "Audio file is required");
 
-    const cost = AI_COSTS.VOICE["whisper-1"];
-    await checkCreditBalance(userId, cost);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const provider = getUserProvider(user);
+    const sttModel = getSTTModelName(provider);
+
+    await checkCreditBalance(userId, calcVoiceCost(sttModel, 1));
 
     try {
-        const text = await transcribeAudio(req.file.path);
+        const { text, durationMinutes } = await transcribeAudio(req.file.path, provider, {
+            languageCode: user.aiSarvamLang || "unknown",
+        });
 
-        // Deduct Credits
+        const credits = calcVoiceCost(sttModel, durationMinutes);
         await deductCredits({
             userId,
             conversationId: null,
-            credits: cost,
-            source: "AI_USAGE",
-            model: "whisper-1",
-            type: "VOICE"
+            credits,
+            model: sttModel,
+            type: "VOICE",
+            provider,
+            meta: { durationMinutes },
         });
 
-        // Cleanup
         fs.unlinkSync(req.file.path);
 
         res.status(200).json({
             success: true,
-            data: { text }
+            data: { text, provider, model: sttModel, billing: { credits, durationMinutes } },
         });
     } catch (error) {
         if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
@@ -325,40 +310,47 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
     }
 });
 
-/**
- * POST /api/ai/voice/tts
- * Only converts Text -> Audio
- */
+// ─────────────────────────────────────────────────────────────
+// VOICE — TTS Only
+// ─────────────────────────────────────────────────────────────
+
 export const synthesizeVoice = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const { text } = req.body;
+    const { text, languageCode, speaker } = req.body;
     if (!text) throw new ApiError(400, "Text is required");
 
-    const cost = AI_COSTS.VOICE["tts-1"];
-    await checkCreditBalance(userId, cost);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const provider = getUserProvider(user);
+    const ttsModel = getTTSModelName(provider);
 
-    const audioPath = await speakText({ text });
+    await checkCreditBalance(userId, calcVoiceCost(ttsModel, 1));
 
-    // Deduct Credits
+    const { audioPath, durationMinutes } = await speakText({
+        text,
+        provider,
+        languageCode: languageCode || user.aiSarvamLang || "en-IN",
+        speaker: speaker || user.aiSarvamSpeaker || "meera",
+    });
+
+    const credits = calcVoiceCost(ttsModel, durationMinutes);
     await deductCredits({
         userId,
         conversationId: null,
-        credits: cost,
-        source: "AI_USAGE",
-        model: "tts-1",
-        type: "VOICE"
+        credits,
+        model: ttsModel,
+        type: "VOICE",
+        provider,
+        meta: { durationMinutes },
     });
 
-    // Return as Base64 for easy frontend playback
     const audioBuffer = fs.readFileSync(audioPath);
-    const audioBase64 = audioBuffer.toString('base64');
-    const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
-
-    // Cleanup
+    const audioBase64 = audioBuffer.toString("base64");
+    const mimeType = getAudioMimeType(provider);
+    const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
     fs.unlinkSync(audioPath);
 
     res.status(200).json({
         success: true,
-        data: { audioUrl: audioDataUrl }
+        data: { audioUrl: audioDataUrl, provider, model: ttsModel, billing: { credits, durationMinutes } },
     });
 });

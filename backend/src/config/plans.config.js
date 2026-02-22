@@ -3,30 +3,80 @@ import { PlanType } from "@prisma/client";
 // ==========================================
 // 1. AI USAGE COSTS (In Credits)
 // ==========================================
+/**
+ * Plans & AI Cost Configuration
+ *
+ * AI_COSTS defines the credit billing rules for every model.
+ *
+ * CHAT models:
+ *   base           – flat credits charged per request (covers overhead)
+ *   per_1000_tokens – credits per 1,000 tokens (prompt + completion)
+ *   max_per_call    – hard cap per single request (protects against runaway prompts)
+ *
+ * VOICE models:
+ *   per_minute  – credits per minute of audio processed / generated
+ *   rounding    – "ceil" (always round up to next full minute)
+ *
+ * TOOL usage:
+ *   per_request         – cost for a standard Tavily search
+ *   advanced_multiplier – unused for now; reserved for deep-research tier
+ *
+ * All values are in your internal "credits" unit.
+ * Adjust to match your business pricing strategy.
+ */
+
 export const AI_COSTS = {
     CHAT: {
-        base: 1,              // 1 credit per API call minimum
-        per_1000_tokens: 2,   // 1 credit per 1k tokens
-        max_per_call: 200      // safety cap: e.g., don't charge more than 50 credits per call without human review
-    },
-    VOICE: {
-        "whisper-1": {
-            per_minute: 10,      // 1 credit per minute transcribed
-            rounding: "ceil"    // round up partial minutes
+        // ── OpenAI ────────────────────────────────────────────
+        "gpt-4o-mini": {
+            base: 1,              // flat per request
+            per_1000_tokens: 2,   // per 1k tokens (prompt + completion)
+            max_per_call: 200     // safety cap
         },
+        "gpt-4o": {
+            base: 2,
+            per_1000_tokens: 8,
+            max_per_call: 500
+        },
+
+        // ── Sarvam ────────────────────────────────────────────
+        "sarvam-m": {
+            base: 1,
+            per_1000_tokens: 2,   // Same rate for now — tune after real usage data
+            max_per_call: 200
+        }
+    },
+
+    VOICE: {
+        // ── OpenAI STT ────────────────────────────────────────
+        "whisper-1": {
+            per_minute: 10,
+            rounding: "ceil"
+        },
+        // ── OpenAI TTS ────────────────────────────────────────
         "tts-1": {
-            per_minute: 20,      // 2 credits per minute generated
+            per_minute: 20,
+            rounding: "ceil"
+        },
+        // ── Sarvam STT ────────────────────────────────────────
+        "saaras:v3": {
+            per_minute: 8,        // ~20% cheaper than Whisper — good selling point for India
+            rounding: "ceil"
+        },
+        // ── Sarvam TTS ────────────────────────────────────────
+        "bulbul:v3": {
+            per_minute: 15,       // ~25% cheaper than OpenAI TTS
             rounding: "ceil"
         }
     },
+
     TOOL: {
         "tavily": {
-            per_request: 10,     // 1 credit per basic search
-            advanced_multiplier: 20  // if advanced search used, charge 2 credits
+            per_request: 10,
+            advanced_multiplier: 20   // reserved for future "deep research" mode
         }
     }
 };
-
 
 // ==========================================
 // 1.5. TOP-UP PACKS

@@ -121,6 +121,20 @@ model User {
 
   aiCreditBalance Int @default(0)
 
+  // ✅ NEW — AI Provider Preferences
+  // Controls which AI backend handles this user's requests.
+  // "openai"  → full agentic graph (tools, web search, scheduling)
+  // "sarvam"  → Indian language conversational model (no tool calling)
+  aiProvider String @default("sarvam")
+
+  // BCP-47 language code for Sarvam STT/TTS (e.g. "hi-IN", "mr-IN", "en-IN")
+  // Used as languageCode param in sarvamTranscribe and sarvamSynthesize calls.
+  aiSarvamLang String @default("en-IN")
+
+  // Sarvam TTS voice name (e.g. "meera", "priya", "arjun", "anushka")
+  // Full voice list: https://docs.sarvam.ai/api-reference/text-to-speech
+  aiSarvamSpeaker String @default("meera")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -139,18 +153,17 @@ model User {
   payments             Payment[]
 
   // AI
-  aiMessages   AiMessage[]
-  creditLedger AiCreditLedger[]
+  aiMessages      AiMessage[]
+  creditLedger    AiCreditLedger[]
+  aiConversations AiConversation[]
+  aiUsages        AiUsage[]
+  aiTopUps        AiTopUp[]
 
   // Security
   tokenVersion Int @default(1)
 
   passwordResetToken   String?   @unique
   passwordResetExpires DateTime?
-
-  aiConversations AiConversation[]
-  aiUsages        AiUsage[]
-  aiTopUps        AiTopUp[]
 
   @@index([email])
   @@index([status])
