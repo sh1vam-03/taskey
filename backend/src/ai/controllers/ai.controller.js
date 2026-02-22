@@ -3,6 +3,10 @@
  *
  * Chat billing is handled entirely inside aiOrchestrator.service.js.
  * Voice billing uses per-minute calcVoiceCost from aiToken.service.js.
+ *
+ * Provider selection:
+ *   GET  /api/ai/settings        → read current provider + language prefs
+ *   PATCH /api/ai/settings       → switch provider / language / speaker
  */
 
 import prisma from "../../config/db.js";
@@ -16,7 +20,7 @@ import {
     checkCreditBalance,
     deductCredits,
     calcVoiceCost,
-    estimateMaxChatCost, // ✅ calcChatCost removed — chat billing is inside orchestrator (was unused here)
+    estimateMaxChatCost,
 } from "../services/aiToken.service.js";
 
 // ─────────────────────────────────────────────────────────────
@@ -34,6 +38,153 @@ const getUserProvider = (user) => {
     const p = user?.aiProvider;
     return p === "sarvam" || p === "openai" ? p : "openai";
 };
+
+// Valid Sarvam speaker voices
+const VALID_SARVAM_SPEAKERS = [
+    "meera", "priya", "arjun", "anushka", "maya", "kiran", "kavya",
+];
+
+// Valid BCP-47 language codes supported by Sarvam
+const VALID_SARVAM_LANGS = [
+    "en-IN", "hi-IN", "mr-IN", "ta-IN", "te-IN", "kn-IN",
+    "ml-IN", "gu-IN", "bn-IN", "pa-IN", "unknown",
+];
+
+// ─────────────────────────────────────────────────────────────
+// AI SETTINGS — Read & Update provider preferences
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/ai/settings
+ * Returns the user's current AI provider preferences.
+ * Frontend uses this to show the active model + language picker.
+ */
+export const getAiSettings = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            aiProvider: true,
+            aiSarvamLang: true,
+            aiSarvamSpeaker: true,
+            aiCreditBalance: true,
+            plan: true,
+        },
+    });
+
+    if (!user) throw new ApiError(404, "User not found");
+
+    res.status(200).json({
+        success: true,
+        data: {
+            provider: user.aiProvider,           // "openai" | "sarvam"
+            sarvamLang: user.aiSarvamLang,        // BCP-47 code e.g. "hi-IN"
+            sarvamSpeaker: user.aiSarvamSpeaker,  // voice name e.g. "meera"
+            creditBalance: user.aiCreditBalance,
+            plan: user.plan,
+            // Tell the frontend which providers are available
+            availableProviders: [
+                {
+                    id: "openai",
+                    name: "OpenAI (GPT-4o mini)",
+                    description: "Full agentic mode — tasks, schedules, web search, tool calling",
+                    supportsTools: true,
+                    supportsVoice: true,
+                },
+                {
+                    id: "sarvam",
+                    name: "Sarvam AI (sarvam-m)",
+                    description: "Optimised for Indian languages — Hindi, Marathi, Tamil and more",
+                    supportsTools: false,
+                    supportsVoice: true,
+                },
+            ],
+            availableSarvamLangs: [
+                { code: "en-IN", label: "English (India)" },
+                { code: "hi-IN", label: "Hindi" },
+                { code: "mr-IN", label: "Marathi" },
+                { code: "ta-IN", label: "Tamil" },
+                { code: "te-IN", label: "Telugu" },
+                { code: "kn-IN", label: "Kannada" },
+                { code: "ml-IN", label: "Malayalam" },
+                { code: "gu-IN", label: "Gujarati" },
+                { code: "bn-IN", label: "Bengali" },
+                { code: "pa-IN", label: "Punjabi" },
+            ],
+            availableSarvamSpeakers: [
+                { id: "meera", label: "Meera (F)" },
+                { id: "priya", label: "Priya (F)" },
+                { id: "anushka", label: "Anushka (F)" },
+                { id: "arjun", label: "Arjun (M)" },
+                { id: "kiran", label: "Kiran (M)" },
+                { id: "maya", label: "Maya (F)" },
+                { id: "kavya", label: "Kavya (F)" },
+            ],
+        },
+    });
+});
+
+/**
+ * PATCH /api/ai/settings
+ * Updates the user's AI provider preferences.
+ *
+ * Body (all fields optional — send only what's changing):
+ *   provider     : "openai" | "sarvam"
+ *   sarvamLang   : BCP-47 e.g. "hi-IN"
+ *   sarvamSpeaker: voice name e.g. "meera"
+ */
+export const updateAiSettings = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { provider, sarvamLang, sarvamSpeaker } = req.body;
+
+    const updates = {};
+
+    if (provider !== undefined) {
+        if (!["openai", "sarvam"].includes(provider)) {
+            throw new ApiError(400, `Invalid provider "${provider}". Must be "openai" or "sarvam".`);
+        }
+        updates.aiProvider = provider;
+    }
+
+    if (sarvamLang !== undefined) {
+        if (!VALID_SARVAM_LANGS.includes(sarvamLang)) {
+            throw new ApiError(400, `Invalid language code "${sarvamLang}". Supported: ${VALID_SARVAM_LANGS.join(", ")}`);
+        }
+        updates.aiSarvamLang = sarvamLang;
+    }
+
+    if (sarvamSpeaker !== undefined) {
+        if (!VALID_SARVAM_SPEAKERS.includes(sarvamSpeaker)) {
+            throw new ApiError(400, `Invalid speaker "${sarvamSpeaker}". Supported: ${VALID_SARVAM_SPEAKERS.join(", ")}`);
+        }
+        updates.aiSarvamSpeaker = sarvamSpeaker;
+    }
+
+    if (Object.keys(updates).length === 0) {
+        throw new ApiError(400, "No valid fields provided. Send at least one of: provider, sarvamLang, sarvamSpeaker");
+    }
+
+    const user = await prisma.user.update({
+        where: { id: userId },
+        data: updates,
+        select: {
+            aiProvider: true,
+            aiSarvamLang: true,
+            aiSarvamSpeaker: true,
+        },
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "AI settings updated successfully",
+        data: {
+            provider: user.aiProvider,
+            sarvamLang: user.aiSarvamLang,
+            sarvamSpeaker: user.aiSarvamSpeaker,
+        },
+    });
+});
 
 // ─────────────────────────────────────────────────────────────
 // CONVERSATION CRUD
@@ -219,7 +370,6 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         });
 
         // 3. TTS
-        // ✅ FIX: was import("./voice.emotion.js") — controller is in controllers/, file is in voice/
         const { inferVoiceEmotion } = await import("../voice/voice.emotion.js");
         const emotion = inferVoiceEmotion({ summary: aiMessage.content });
 

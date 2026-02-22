@@ -11,15 +11,24 @@ import {
     processVoiceMessage,
     transcribeVoice,
     synthesizeVoice,
+    getAiSettings,
+    updateAiSettings,
 } from "../controllers/ai.controller.js";
 import { upload } from "../../middlewares/upload.middleware.js";
 
 const router = Router();
 
+// ── AI Provider Settings ──────────────────────────────────────
+// User reads / switches AI provider, language, and voice
+// GET  /api/ai/settings  → { provider, sarvamLang, sarvamSpeaker, availableProviders, ... }
+// PATCH /api/ai/settings → body: { provider?, sarvamLang?, sarvamSpeaker? }
+router.get("/settings", authMiddleware, getAiSettings);
+router.patch("/settings", authMiddleware, updateAiSettings);
+
 // ── Conversations ─────────────────────────────────────────────
 router.post("/conversations", authMiddleware, createConversation);
 router.get("/conversations", authMiddleware, getConversations);
-router.get("/conversations/:id", authMiddleware, getConversation);   // ✅ FIX: was duplicated twice
+router.get("/conversations/:id", authMiddleware, getConversation);
 router.put("/conversations/:id", authMiddleware, updateConversation);
 router.delete("/conversations/:id", authMiddleware, deleteConversation);
 
@@ -28,8 +37,6 @@ router.get("/conversations/:id/messages", authMiddleware, getMessages);
 router.post("/conversations/:id/message", authMiddleware, sendMessage);
 
 // ── Voice: Full pipeline ──────────────────────────────────────
-// Single authoritative handler for voice messages.
-// voice.routes.js no longer duplicates this route.
 router.post(
     "/conversations/:id/voice",
     authMiddleware,
