@@ -149,10 +149,17 @@ const handlePaymentCaptured = async (payload) => {
             return;
         }
 
-        // 1. Record Payment
+        // 1. Find existing Payment record
         const payment = await prisma.payment.findFirst({
             where: { razorpayOrderId: paymentEntity.order_id }
         });
+
+        // Guard: If payment already marked PAID, credits were already granted
+        // by the frontend verify flow — skip to prevent double-crediting
+        if (payment?.status === "PAID") {
+            console.log(`Top-Up payment ${paymentEntity.order_id} already processed, skipping webhook credit grant.`);
+            return;
+        }
 
         if (payment) {
             await prisma.payment.update({
@@ -163,7 +170,7 @@ const handlePaymentCaptured = async (payload) => {
                 }
             });
         } else {
-            // Should verify why payment record missing, but create anyway
+            // Payment record missing (edge case) — create it
             await prisma.payment.create({
                 data: {
                     userId,
@@ -178,7 +185,7 @@ const handlePaymentCaptured = async (payload) => {
             });
         }
 
-        // 2. Grant Credits
+        // 2. Grant Credits (only reaches here if not already PAID)
         await prisma.$transaction([
             prisma.user.update({
                 where: { id: userId },
@@ -195,7 +202,7 @@ const handlePaymentCaptured = async (payload) => {
             })
         ]);
 
-        console.log(`Granted ${credits} credits to ${userId} via Top-Up`);
+        console.log(`Granted ${credits} credits to ${userId} via Top-Up webhook`);
     } else {
         // Handle other payments (e.g. one-off invoice not top-up?)
     }
