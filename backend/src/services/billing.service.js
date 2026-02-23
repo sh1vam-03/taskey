@@ -238,22 +238,15 @@ export const verifyTopUpPayment = async (userId, paymentId, orderId, signature) 
         }
     });
 
-    // 4. Add Credits to User
-    // Determine credits from amount (reverse lookup from TOP_UP_PLANS)
-    // Or store credits in metadata? Schema might not have metadata.
-    // Let's find the pack by price.
+    // 4. Add Top-Up Credits (permanent, never expire)
     const pack = Object.values(TOP_UP_PLANS).find(p => Math.abs(p.price * 100 - payment.amount) < 1);
-
-    // Fallback or Error if pack not found? 
-    // If pack not found, maybe just log? But we must give credits!
-    // Let's assume strict price matching.
     const creditsToAdd = pack ? pack.credits : 0;
 
     if (creditsToAdd > 0) {
         await prisma.user.update({
             where: { id: userId },
             data: {
-                aiCreditBalance: { increment: creditsToAdd },
+                topupCredits: { increment: creditsToAdd },
                 creditLedger: {
                     create: {
                         credits: creditsToAdd,
@@ -266,9 +259,14 @@ export const verifyTopUpPayment = async (userId, paymentId, orderId, signature) 
         });
     }
 
+    const updatedUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { subscriptionCredits: true, topupCredits: true }
+    });
+
     return {
         success: true,
         creditsAdded: creditsToAdd,
-        newBalance: (await prisma.user.findUnique({ where: { id: userId } })).aiCreditBalance
+        newBalance: updatedUser.subscriptionCredits + updatedUser.topupCredits
     };
 };

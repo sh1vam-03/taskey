@@ -148,7 +148,8 @@ export const estimateChatTokens = (messages = [], responseText = "") => {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Throws HTTP 402 if user's AI credit balance is below the required minimum.
+ * Throws HTTP 402 if user's combined AI credit balance is below the required minimum.
+ * Combined balance = subscriptionCredits + topupCredits
  *
  * @param {string} userId
  * @param {number} minCredits - Minimum credits required (default: 5)
@@ -156,12 +157,14 @@ export const estimateChatTokens = (messages = [], responseText = "") => {
 export const checkCreditBalance = async (userId, minCredits = 5) => {
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { aiCreditBalance: true }
+        select: { subscriptionCredits: true, topupCredits: true }
     });
 
     if (!user) throw new ApiError(404, "User not found");
 
-    if (user.aiCreditBalance < minCredits) {
+    const totalBalance = user.subscriptionCredits + user.topupCredits;
+
+    if (totalBalance < minCredits) {
         throw new ApiError(
             402,
             "Insufficient AI credits. Please upgrade your plan or top-up your balance."
@@ -170,15 +173,19 @@ export const checkCreditBalance = async (userId, minCredits = 5) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// CREDIT DEDUCTION (atomic, full audit trail)
+// CREDIT DEDUCTION (atomic, full audit trail, priority order)
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Atomically deducts credits and writes the full audit trail:
- *   - User.aiCreditBalance    (decremented)
- *   - AiUsage log             (model, type, credits)
- *   - AiCreditLedger entry    (immutable financial record)
- *   - AiConversation total    (aggregate, if conversationId provided)
+ * Atomically deducts credits with PRIORITY ORDER:
+ *   1. subscriptionCredits first  (they expire)
+ *   2. topupCredits second        (they never expire)
+ *
+ * Also writes the full audit trail:
+ *   - User balances               (decremented with priority)
+ *   - AiUsage log                 (model, type, credits)
+ *   - AiCreditLedger entry        (immutable financial record)
+ *   - AiConversation total        (aggregate, if conversationId provided)
  *
  * @param {Object} params
  * @param {string}      params.userId
@@ -203,13 +210,42 @@ export const deductCredits = async ({
     const amount = Math.max(1, Math.ceil(credits));
 
     return prisma.$transaction(async (tx) => {
-        // 1. Decrement user balance
-        await tx.user.update({
+        // 1. Fetch current balances
+        const user = await tx.user.findUnique({
             where: { id: userId },
-            data: { aiCreditBalance: { decrement: amount } }
+            select: { subscriptionCredits: true, topupCredits: true }
         });
 
-        // 2. Granular usage log
+        if (!user) throw new ApiError(404, "User not found");
+
+        // 2. Priority deduction: subscription first, then topup
+        let fromSubscription = 0;
+        let fromTopup = 0;
+
+        if (user.subscriptionCredits >= amount) {
+            // Subscription covers the full cost
+            fromSubscription = amount;
+        } else {
+            // Subscription covers partial, topup covers the rest
+            fromSubscription = user.subscriptionCredits;
+            fromTopup = amount - fromSubscription;
+        }
+
+        // 3. Apply deductions
+        const updateData = {};
+        if (fromSubscription > 0) {
+            updateData.subscriptionCredits = { decrement: fromSubscription };
+        }
+        if (fromTopup > 0) {
+            updateData.topupCredits = { decrement: fromTopup };
+        }
+
+        await tx.user.update({
+            where: { id: userId },
+            data: updateData
+        });
+
+        // 4. Granular usage log
         await tx.aiUsage.create({
             data: {
                 userId,
@@ -220,17 +256,18 @@ export const deductCredits = async ({
             }
         });
 
-        // 3. Financial ledger (immutable)
+        // 5. Financial ledger (immutable)
         await tx.aiCreditLedger.create({
             data: {
                 userId,
                 credits: -amount,
                 source,
-                conversationId
+                conversationId,
+                reason: `Deducted: ${fromSubscription} subscription + ${fromTopup} topup`
             }
         });
 
-        // 4. Conversation aggregate
+        // 6. Conversation aggregate
         if (conversationId) {
             await tx.aiConversation.update({
                 where: { id: conversationId },

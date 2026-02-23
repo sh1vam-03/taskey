@@ -119,7 +119,9 @@ model User {
   plan   PlanType      @default(FREE)
   status AccountStatus @default(ACTIVE)
 
-  aiCreditBalance Int @default(0)
+  subscriptionCredits          Int       @default(0)
+  topupCredits                 Int       @default(0)
+  subscriptionCreditsExpiresAt DateTime?
 
   aiChatModel  String @default("gemini-2.0-flash")
   aiVoiceModel String @default("gemini-2.0-flash")
@@ -229,8 +231,9 @@ model Subscription {
   nextBillingAt DateTime
   lastBilledAt  DateTime?
 
-  isActive            Boolean   @default(true)
-  lastCreditGrantedAt DateTime?
+  isActive                Boolean   @default(true)
+  lastCreditGrantedAt     DateTime?
+  lastCreditDistributedAt DateTime? // tracks monthly drip for yearly plans
 
   razorpaySubscriptionId String? @unique
 

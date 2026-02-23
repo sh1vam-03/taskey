@@ -137,7 +137,8 @@ export const getAiSettings = asyncHandler(async (req, res) => {
             aiSttModel: true,
             aiSarvamLang: true,
             aiSarvamSpeaker: true,
-            aiCreditBalance: true,
+            subscriptionCredits: true,
+            topupCredits: true,
             plan: true
         }
     });
@@ -160,7 +161,9 @@ export const getAiSettings = asyncHandler(async (req, res) => {
             sttModel: user.aiSttModel || "saaras:v3",
             sttLang: user.aiSarvamLang || "unknown",
             speaker: user.aiSarvamSpeaker || "shubh",
-            creditBalance: user.aiCreditBalance,
+            creditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0),
+            subscriptionCredits: user.subscriptionCredits || 0,
+            topupCredits: user.topupCredits || 0,
             plan: user.plan,
 
             // ── Model catalogs with pricing ──────────────────────

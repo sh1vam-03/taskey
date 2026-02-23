@@ -1,6 +1,7 @@
 import prisma from "../config/db.js";
 import { PaymentStatus, PlanType } from "@prisma/client";
-import { PLANS } from "../config/plans.config.js"; // New Import
+import { PLANS } from "../config/plans.config.js";
+import { addMonths, addYears } from "date-fns";
 
 export const handleRazorpayEvent = async (event) => {
     switch (event.event) {
@@ -18,10 +19,14 @@ export const handleRazorpayEvent = async (event) => {
             const subscriptionPlan = payment.plan; // stored earlier (e.g. PRO)
             const billingCycle = payment.billingCycle; // MONTHLY or YEARLY
 
-            // Fetch credit amount from new config
-            // WAS: PLANS[subscriptionPlan][billingCycle].credits
-            // NOW: PLANS[subscriptionPlan].credits[billingCycle]
-            const credits = PLANS[subscriptionPlan]?.credits?.[billingCycle] || 0;
+            // Determine credit amount based on billing cycle
+            // Monthly: grant full monthly credits
+            // Yearly: grant only the MONTHLY portion (drip — cron handles subsequent months)
+            const isYearly = billingCycle === "YEARLY";
+            const monthlyCredits = PLANS[subscriptionPlan]?.credits?.MONTHLY || 0;
+            const credits = monthlyCredits; // Always grant monthly portion
+            const now = new Date();
+            const expiresAt = isYearly ? addYears(now, 1) : addMonths(now, 1);
 
             await prisma.$transaction(async (tx) => {
                 await tx.subscription.upsert({
@@ -43,13 +48,20 @@ export const handleRazorpayEvent = async (event) => {
                     },
                 });
 
-                // Grant Credits + Ledger
+                // Grant Credits (first month's allocation)
                 await tx.user.update({
                     where: { id: payment.userId },
                     data: {
                         plan: subscriptionPlan,
-                        aiCreditBalance: { increment: credits },
+                        subscriptionCredits: credits,
+                        subscriptionCreditsExpiresAt: expiresAt,
                     },
+                });
+
+                // Set distribution tracking for yearly drip
+                await tx.subscription.update({
+                    where: { userId: payment.userId },
+                    data: { lastCreditDistributedAt: now }
                 });
 
                 await tx.aiCreditLedger.create({
@@ -85,7 +97,11 @@ export const handleRazorpayEvent = async (event) => {
             if (!subscription) return;
 
             // Fetch credits based on active subscription
-            const credits = PLANS[subscription.plan]?.credits?.[subscription.billingCycle] || 0;
+            // Monthly: full monthly credits. Yearly: monthly portion (cron handles rest)
+            const monthlyCredits = PLANS[subscription.plan]?.credits?.MONTHLY || 0;
+            const isYearly = subscription.billingCycle === "YEARLY";
+            const now = new Date();
+            const expiresAt = isYearly ? addYears(now, 1) : addMonths(now, 1);
 
             await prisma.$transaction(async (tx) => {
                 const payment = await tx.payment.create({
@@ -101,21 +117,28 @@ export const handleRazorpayEvent = async (event) => {
                     },
                 });
 
-                // Grant Credits + Ledger
+                // Grant Credits (RESET for new billing cycle)
                 await tx.user.update({
                     where: { id: subscription.userId },
                     data: {
-                        aiCreditBalance: { increment: credits },
+                        subscriptionCredits: monthlyCredits,
+                        subscriptionCreditsExpiresAt: expiresAt,
                     },
+                });
+
+                // Reset distribution tracking for yearly drip
+                await tx.subscription.update({
+                    where: { id: subscription.id },
+                    data: { lastCreditDistributedAt: now }
                 });
 
                 await tx.aiCreditLedger.create({
                     data: {
                         userId: subscription.userId,
-                        credits: credits,
+                        credits: monthlyCredits,
                         source: "PLAN_CYCLE",
                         paymentId: payment.id,
-                        reason: "Monthly Renewal"
+                        reason: isYearly ? "Yearly Renewal — first month drip" : "Monthly Renewal"
                     }
                 });
             });
@@ -143,9 +166,24 @@ export const handleRazorpayEvent = async (event) => {
                     },
                 });
 
+                // Downgrade plan to FREE
+                // BUT subscription credits remain until subscriptionCreditsExpiresAt
+                // The creditExpiry cron will clear them when they expire
+                // Top-up credits are NEVER touched
                 await tx.user.update({
                     where: { id: subscription.userId },
-                    data: { plan: PlanType.FREE },
+                    data: {
+                        plan: PlanType.FREE,
+                    },
+                });
+
+                await tx.aiCreditLedger.create({
+                    data: {
+                        userId: subscription.userId,
+                        credits: 0,
+                        source: "PLAN_CYCLE",
+                        reason: "Subscription cancelled — credits remain until expiry"
+                    }
                 });
             });
 

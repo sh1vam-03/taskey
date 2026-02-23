@@ -18,12 +18,15 @@ export const checkUsageTool = () => {
                 const user = await prisma.user.findUnique({
                     where: { id: userId },
                     select: {
-                        aiCreditBalance: true, // ✅ FIX: was "aiTokenBalance" — field doesn't exist in schema
+                        subscriptionCredits: true,
+                        topupCredits: true,
                         plan: true,
                     },
                 });
 
                 if (!user) return error("User not found.");
+
+                const totalBalance = (user.subscriptionCredits || 0) + (user.topupCredits || 0);
 
                 // Credit limits by plan (adjust to match your plans.config)
                 const limits = {
@@ -34,10 +37,12 @@ export const checkUsageTool = () => {
                 const limit = limits[user.plan] ?? 500;
 
                 return success({
-                    balance: user.aiCreditBalance, // ✅ FIX: was user.aiTokenBalance
+                    balance: totalBalance,
+                    subscriptionCredits: user.subscriptionCredits || 0,
+                    topupCredits: user.topupCredits || 0,
                     plan: user.plan,
                     limit,
-                    status: user.aiCreditBalance > 0 ? "HEALTHY" : "EXHAUSTED",
+                    status: totalBalance > 0 ? "HEALTHY" : "EXHAUSTED",
                 });
             } catch (e) {
                 return error(`Error checking usage: ${e.message}`);

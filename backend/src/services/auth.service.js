@@ -37,7 +37,8 @@ export const signup = async (name, email, password) => {
             name,
             email,
             password: hashedPassword,
-            aiCreditBalance: PLANS[PlanType.FREE].credits.MONTHLY || 0
+            subscriptionCredits: PLANS[PlanType.FREE].credits.MONTHLY || 0,
+            topupCredits: 0
         },
     });
 
@@ -177,7 +178,7 @@ export const login = async (email, password, userAgent, ipAddress, remember = fa
             plan: user.plan,
             isEmailVerified: user.isEmailVerified,
             createdAt: user.createdAt,
-            aiCreditBalance: user.aiCreditBalance,
+            aiCreditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0),
             timezone: user.timezone,
         },
     };
@@ -447,12 +448,16 @@ export const updateProfile = async (userId, data) => {
             plan: true,
             isEmailVerified: true,
             createdAt: true,
-            aiCreditBalance: true,
+            subscriptionCredits: true,
+            topupCredits: true,
             timezone: true,
         }
     });
 
-    return user;
+    return {
+        ...user,
+        aiCreditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0)
+    };
 };
 
 /* =========================
@@ -575,12 +580,16 @@ export const getMyProfile = async (userId) => {
             plan: true,
             isEmailVerified: true,
             createdAt: true,
-            aiCreditBalance: true,
+            subscriptionCredits: true,
+            topupCredits: true,
             timezone: true,
         },
     });
 
     if (!user) throw new ApiError(404, "User not found");
 
-    return user;
+    return {
+        ...user,
+        aiCreditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0)
+    };
 };
