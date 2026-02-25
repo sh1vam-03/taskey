@@ -16,6 +16,7 @@ export default function ChatWindow() {
         isStreaming,
         streamingContent,
         isProcessingVoice,
+        settings,
     } = useAi();
 
     const messagesEndRef = useRef(null);
@@ -55,6 +56,15 @@ export default function ChatWindow() {
 
     return (
         <div className="flex-1 flex flex-col relative overflow-hidden">
+            {/* Study Mode Banner for Sarvam-M */}
+            {settings?.chatModel === 'sarvam-m' && (
+                <div className="bg-cyan-500/10 border-b border-cyan-500/20 px-4 py-2.5 flex items-center justify-center gap-2 shrink-0">
+                    <span className="text-cyan-400 text-[11px] font-medium tracking-wide">
+                        📚 Study Mode — Sarvam-M is a secure knowledge model. It cannot manage tasks or calendar.
+                    </span>
+                </div>
+            )}
+
             {/* Message List */}
             <div
                 ref={containerRef}
@@ -122,7 +132,7 @@ export default function ChatWindow() {
 }
 
 function EmptyState() {
-    const { sendMessage } = useAi();
+    const { sendMessage, settings } = useAi();
 
     const suggestions = [
         { icon: CalendarIcon, label: "What should I focus on?", sub: "Check my tasks & schedule" },
@@ -156,13 +166,26 @@ function EmptyState() {
                 <span>Context Active: Schedule • Tasks • Habits</span>
             </div>
 
+            {settings?.chatModel === 'sarvam-m' && (
+                <div className="text-center max-w-md w-full mb-6 p-4 rounded-xl border border-white/5 bg-white/2">
+                    <h3 className="text-sm font-semibold text-white mb-2 flex items-center justify-center gap-2">
+                        <BrainCircuit className="w-4 h-4 text-cyan-400" />
+                        Study Mode Active
+                    </h3>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                        You are using Sarvam-M, which is excellent for research and learning.
+                        Note: This model does not have access to manage your tasks or schedule.
+                    </p>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
                 {suggestions.map((item, i) => (
                     <button
                         key={i}
                         onClick={() => sendMessage(item.label)}
-                        className="text-left p-4 rounded-xl border border-white/[0.06] hover:bg-white/[0.04] transition-all duration-200
-                            text-sm group bg-white/[0.02] hover:border-cyan-500/20"
+                        className="text-left p-4 rounded-xl border border-white/6 hover:bg-white/4 transition-all duration-200
+                            text-sm group bg-white/2 hover:border-cyan-500/20"
                     >
                         <div className="font-medium text-gray-200 mb-1 group-hover:text-cyan-400 transition-colors flex items-center gap-2">
                             <item.icon className="w-4 h-4" />

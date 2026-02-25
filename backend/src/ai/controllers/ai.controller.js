@@ -2,7 +2,7 @@
  * AI Controller (Multi-Model, Decoupled, Tiered Billing)
  *
  * Users independently choose FOUR things:
- *   aiChatModel  → LLM for text chat         (gemini-2.0-flash | sarvam-30b | gpt-4o-mini)
+ *   aiChatModel  → LLM for text chat         (gemini-1.5-flash | sarvam-30b | gpt-4o-mini)
  *   aiVoiceModel → LLM for voice thinking    (same options)
  *   aiTtsModel   → Text-to-Speech model      (bulbul:v3 | tts-1)
  *   aiSttModel   → Speech-to-Text model      (saaras:v3 | whisper-1)
@@ -155,8 +155,9 @@ export const getAiSettings = asyncHandler(async (req, res) => {
         success: true,
         data: {
             // ── Current user selections ──────────────────────────
-            chatModel: user.aiChatModel || "gemini-2.0-flash",
-            voiceModel: user.aiVoiceModel || "gemini-2.0-flash",
+            // Enforce plan limits on the returned selections so the frontend logic (e.g., Study Mode banner) accurately reflects reality.
+            chatModel: user.plan === "FREE" ? "sarvam-m" : (user.aiChatModel || "gemini-1.5-flash"),
+            voiceModel: user.plan !== "PRO_PLUS" ? "sarvam-m" : (user.aiVoiceModel || "gemini-1.5-flash"),
             ttsModel: user.aiTtsModel || "bulbul:v3",
             sttModel: user.aiSttModel || "saaras:v3",
             sttLang: user.aiSarvamLang || "unknown",
@@ -168,11 +169,15 @@ export const getAiSettings = asyncHandler(async (req, res) => {
 
             // ── Model catalogs with pricing ──────────────────────
             // Frontend renders each array as selectable cards with price info.
-            // Voice LLM uses the same options as chat LLM (independent selection).
-            availableChatModels: MODEL_INFO.CHAT_MODELS,
-            availableVoiceModels: MODEL_INFO.CHAT_MODELS,
-            availableTtsModels: MODEL_INFO.TTS_MODELS,
-            availableSttModels: MODEL_INFO.STT_MODELS,
+            // FREE: Only sarvam-m text
+            // PRO: All text models
+            // PRO_PLUS: All text models + all voice/TTS/STT models
+            availableChatModels: user.plan === "FREE"
+                ? MODEL_INFO.CHAT_MODELS.filter(m => m.id === "sarvam-m")
+                : MODEL_INFO.CHAT_MODELS,
+            availableVoiceModels: user.plan === "PRO_PLUS" ? MODEL_INFO.CHAT_MODELS : [],
+            availableTtsModels: user.plan === "PRO_PLUS" ? MODEL_INFO.TTS_MODELS : [],
+            availableSttModels: user.plan === "PRO_PLUS" ? MODEL_INFO.STT_MODELS : [],
 
             // ── Sarvam-specific STT language options ─────────────
             availableSttLangs: [
@@ -211,7 +216,7 @@ export const getAiSettings = asyncHandler(async (req, res) => {
  * Any combination of fields can be updated in a single request.
  *
  * Body:
- *   chatModel  : "gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini"
+ *   chatModel  : "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
  *   voiceModel : same options as chatModel
  *   ttsModel   : "bulbul:v3" | "tts-1"
  *   sttModel   : "saaras:v3" | "whisper-1"
@@ -225,27 +230,36 @@ export const updateAiSettings = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { chatModel, voiceModel, ttsModel, sttModel, sttLang, speaker } = req.body;
 
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    if (!user) throw new ApiError(404, "User not found");
+
     const updates = {};
 
     if (chatModel !== undefined) {
+        if (user.plan === "FREE" && chatModel !== "sarvam-m") {
+            throw new ApiError(403, "Free plan only supports the Sarvam-M text model. Please upgrade to access more models.");
+        }
         if (!VALID_CHAT_MODELS.includes(chatModel))
             throw new ApiError(400, `Invalid chatModel "${chatModel}". Valid: ${VALID_CHAT_MODELS.join(", ")}`);
         updates.aiChatModel = chatModel;
     }
 
     if (voiceModel !== undefined) {
+        if (user.plan !== "PRO_PLUS") throw new ApiError(403, "Voice thinking is only available on the Pro Plus plan.");
         if (!VALID_CHAT_MODELS.includes(voiceModel))
             throw new ApiError(400, `Invalid voiceModel "${voiceModel}". Valid: ${VALID_CHAT_MODELS.join(", ")}`);
         updates.aiVoiceModel = voiceModel;
     }
 
     if (ttsModel !== undefined) {
+        if (user.plan !== "PRO_PLUS") throw new ApiError(403, "Text-to-Speech is only available on the Pro Plus plan.");
         if (!VALID_TTS_MODELS.includes(ttsModel))
             throw new ApiError(400, `Invalid ttsModel "${ttsModel}". Valid: ${VALID_TTS_MODELS.join(", ")}`);
         updates.aiTtsModel = ttsModel;
     }
 
     if (sttModel !== undefined) {
+        if (user.plan !== "PRO_PLUS") throw new ApiError(403, "Speech-to-Text is only available on the Pro Plus plan.");
         if (!VALID_STT_MODELS.includes(sttModel))
             throw new ApiError(400, `Invalid sttModel "${sttModel}". Valid: ${VALID_STT_MODELS.join(", ")}`);
         updates.aiSttModel = sttModel;
@@ -267,7 +281,7 @@ export const updateAiSettings = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No valid fields provided. Send at least one of: chatModel, voiceModel, ttsModel, sttModel, sttLang, speaker");
     }
 
-    const user = await prisma.user.update({
+    const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: updates,
         select: {
@@ -284,12 +298,12 @@ export const updateAiSettings = asyncHandler(async (req, res) => {
         success: true,
         message: "AI settings updated successfully",
         data: {
-            chatModel: user.aiChatModel,
-            voiceModel: user.aiVoiceModel,
-            ttsModel: user.aiTtsModel,
-            sttModel: user.aiSttModel,
-            sttLang: user.aiSarvamLang,
-            speaker: user.aiSarvamSpeaker
+            chatModel: updatedUser.aiChatModel,
+            voiceModel: updatedUser.aiVoiceModel,
+            ttsModel: updatedUser.aiTtsModel,
+            sttModel: updatedUser.aiSttModel,
+            sttLang: updatedUser.aiSarvamLang,
+            speaker: updatedUser.aiSarvamSpeaker
         }
     });
 });
@@ -440,10 +454,15 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
+    if (user.plan !== "PRO_PLUS") {
+        safeUnlink(req.file?.path);
+        throw new ApiError(403, "Voice mode is only available on the Pro Plus plan.");
+    }
+
     // Resolve models with safe fallbacks to defaults
     const sttModel = VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
     const ttsModel = VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
-    const voiceModel = VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-2.0-flash";
+    const voiceModel = VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-1.5-flash";
 
     // Conservative pre-check: 1 min STT + max LLM cost + 1 min TTS
     await checkCreditBalance(
@@ -543,6 +562,12 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
     if (!req.file) throw new ApiError(400, "Audio file is required");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (user.plan !== "PRO_PLUS") {
+        safeUnlink(req.file?.path);
+        throw new ApiError(403, "Speech-to-Text is only available on the Pro Plus plan.");
+    }
+
     const sttModel = VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
 
     await checkCreditBalance(userId, calcVoiceCost(sttModel, 1));
@@ -598,6 +623,11 @@ export const synthesizeVoice = asyncHandler(async (req, res) => {
     if (!text) throw new ApiError(400, "Text is required");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (user.plan !== "PRO_PLUS") {
+        throw new ApiError(403, "Text-to-Speech is only available on the Pro Plus plan.");
+    }
+
     const ttsModel = VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
 
     await checkCreditBalance(userId, calcVoiceCost(ttsModel, 1));

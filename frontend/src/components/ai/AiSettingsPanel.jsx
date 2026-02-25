@@ -5,7 +5,7 @@ import { useAi } from '@/features/ai/useAi';
 import ModelCard from '@/components/ai/ModelCard';
 
 export default function AiSettingsPanel({ isOpen, onClose }) {
-    const { settings, updateSettings } = useAi();
+    const { settings, updateSettings, isLoadingSettings } = useAi();
 
     if (!isOpen) return null;
 
@@ -63,6 +63,8 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
                         models={settings.availableVoiceModels}
                         selected={settings.voiceModel}
                         onSelect={(id) => handleModelSelect('voiceModel', id)}
+                        isLoading={isLoadingSettings}
+                        emptyMessage="Upgrade to Pro Plus to access Voice Models."
                     />
 
                     {/* 3. Text-to-Speech (TTS) */}
@@ -73,6 +75,8 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
                         selected={settings.ttsModel}
                         onSelect={(id) => handleModelSelect('ttsModel', id)}
                         note="TTS language is automatically detected from AI response text."
+                        isLoading={isLoadingSettings}
+                        emptyMessage="Upgrade to Pro Plus to access Text-to-Speech."
                     />
 
                     {/* 4. Speech-to-Text (STT) */}
@@ -82,6 +86,8 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
                         models={settings.availableSttModels}
                         selected={settings.sttModel}
                         onSelect={(id) => handleModelSelect('sttModel', id)}
+                        isLoading={isLoadingSettings}
+                        emptyMessage="Upgrade to Pro Plus to access Speech-to-Text."
                     />
 
                     {/* 5. Voice Input Language (STT hint) */}
@@ -137,8 +143,8 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
                                                         key={s.id}
                                                         onClick={() => handleSpeakerChange(s.id)}
                                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${settings.speaker === s.id
-                                                                ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-500/30'
-                                                                : 'border-white/[0.06] bg-white/[0.02] text-gray-400 hover:bg-white/[0.06] hover:text-white'
+                                                            ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-500/30'
+                                                            : 'border-white/[0.06] bg-white/[0.02] text-gray-400 hover:bg-white/[0.06] hover:text-white'
                                                             }`}
                                                     >
                                                         {s.label || s.id}
@@ -160,8 +166,8 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
                                                 key={id}
                                                 onClick={() => handleSpeakerChange(id)}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all duration-200 border ${settings.speaker === id
-                                                        ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
-                                                        : 'border-white/[0.06] bg-white/[0.02] text-gray-400 hover:bg-white/[0.06]'
+                                                    ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                                                    : 'border-white/[0.06] bg-white/[0.02] text-gray-400 hover:bg-white/[0.06]'
                                                     }`}
                                             >
                                                 {id}
@@ -177,8 +183,8 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
                                                 key={id}
                                                 onClick={() => handleSpeakerChange(id)}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all duration-200 border ${settings.speaker === id
-                                                        ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
-                                                        : 'border-white/[0.06] bg-white/[0.02] text-gray-400 hover:bg-white/[0.06]'
+                                                    ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300'
+                                                    : 'border-white/[0.06] bg-white/[0.02] text-gray-400 hover:bg-white/[0.06]'
                                                     }`}
                                             >
                                                 {id}
@@ -212,13 +218,17 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
 /**
  * Reusable model selection section within the settings panel.
  */
-function ModelSection({ title, subtitle, models = [], selected, onSelect, note }) {
+function ModelSection({ title, subtitle, models = [], selected, onSelect, note, emptyMessage, isLoading }) {
     return (
         <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{title}</h3>
             {subtitle && <p className="text-[10px] text-gray-600 mb-3">{subtitle}</p>}
             <div className="space-y-2">
-                {models.length > 0 ? (
+                {isLoading ? (
+                    <div className="rounded-xl border border-white/4 bg-white/2 p-4 text-center">
+                        <p className="text-xs text-gray-500">Loading models...</p>
+                    </div>
+                ) : models.length > 0 ? (
                     models.map(m => (
                         <ModelCard
                             key={m.id}
@@ -228,7 +238,9 @@ function ModelSection({ title, subtitle, models = [], selected, onSelect, note }
                         />
                     ))
                 ) : (
-                    <p className="text-xs text-gray-600 px-2 py-3">Loading models...</p>
+                    <div className="rounded-xl border border-white/4 bg-white/2 p-4 flex items-center justify-center gap-2 text-gray-400">
+                        <span className="text-xs">🔒 {emptyMessage || "Not available on current plan"}</span>
+                    </div>
                 )}
             </div>
             {note && (

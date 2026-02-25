@@ -11,8 +11,8 @@
  *   7. Generate conversation title (on first message)
  *
  * Model resolution:
- *   mode = "TEXT"  → uses user.aiChatModel  (default: "gemini-2.0-flash")
- *   mode = "VOICE" → uses user.aiVoiceModel (default: "gemini-2.0-flash")
+ *   mode = "TEXT"  → uses user.aiChatModel  (default: "gemini-1.5-flash")
+ *   mode = "VOICE" → uses user.aiVoiceModel (default: "gemini-1.5-flash")
  *
  * FIX: Gemini (and other models) can return .content as Array<{type,text}>.
  * All content is now normalized through normalizeContent() before:
@@ -40,7 +40,7 @@ import { sarvamChat } from "./sarvam.service.js";
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-const VALID_CHAT_MODELS = ["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"];
+const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "sarvam-m", "gpt-4o-mini"];
 
 // ─────────────────────────────────────────────────────────────
 // MODEL RESOLVERS
@@ -48,20 +48,22 @@ const VALID_CHAT_MODELS = ["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"];
 
 /**
  * Resolves the LLM model for text chat.
- * Defaults to Gemini 1.5 Flash — fastest and cheapest.
+ * Enforces plan limits: FREE users can ONLY use sarvam-m text chat.
  */
 const resolveChatModel = (user) => {
+    if (user?.plan === "FREE") return "sarvam-m";
     const m = user?.aiChatModel;
-    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-2.0-flash";
+    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-1.5-flash";
 };
 
 /**
  * Resolves the LLM model for voice pipeline thinking.
- * Defaults to Gemini 1.5 Flash.
+ * Voice is conceptually PRO_PLUS only, but as a fallback, enforces plan limits.
  */
 const resolveVoiceModel = (user) => {
+    if (user?.plan !== "PRO_PLUS") return "sarvam-m";
     const m = user?.aiVoiceModel;
-    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-2.0-flash";
+    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-1.5-flash";
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -88,15 +90,15 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
 
         let title = "";
 
-        if (chatModel === "gemini-2.0-flash") {
+        if (chatModel === "gemini-1.5-flash") {
             title = await geminiChat(
                 [{ role: "user", content: prompt }],
                 { maxTokens: 20 }
             );
-        } else if (chatModel === "sarvam-30b") {
+        } else if (chatModel === "sarvam-30b" || chatModel === "sarvam-m") {
             title = await sarvamChat(
                 [{ role: "user", content: prompt }],
-                { maxTokens: 20 }
+                { maxTokens: 20, model: chatModel }
             );
         } else {
             // gpt-4o-mini — static import cached by Node after first call

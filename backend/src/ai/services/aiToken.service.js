@@ -47,7 +47,7 @@ const normalizeContent = (content) => {
 /**
  * Calculates the credit cost for a CHAT request.
  *
- * @param {string} model       - e.g. "gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"
+ * @param {string} model       - e.g. "gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"
  * @param {number} totalTokens - estimated prompt + completion tokens
  * @returns {number} Credits to deduct (integer, minimum 1)
  */

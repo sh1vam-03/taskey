@@ -8,7 +8,7 @@
  *
  * Model resolution (all from user record):
  *   STT: user.aiSttModel      ("saaras:v3" | "whisper-1")
- *   LLM: user.aiVoiceModel    ("gemini-2.0-flash" | "sarvam-30b" | "gpt-4o-mini")
+ *   LLM: user.aiVoiceModel    ("gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini")
  *   TTS: user.aiTtsModel      ("bulbul:v3" | "tts-1")
  *
  * STT language: user.aiSarvamLang    (input language hint for Saaras v3)
@@ -40,13 +40,11 @@ import {
 } from "../services/aiToken.service.js";
 import fs from "fs";
 
-const VALID_STT_MODELS = ["saaras:v3", "whisper-1"];
-const VALID_TTS_MODELS = ["bulbul:v3", "tts-1"];
-const VALID_CHAT_MODELS = ["gemini-2.0-flash", "sarvam-30b", "gpt-4o-mini"];
+import { VALID_STT_MODELS, VALID_TTS_MODELS, VALID_CHAT_MODELS } from "../../config/plans.config.js";
 
 const resolveSttModel = (user) => VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
 const resolveTtsModel = (user) => VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
-const resolveVoiceModel = (user) => VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-2.0-flash";
+const resolveVoiceModel = (user) => VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-1.5-flash";
 
 /** Safely delete a temp file — warns on failure but never throws. */
 const safeUnlink = (filePath) => {
@@ -73,6 +71,10 @@ export const sendVoiceMessage = asyncHandler(async (req, res) => {
 
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) throw new ApiError(404, "User not found");
+
+    if (user.plan !== "PRO_PLUS") {
+        throw new ApiError(403, "Voice mode is only available on the Pro Plus plan.");
+    }
 
     const sttModel = resolveSttModel(user);
     const ttsModel = resolveTtsModel(user);

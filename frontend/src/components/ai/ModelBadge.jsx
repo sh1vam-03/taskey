@@ -1,7 +1,7 @@
 'use client';
 
 const MODEL_DISPLAY = {
-    'gemini-2.0-flash': { label: 'Gemini Flash', color: 'blue', icon: '⚡' },
+    'gemini-1.5-flash': { label: 'Gemini Flash', color: 'blue', icon: '⚡' },
     'sarvam-30b': { label: 'Sarvam 30B', color: 'orange', icon: '🇮🇳' },
     'gpt-4o-mini': { label: 'GPT-4o Mini', color: 'green', icon: '🤖' },
     'bulbul:v3': { label: 'Bulbul v3', color: 'orange', icon: '🔊' },
