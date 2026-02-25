@@ -51,9 +51,9 @@ export const updateProfileTool = () => {
             aiChatModel: z.enum(["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"]).optional()
                 .describe(
                     "LLM for text chat conversations. " +
-                    "'gemini-1.5-flash' = Gemini 1.5 Flash (Google, fast, cheap, default). " +
-                    "'sarvam-30b' = Sarvam 30B (Indian languages optimised). " +
-                    "'gpt-4o-mini' = GPT-4o Mini (OpenAI, strong reasoning)."
+                    "'gemini-1.5-flash' = Gemini 1.5 Flash (Google, everyday assistant, manages tasks). " +
+                    "'sarvam-30b' = Sarvam 30B (Indian language specialist, manages tasks). " +
+                    "'gpt-4o-mini' = GPT-4o Mini (OpenAI, strong reasoning, manages tasks)."
                 ),
 
             // ── LLM for voice thinking ──────────────────────────

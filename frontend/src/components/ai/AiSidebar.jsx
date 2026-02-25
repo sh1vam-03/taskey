@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Plus, Trash2, Pencil, Check, X, MoreVertical, MessageSquare, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, MoreVertical, MessageSquare, ChevronLeft, LogOut } from 'lucide-react';
 import { useAi } from '@/features/ai/useAi';
 import { useAuth } from '@/context/AuthContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -11,7 +11,7 @@ import CreditBadge from '@/components/ai/CreditBadge';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
 export default function AiSidebar({ isOpen, onClose }) {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const {
         conversations,
         activeConversationId,
@@ -248,16 +248,26 @@ export default function AiSidebar({ isOpen, onClose }) {
                         <CreditBadge balance={settings.creditBalance} plan={settings.plan} />
                     </div>
 
-                    <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-white/[0.03]">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-[10px] font-mono text-white shrink-0">
-                            {user?.name?.[0] || 'U'}
+                    <div className="border-t border-white/5 p-4 bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-xs font-mono text-white shrink-0">
+                                {user?.name?.[0] || 'U'}
+                            </div>
+                            <div className="flex flex-col overflow-hidden min-w-0">
+                                <span className="text-sm font-medium text-white truncate">{user?.name}</span>
+                                <span className="text-[10px] text-cyan-500 font-mono uppercase tracking-wider">
+                                    {settings.plan === 'PRO_PLUS' ? 'PRO_PLUS_ACCESS' : settings.plan === 'PRO' ? 'PRO_ACCESS' : 'FREE_TIER'}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-medium text-gray-200 truncate">{user?.name}</span>
-                            <span className="text-[9px] text-cyan-500/80 font-mono uppercase tracking-wider">
-                                {settings.plan || 'FREE'}
-                            </span>
-                        </div>
+
+                        <button
+                            onClick={logout}
+                            className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
+                        >
+                            <LogOut className="h-3.5 w-3.5" />
+                            Disconnect
+                        </button>
                     </div>
                 </div>
             </aside>

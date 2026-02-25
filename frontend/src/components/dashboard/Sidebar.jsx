@@ -89,7 +89,7 @@ export default function Sidebar() {
                         <div className="flex flex-col overflow-hidden">
                             <span className="text-sm font-medium text-white truncate">{user?.name}</span>
                             <span className="text-[10px] text-cyan-500 font-mono uppercase tracking-wider">
-                                {user?.plan === 'pro' ? 'PRO_ACCESS' : 'FREE_TIER'}
+                                {user?.plan === 'PRO_PLUS' ? 'PRO_PLUS_ACCESS' : user?.plan === 'PRO' ? 'PRO_ACCESS' : 'FREE_TIER'}
                             </span>
                         </div>
                     </div>

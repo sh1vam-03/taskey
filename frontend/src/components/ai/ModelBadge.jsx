@@ -2,8 +2,8 @@
 
 const MODEL_DISPLAY = {
     'gemini-1.5-flash': { label: 'Gemini Flash', color: 'blue', icon: '⚡' },
-    'sarvam-30b': { label: 'Sarvam 30B', color: 'orange', icon: '🇮🇳' },
-    'gpt-4o-mini': { label: 'GPT-4o Mini', color: 'green', icon: '🤖' },
+    'sarvam-30b': { label: 'Coming Soon', color: 'gray', icon: '⏳' },
+    'gpt-4o-mini': { label: 'Recommended', color: 'green', icon: '⭐' },
     'bulbul:v3': { label: 'Bulbul v3', color: 'orange', icon: '🔊' },
     'tts-1': { label: 'OpenAI TTS', color: 'green', icon: '🔊' },
     'saaras:v3': { label: 'Saaras v3', color: 'orange', icon: '🎤' },
@@ -14,6 +14,7 @@ const COLOR_CLASSES = {
     blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
     green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    gray: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
 };
 
 export default function ModelBadge({ model, onClick, className = '' }) {

@@ -229,14 +229,58 @@ function ModelSection({ title, subtitle, models = [], selected, onSelect, note, 
                         <p className="text-xs text-gray-500">Loading models...</p>
                     </div>
                 ) : models.length > 0 ? (
-                    models.map(m => (
-                        <ModelCard
-                            key={m.id}
-                            model={m}
-                            isSelected={selected === m.id}
-                            onSelect={onSelect}
-                        />
-                    ))
+                    (() => {
+                        // Check if these are chat/voice models (they have supportsTools property)
+                        // STT/TTS models won't have this, so they just render normally
+                        const hasToolsFlag = models.some(m => m.supportsTools !== undefined);
+
+                        if (!hasToolsFlag) {
+                            return models.map(m => (
+                                <ModelCard
+                                    key={m.id}
+                                    model={m}
+                                    isSelected={selected === m.id}
+                                    onSelect={onSelect}
+                                />
+                            ));
+                        }
+
+                        const agentModels = models.filter(m => m.supportsTools);
+                        const chatModels = models.filter(m => !m.supportsTools);
+
+                        return (
+                            <div className="space-y-4">
+                                {agentModels.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="text-[10px] font-medium text-emerald-400/80 uppercase tracking-widest px-1">Full Agents</h4>
+                                        {agentModels.map(m => (
+                                            <ModelCard
+                                                key={m.id}
+                                                model={m}
+                                                isSelected={selected === m.id}
+                                                onSelect={onSelect}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {chatModels.length > 0 && (
+                                    <div className="space-y-2">
+                                        {agentModels.length > 0 && <div className="h-px w-full bg-white/4 my-2"></div>}
+                                        <h4 className="text-[10px] font-medium text-purple-400/80 uppercase tracking-widest px-1">Study Partners</h4>
+                                        {chatModels.map(m => (
+                                            <ModelCard
+                                                key={m.id}
+                                                model={m}
+                                                isSelected={selected === m.id}
+                                                onSelect={onSelect}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()
                 ) : (
                     <div className="rounded-xl border border-white/4 bg-white/2 p-4 flex items-center justify-center gap-2 text-gray-400">
                         <span className="text-xs">🔒 {emptyMessage || "Not available on current plan"}</span>
