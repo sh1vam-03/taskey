@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Plus, Trash2, Pencil, Check, X, MoreVertical, MessageSquare, ChevronLeft, LogOut } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, MoreVertical, MessageSquare, ChevronLeft, LogOut, ChevronDown, ChevronRight, Zap } from 'lucide-react';
 import { useAi } from '@/features/ai/useAi';
 import { useAuth } from '@/context/AuthContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -28,6 +28,10 @@ export default function AiSidebar({ isOpen, onClose }) {
     const [editingId, setEditingId] = useState(null);
     const [editTitle, setEditTitle] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
+    const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+
+    // Determine if user has voice models (Pro Plus)
+    const hasVoice = settings.availableVoiceModels?.length > 0;
 
     const handleNewChat = async () => {
         try {
@@ -224,24 +228,51 @@ export default function AiSidebar({ isOpen, onClose }) {
 
                 {/* Footer: Model Badges + Credits + User */}
                 <div className="border-t border-white/[0.06] p-3 space-y-3">
-                    {/* 4 Model Quick-Info Lines */}
-                    <div className="space-y-1.5 px-1">
+                    {/* Model Quick-Info Area */}
+                    <div className="space-y-2 px-1">
+                        {/* Text Chat Row */}
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">Chat</span>
+                            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider flex items-center gap-1.5 border border-white/5 bg-white/5 px-2 py-1 rounded">
+                                <MessageSquare className="w-3 h-3" /> Text Chat
+                            </span>
                             <ModelBadge model={settings.chatModel} onClick={openSettings} />
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">Voice</span>
-                            <ModelBadge model={settings.voiceModel} onClick={openSettings} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">TTS</span>
-                            <ModelBadge model={settings.ttsModel} onClick={openSettings} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-600 uppercase tracking-wider">STT</span>
-                            <ModelBadge model={settings.sttModel} onClick={openSettings} />
-                        </div>
+
+                        {/* Voice Mode Collapsible (Only for Pro+) */}
+                        {hasVoice && (
+                            <div className="border border-white/5 rounded-lg overflow-hidden bg-black/40">
+                                <button
+                                    onClick={() => setIsVoiceOpen(!isVoiceOpen)}
+                                    className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/4 transition-colors"
+                                >
+                                    <span className="text-[10px] text-cyan-500/80 font-medium uppercase tracking-wider flex items-center gap-1.5">
+                                        <Zap className="w-3 h-3" /> Voice Mode
+                                    </span>
+                                    {isVoiceOpen ? (
+                                        <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+                                    ) : (
+                                        <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+                                    )}
+                                </button>
+
+                                {isVoiceOpen && (
+                                    <div className="p-2 pt-1 border-t border-white/5 space-y-1.5 bg-black/60">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[9px] text-gray-600 uppercase tracking-wider pl-1">Reasoning</span>
+                                            <ModelBadge model={settings.voiceModel} onClick={openSettings} />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[9px] text-gray-600 uppercase tracking-wider pl-1">Voice (TTS)</span>
+                                            <ModelBadge model={settings.ttsModel} onClick={openSettings} />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[9px] text-gray-600 uppercase tracking-wider pl-1">Ears (STT)</span>
+                                            <ModelBadge model={settings.sttModel} onClick={openSettings} />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-center px-1">
