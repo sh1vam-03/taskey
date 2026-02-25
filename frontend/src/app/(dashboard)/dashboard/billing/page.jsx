@@ -147,6 +147,7 @@ export default function BillingPage() {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 subscription_id: data.subscriptionId,
                 name: "TASKTIME",
+                image: "",
                 description: `${planId.replace('_', ' ')} Subscription (${billingCycle})`,
                 handler: async function (response) {
                     success("Payment Successful! System upgrading...");
@@ -204,6 +205,7 @@ export default function BillingPage() {
                 amount: orderData.data.price * 100,
                 currency: "INR",
                 name: "TASKTIME",
+                image: "",
                 description: `Credit Top-Up: ${orderData.data.label}`,
                 order_id: orderData.data.orderId,
                 handler: async function (response) {
