@@ -176,9 +176,9 @@ export const login = async (email, password, userAgent, ipAddress, remember = fa
             name: user.name,
             email: user.email,
             plan: user.plan,
-            isEmailVerified: user.isEmailVerified,
             createdAt: user.createdAt,
-            aiCreditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0),
+            subscriptionCredits: user.subscriptionCredits || 0,
+            topupCredits: user.topupCredits || 0,
             timezone: user.timezone,
         },
     };
@@ -454,10 +454,7 @@ export const updateProfile = async (userId, data) => {
         }
     });
 
-    return {
-        ...user,
-        aiCreditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0)
-    };
+    return user;
 };
 
 /* =========================
@@ -584,12 +581,7 @@ export const getMyProfile = async (userId) => {
             topupCredits: true,
             timezone: true,
         },
-    });
+    }); if (!user) throw new ApiError(404, "User not found");
 
-    if (!user) throw new ApiError(404, "User not found");
-
-    return {
-        ...user,
-        aiCreditBalance: (user.subscriptionCredits || 0) + (user.topupCredits || 0)
-    };
+    return user;
 };
