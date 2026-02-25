@@ -10,14 +10,23 @@ export const handleRazorpayEvent = async (event) => {
         case "subscription.activated": {
             const sub = event.payload.subscription.entity;
 
-            const payment = await prisma.payment.findFirst({
+            // Find our local Subscription record (created by billing.service.js)
+            const subscription = await prisma.subscription.findFirst({
                 where: { razorpaySubscriptionId: sub.id },
             });
 
-            if (!payment) return;
+            if (!subscription) return;
 
-            const subscriptionPlan = payment.plan; // stored earlier (e.g. PRO)
-            const billingCycle = payment.billingCycle; // MONTHLY or YEARLY
+            const subscriptionPlan = subscription.plan;
+            const billingCycle = subscription.billingCycle;
+
+            // Find the pending payment to mark as PAID
+            const payment = await prisma.payment.findFirst({
+                where: {
+                    razorpaySubscriptionId: sub.id,
+                    status: "CREATED"
+                },
+            });
 
             // Determine credit amount based on billing cycle
             // Monthly: grant full monthly credits
@@ -29,28 +38,20 @@ export const handleRazorpayEvent = async (event) => {
             const expiresAt = isYearly ? addYears(now, 1) : addMonths(now, 1);
 
             await prisma.$transaction(async (tx) => {
-                await tx.subscription.upsert({
-                    where: { userId: payment.userId },
-                    update: {
-                        plan: subscriptionPlan,
-                        billingCycle,
-                        cycleCredits: credits,
+                // Activate subscription
+                await tx.subscription.update({
+                    where: { id: subscription.id },
+                    data: {
                         isActive: true,
-                        razorpaySubscriptionId: sub.id,
-                    },
-                    create: {
-                        userId: payment.userId,
-                        plan: subscriptionPlan,
-                        billingCycle,
                         cycleCredits: credits,
-                        isActive: true,
-                        razorpaySubscriptionId: sub.id,
+                        lastCreditDistributedAt: now,
+                        lastCreditGrantedAt: now,
                     },
                 });
 
                 // Grant Credits (first month's allocation)
                 await tx.user.update({
-                    where: { id: payment.userId },
+                    where: { id: subscription.userId },
                     data: {
                         plan: subscriptionPlan,
                         subscriptionCredits: credits,
@@ -58,26 +59,23 @@ export const handleRazorpayEvent = async (event) => {
                     },
                 });
 
-                // Set distribution tracking for yearly drip
-                await tx.subscription.update({
-                    where: { userId: payment.userId },
-                    data: { lastCreditDistributedAt: now }
-                });
-
                 await tx.aiCreditLedger.create({
                     data: {
-                        userId: payment.userId,
+                        userId: subscription.userId,
                         credits: credits,
                         source: "PLAN_CYCLE",
-                        paymentId: payment.id,
+                        paymentId: payment?.id || null,
                         reason: `Subscription Activated: ${subscriptionPlan}`
                     }
                 });
 
-                await tx.payment.update({
-                    where: { id: payment.id },
-                    data: { status: PaymentStatus.PAID },
-                });
+                // Mark payment as PAID
+                if (payment) {
+                    await tx.payment.update({
+                        where: { id: payment.id },
+                        data: { status: "PAID" },
+                    });
+                }
             });
 
             break;

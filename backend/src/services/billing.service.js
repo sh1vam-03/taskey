@@ -17,10 +17,15 @@ export const createSubscription = async (userId, plan, billingCycle) => {
         throw new ApiError(400, "Invalid plan");
     }
 
-    // Validate price exists (sanity check)
+    // Validate billing cycle
+    if (!["MONTHLY", "YEARLY"].includes(billingCycle)) {
+        throw new ApiError(400, "Invalid billing cycle");
+    }
+
+    // Validate price exists
     const price = planConfig.price[billingCycle];
     if (price === undefined) {
-        throw new ApiError(400, "Invalid billing cycle");
+        throw new ApiError(400, "Invalid billing cycle for this plan");
     }
 
     // 2️⃣ Prevent duplicate active subscription
@@ -29,16 +34,17 @@ export const createSubscription = async (userId, plan, billingCycle) => {
     });
 
     if (existing?.isActive) {
-        throw new ApiError(400, "You already have an active subscription");
+        throw new ApiError(400, "You already have an active subscription. Cancel first.");
     }
 
-    // 3️⃣ Create Razorpay subscription
+    // 3️⃣ Resolve Razorpay Plan ID from environment
     const planId = process.env[`RAZORPAY_${plan}_${billingCycle}_PLAN_ID`];
 
     if (!planId) {
         throw new ApiError(500, "Server Configuration Error: Plan ID not found");
     }
 
+    // 4️⃣ Create Razorpay subscription
     let razorpaySubscription;
     try {
         razorpaySubscription = await razorpay.subscriptions.create({
@@ -47,10 +53,13 @@ export const createSubscription = async (userId, plan, billingCycle) => {
             total_count: billingCycle === "YEARLY" ? 1 : 12,
         });
     } catch (error) {
-        throw new ApiError(error.statusCode || 500, `Razorpay Error: ${error.error?.description || error.message}`);
+        throw new ApiError(
+            error.statusCode || 500,
+            `Razorpay Error: ${error.error?.description || error.message}`
+        );
     }
 
-    // 4️⃣ Save payment intent
+    // 5️⃣ Save payment intent (pending — webhook will mark PAID)
     await prisma.payment.create({
         data: {
             userId,
@@ -63,28 +72,40 @@ export const createSubscription = async (userId, plan, billingCycle) => {
         },
     });
 
-    // 5️⃣ Create Local Subscription Record (CRITICAL FIX)
-    // Upsert to handle re-subscription or plan change scenarios
+    // 6️⃣ Upsert local Subscription record
+    // isActive: false → webhook sets true on payment success
+    const monthlyCredits = planConfig.credits?.MONTHLY || 0;
+    const now = new Date();
+
     await prisma.subscription.upsert({
         where: { userId },
         update: {
             razorpaySubscriptionId: razorpaySubscription.id,
-            plan: plan,
-            billingCycle: billingCycle,
-            status: "CREATED",
-            isActive: false, // Will be set to true by webhook
+            plan,
+            billingCycle,
+            cycleCredits: monthlyCredits,
+            isActive: false, // Will be activated by webhook
+            nextBillingAt: razorpaySubscription.charge_at
+                ? new Date(razorpaySubscription.charge_at * 1000)
+                : now,
         },
         create: {
             userId,
             razorpaySubscriptionId: razorpaySubscription.id,
-            plan: plan,
-            billingCycle: billingCycle,
-            status: "CREATED",
+            plan,
+            billingCycle,
+            cycleCredits: monthlyCredits,
             isActive: false,
-        }
+            nextBillingAt: razorpaySubscription.charge_at
+                ? new Date(razorpaySubscription.charge_at * 1000)
+                : now,
+        },
     });
 
-    return razorpaySubscription;
+    return {
+        subscriptionId: razorpaySubscription.id,
+        shortUrl: razorpaySubscription.short_url,
+    };
 };
 
 export const cancelSubscription = async (userId) => {
@@ -234,7 +255,6 @@ export const verifyTopUpPayment = async (userId, paymentId, orderId, signature) 
         data: {
             status: "PAID",
             razorpayPaymentId: paymentId,
-            razorpaySignature: signature
         }
     });
 

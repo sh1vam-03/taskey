@@ -188,7 +188,7 @@ export default function InteractivePricing() {
                                 </div>
 
                                 {/* Price */}
-                                <div className="mb-5 border-b border-white/5 pb-5">
+                                <div className={`mb-5 border-b border-white/5 pb-5 ${isYearly && plan.monthlyPrice === 0 ? 'pb-9.5' : ''}`}>
                                     <AnimatePresence mode="wait">
                                         <motion.div
                                             key={isYearly ? "yr" : "mo"}
@@ -219,6 +219,18 @@ export default function InteractivePricing() {
                                         <FaBolt className="w-2.5 h-2.5" />
                                         {getCredits(plan)}
                                     </span>
+                                    {isYearly && plan.monthlyPrice > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                            <p className="text-[9px] font-mono text-cyan-500/70 flex items-center gap-1.5">
+                                                <span className="w-1 h-1 rounded-full bg-cyan-500/50" />
+                                                Credits roll over monthly during the plan
+                                            </p>
+                                            <p className="text-[9px] font-mono text-gray-600 flex items-center gap-1.5">
+                                                <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                                Unused credits expire at end of subscription term
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Desc */}
@@ -226,8 +238,11 @@ export default function InteractivePricing() {
                                     {plan.desc}
                                 </p>
 
+                                {/* Flex spacer — absorbs height difference so features + button pin to bottom */}
+                                <div className="flex-1" />
+
                                 {/* Features */}
-                                <div className="space-y-3 mb-8 flex-1">
+                                <div className="space-y-3 mb-8">
                                     {plan.features.map((feat, j) => (
                                         <div key={j} className="flex items-center gap-3 text-xs font-mono">
                                             {feat.included ? (
