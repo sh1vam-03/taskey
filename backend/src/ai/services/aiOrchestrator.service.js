@@ -300,21 +300,29 @@ export const processAiRequestStream = async function* ({
         data: { conversationId, userId, role: "USER", content: message }
     });
 
-    // ── 3. Load history ───────────────────────────────────────
+    // ── 3. Load history (Rolling Window) ─────────────────────
+    // Sarvam API has strict payload limits and will drop with `400 (no body)` if the history array exceeds ~10 turns.
+    // Limit to the most recent 6 messages (3 human, 3 AI) to maintain context without crashing.
     const history = await prisma.aiMessage.findMany({
         where: { conversationId, userId },
-        orderBy: { createdAt: "asc" },
-        take: 20
+        orderBy: { createdAt: "desc" },
+        take: 6
     });
+
+    // Reverse history to chronolotical order for the LLM
+    history.reverse();
 
     const lcMessages = [];
     let expectedRole = "USER";
 
     for (const msg of history) {
-        if (msg.role !== "USER" && msg.role !== "ASSISTANT") continue; // Ignore SYSTEM and memory markers
+        // STRICT RULE for Sarvam: Only 1 System Message is allowed (the root one we inject in intent.node.js).
+        // Therefore, we MUST ignore all "SYSTEM" roles pulled from the database history (e.g. memory summaries).
+        if (msg.role !== "USER" && msg.role !== "ASSISTANT") continue;
 
         if (lcMessages.length === 0) {
-            if (msg.role !== "USER") continue; // Must start with USER
+            // Sarvam API strictly requires the conversation to start with a USER message following the SYSTEM message.
+            if (msg.role !== "USER") continue;
             lcMessages.push(new HumanMessage(msg.content));
             expectedRole = "ASSISTANT";
         } else {

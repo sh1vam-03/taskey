@@ -18,10 +18,17 @@ export const createIntentNode = (model) => {
         // Build context-rich system prompt (tasks, schedule, behavior logs, summary)
         const systemPrompt = await buildSystemContext(user.id, user, conversationId);
 
-        const response = await model.invoke([
+        const outMessages = [
             new SystemMessage(systemPrompt),
-            ...messages,
-        ], { tags: ["agent_llm"] });
+            ...messages
+        ];
+
+        console.log(`[IntentNode] Sending ${outMessages.length} messages. Payload Sizes:`);
+        outMessages.forEach((m, i) => {
+            console.log(`  [${i}] ${m._getType()} : ${m.content?.length || 0} chars`);
+        });
+
+        const response = await model.invoke(outMessages, { tags: ["agent_llm"] });
 
         return { messages: [response] };
     };
