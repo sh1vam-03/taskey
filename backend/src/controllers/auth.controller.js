@@ -2,6 +2,15 @@ import * as authService from "../services/auth.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 
+// =========================
+// CONFIGURATION LIBRARIES
+// =========================
+const ACCESS_COOKIE_MAX_AGE = Number(process.env.ACCESS_COOKIE_MAX_AGE) || 15 * 60 * 1000; // 15m default
+const REFRESH_COOKIE_PERSISTENT_MAX_AGE = Number(process.env.REFRESH_COOKIE_PERSISTENT_MAX_AGE) || 21 * 24 * 60 * 60 * 1000; // 21d default
+
+const COOKIE_SECURE = process.env.NODE_ENV === "production"; // Default strict rule
+const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE || "lax"; // Default lax rule for easier dev/redirects
+
 /* =========================
    SIGNUP
 ========================= */
@@ -12,12 +21,17 @@ export const signup = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required");
     }
 
-    const result = await authService.signup(name, email, password);
+    try {
+        const result = await authService.signup(name, email, password);
 
-    res.status(201).json({
-        success: true,
-        message: result.message,
-    });
+        res.status(201).json({
+            success: true,
+            message: result.message,
+        });
+    } catch (error) {
+        console.error("Signup Error:", error);
+        throw error;
+    }
 });
 
 /* =========================
@@ -42,7 +56,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
    LOGIN
 ========================= */
 export const login = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, remember } = req.body;
 
     if (!email || !password) {
         throw new ApiError(400, "Email and password are required");
@@ -52,12 +66,51 @@ export const login = asyncHandler(async (req, res) => {
         email,
         password,
         req.headers["user-agent"],
-        req.ip
+        req.ip,
+        remember // Pass remember flag
     );
+
+    // 1. Access Token Cookie
+    const accessCookieOptions = {
+        httpOnly: true,
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+        path: "/",
+    };
+
+    // Only set maxAge if persistent (Remember Me) -> NO, Access Token should ALWAYS expire
+    accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
+
+    res.cookie("accessToken", result.accessToken, accessCookieOptions);
+
+    // 2. Refresh Token Cookie (Controls Persistence)
+    // Fix: Only set refresh token if remember is true (Strict security)
+    if (remember) {
+        const refreshTokenOptions = {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+            maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
+        };
+        res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
+    } else {
+        // Fix: Explicitly clear old refresh cookie if remember is false
+        // This prevents legacy persistent sessions from surviving a non-persistent login
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+        });
+    }
 
     res.status(200).json({
         success: true,
-        data: result,
+        message: "Authentication successful",
+        data: {
+            user: result.user
+        },
     });
 });
 
@@ -65,7 +118,21 @@ export const login = asyncHandler(async (req, res) => {
    LOGOUT
 ========================= */
 export const logout = asyncHandler(async (req, res) => {
-    await authService.logout(req.sessionId);
+    if (req.sessionId) {
+        await authService.logout(req.sessionId);
+    }
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+        path: "/",
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/" });
+    // Also clear root path just in case
+    res.clearCookie("refreshToken", cookieOptions);
 
     res.status(200).json({
         success: true,
@@ -90,14 +157,14 @@ export const otpRequest = asyncHandler(async (req, res) => {
 });
 
 /* =========================
-   FORGOT PASSWORD
+   FORGOT PASSWORD (LINK)
 ========================= */
-export const forgotPasswordOtp = asyncHandler(async (req, res) => {
+export const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
     if (!email) throw new ApiError(400, "Email is required");
 
-    const result = await authService.forgotPasswordOtp(email);
+    const result = await authService.forgotPassword(email);
 
     res.status(200).json({
         success: true,
@@ -105,35 +172,18 @@ export const forgotPasswordOtp = asyncHandler(async (req, res) => {
     });
 });
 
+
 /* =========================
-   RESET PASSWORD
+   RESET PASSWORD (LINK)
 ========================= */
 export const resetPassword = asyncHandler(async (req, res) => {
-    const { email, otp, password } = req.body;
+    const { token, password } = req.body;
 
-    if (!email || !otp || !password) {
-        throw new ApiError(400, "All fields are required");
+    if (!token || !password) {
+        throw new ApiError(400, "Token and password are required");
     }
 
-    const result = await authService.resetPassword(
-        email,
-        otp,
-        password
-    );
-
-    res.status(200).json({
-        success: true,
-        message: result.message,
-    });
-});
-
-/* =========================
-   DELETE ACCOUNT
-========================= */
-export const deleteMyAccount = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-
-    const result = await authService.deleteMyAccount(userId);
+    const result = await authService.resetPassword(token, password);
 
     res.status(200).json({
         success: true,
@@ -156,21 +206,57 @@ export const getMyProfile = asyncHandler(async (req, res) => {
 });
 
 
-/* =========================
-   REFRESH TOKEN
-========================= */
+// =========================
+// REFRESH TOKEN
+// =========================
 export const refreshToken = asyncHandler(async (req, res) => {
-    const { refreshToken } = req.body;
+    // 1. Read from Cookie ONLY
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-        throw new ApiError(400, "Refresh token is required");
+        throw new ApiError(401, "Refresh token required");
     }
 
     const result = await authService.refreshToken(refreshToken);
 
+    // 1. Set Access Token Cookie
+    const accessCookieOptions = {
+        httpOnly: true,
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+        path: "/",
+        maxAge: ACCESS_COOKIE_MAX_AGE, // Always set maxAge
+    };
+
+    res.cookie("accessToken", result.accessToken, accessCookieOptions);
+
+    // 2. Set New Refresh Token Cookie
+    // If not persistent, we do NOT set a refresh token, but since we are in refresh flow, 
+    // it implies it was persistent. We respect the session state.
+    if (result.isPersistent) {
+        const refreshTokenOptions = {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+            maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
+        };
+        res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
+    } else {
+        // Fix: Explicitly clear old refresh cookie if session is not persistent
+        // This handles edge cases where a session might have been persistent but logic changed
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: COOKIE_SECURE,
+            sameSite: COOKIE_SAMESITE,
+            path: "/",
+        });
+    }
+
     res.status(200).json({
         success: true,
-        data: result,
+        message: "Session refreshed",
+        accessToken: result.accessToken,
     });
 });
 
@@ -180,8 +266,88 @@ export const refreshToken = asyncHandler(async (req, res) => {
 export const logoutAll = asyncHandler(async (req, res) => {
     await authService.logoutAll(req.user.id);
 
+    const cookieOptions = {
+        httpOnly: true,
+        secure: COOKIE_SECURE,
+        sameSite: COOKIE_SAMESITE,
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", { ...cookieOptions, path: "/" });
+    // Also clear root path just in case
+    res.clearCookie("refreshToken", cookieOptions);
+
     res.status(200).json({
         success: true,
         message: "Logged out from all devices",
+    });
+});
+
+/* =========================
+   REQUEST SECURITY OTP
+========================= */
+export const requestSecurityOtp = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { password } = req.body; // Optional password for pre-validation
+    const result = await authService.requestSecurityOtp(userId, password);
+    res.status(200).json({ success: true, message: result.message });
+});
+
+/* =========================
+   UPDATE PROFILE
+========================= */
+export const updateProfile = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { name, timezone } = req.body;
+
+    // We allow name OR timezone or both.
+    if (!name && !timezone) throw new ApiError(400, "Nothing to update");
+
+    const updatedUser = await authService.updateProfile(userId, { name, timezone });
+
+    res.status(200).json({
+        success: true,
+        message: "Profile updated",
+        data: updatedUser,
+    });
+});
+
+/* =========================
+   CHANGE PASSWORD
+========================= */
+export const changePassword = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { oldPassword, newPassword, otp } = req.body;
+
+    if (!oldPassword || !newPassword || !otp) {
+        throw new ApiError(400, "Passwords and Security OTP are required");
+    }
+
+    if (newPassword.length < 6) {
+        throw new ApiError(400, "New password must be at least 6 characters");
+    }
+
+    const result = await authService.changePassword(userId, oldPassword, newPassword, otp);
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/* =========================
+   DELETE ACCOUNT
+========================= */
+export const deleteMyAccount = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { otp } = req.body;
+
+    if (!otp) throw new ApiError(400, "Security OTP is required to delete account");
+
+    const result = await authService.deleteMyAccount(userId, otp);
+
+    res.status(200).json({
+        success: true,
+        message: result.message,
     });
 });

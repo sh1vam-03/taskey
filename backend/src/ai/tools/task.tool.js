@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import * as taskService from "../../services/task.service.js";
+import { incrementUsage } from "../../services/usageLimit.service.js";
 
 // HELPER
 const success = (data) => JSON.stringify({ success: true, data });
@@ -21,6 +22,7 @@ export const createTaskTool = () => new DynamicStructuredTool({
             if (!userId) return error("User ID missing in configuration");
 
             const task = await taskService.createTask(userId, args);
+            await incrementUsage(userId, 'task');
             return success(task);
         } catch (e) {
             return error(`Error creating task: ${e.message}`);

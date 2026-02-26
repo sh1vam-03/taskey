@@ -1,21 +1,45 @@
-import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage } from "@langchain/core/messages";
 import { buildSystemContext } from "../../services/aiContext.service.js";
 
+/**
+ * Intent / Agent Node
+ *
+ * Receives a pre-bound model (with tools attached) from the graph compiler.
+ * Builds the full system context for this request and invokes the model.
+ *
+ * The model is passed in — this node does NOT instantiate its own LLM.
+ * That responsibility belongs to main.graph.js (compileOpenAIGraph).
+ */
 export const createIntentNode = (model) => {
     return async (state, config) => {
         const { messages } = state;
-        const { user, conversationId } = config.configurable; // Access user from config
+        const { user, conversationId } = config.configurable;
 
-        // Build Context
-        const systemPrompt = await buildSystemContext(user.id, user, conversationId);
+        // Build context-rich system prompt (tasks, schedule, behavior logs, summary)
+        let systemPrompt = await buildSystemContext(user.id, user, conversationId);
 
+        // Collapse any stray SystemMessages (e.g. from Planner node) into the root prompt.
+        // LLM APIs (Gemini, Sarvam) strictly require only ONE SystemMessage at index 0.
+        const filteredMessages = [];
+        for (const msg of messages) {
+            if (msg._getType() === "system") {
+                systemPrompt += `\n\n${msg.content}`;
+            } else {
+                filteredMessages.push(msg);
+            }
+        }
 
-        // Invoke Model
-        const response = await model.invoke([
+        const outMessages = [
             new SystemMessage(systemPrompt),
-            ...messages
-        ]);
+            ...filteredMessages
+        ];
+
+        console.log(`[IntentNode] Sending ${outMessages.length} messages. Payload Sizes:`);
+        outMessages.forEach((m, i) => {
+            console.log(`  [${i}] ${m._getType()} : ${m.content?.length || 0} chars`);
+        });
+
+        const response = await model.invoke(outMessages, { tags: ["agent_llm"] });
 
         return { messages: [response] };
     };

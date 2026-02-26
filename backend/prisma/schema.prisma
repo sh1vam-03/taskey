@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 //======================
@@ -26,6 +27,7 @@ enum Mood {
 enum OtpPurpose {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+  SECURITY_ACTION
 }
 
 enum RecurrenceType {
@@ -117,7 +119,17 @@ model User {
   plan   PlanType      @default(FREE)
   status AccountStatus @default(ACTIVE)
 
-  aiCreditBalance Int @default(0)
+  subscriptionCredits          Int       @default(0)
+  topupCredits                 Int       @default(0)
+  subscriptionCreditsExpiresAt DateTime?
+
+  aiChatModel  String @default("gemini-1.5-flash")
+  aiVoiceModel String @default("gemini-1.5-flash")
+  aiTtsModel   String @default("bulbul:v3")
+  aiSttModel   String @default("saaras:v3")
+
+  aiSarvamLang    String @default("unknown")
+  aiSarvamSpeaker String @default("shubh")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -137,11 +149,17 @@ model User {
   payments             Payment[]
 
   // AI
-  aiUsages        AiUsage[]
-  aiTopUps        AiTopUp[]
-  aiConversations AiConversation[]
   aiMessages      AiMessage[]
   creditLedger    AiCreditLedger[]
+  aiConversations AiConversation[]
+  aiUsages        AiUsage[]
+  aiTopUps        AiTopUp[]
+
+  // Security
+  tokenVersion Int @default(1)
+
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
 
   @@index([email])
   @@index([status])
@@ -182,6 +200,8 @@ model Session {
   userAgent String?
   ipAddress String?
 
+  isPersistent Boolean @default(false)
+
   createdAt DateTime  @default(now())
   expiresAt DateTime
   revokedAt DateTime?
@@ -211,8 +231,9 @@ model Subscription {
   nextBillingAt DateTime
   lastBilledAt  DateTime?
 
-  isActive            Boolean   @default(true)
-  lastCreditGrantedAt DateTime?
+  isActive                Boolean   @default(true)
+  lastCreditGrantedAt     DateTime?
+  lastCreditDistributedAt DateTime? // tracks monthly drip for yearly plans
 
   razorpaySubscriptionId String? @unique
 
@@ -272,6 +293,7 @@ model Task {
   isArchived Boolean   @default(false)
   deletedAt  DateTime?
 
+  taskDate  DateTime @default(now()) @db.Date
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -470,6 +492,7 @@ model AiMessage {
 
   role    AiMessageRole
   content String
+  model   String?
 
   creditsUsed Int @default(0)
 

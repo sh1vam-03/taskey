@@ -1,6 +1,6 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { getCurrentMonthYear, toUTCDateOnly, startOfUTCDate, appliesOnDate } from "../utils/date.utils.js";
 import { validateSchedule } from "../ai/validators/schedule.validator.js";
 
 // Create Schedule
@@ -28,6 +28,11 @@ export const createSchedule = async (data) => {
         throw new ApiError(404, "Task not found");
     }
 
+    // Tasks with a due date cannot be scheduled
+    if (task.dueDate) {
+        throw new ApiError(400, "This task cannot be scheduled because it has a due date. To schedule a task, please create one without a due date.");
+    }
+
     // Normalize time
     // Normalize time (Force UTC to ensure consistent comparison)
     const normalizeStartTime = new Date(`1970-01-01T${startTime}:00Z`);
@@ -41,32 +46,38 @@ export const createSchedule = async (data) => {
         throw new ApiError(400, "End time must be greater than start time");
     }
 
-    const normalizeRepeatUntil = repeatUntil
-        ? new Date(`${repeatUntil}T23:59:59`)
-        : null;
+    // Parse repeatUntil as UTC end-of-day if provided
+    let normalizeRepeatUntil = null;
+    if (repeatUntil) {
+        normalizeRepeatUntil = toUTCDateOnly(repeatUntil);
+        normalizeRepeatUntil.setUTCHours(23, 59, 59, 999);
+    }
 
-    // Check conflicts
-    const existingSchedule = await prisma.schedule.findMany({
+    // Check conflicts — must check ALL schedules that expand onto this date
+    const allUserSchedules = await prisma.schedule.findMany({
         where: {
             userId,
-            scheduleDate: new Date(scheduleDate)
-        }
+            task: { is: { deletedAt: null } }
+        },
+        include: { task: { select: { id: true, title: true, dueDate: true } } }
     });
 
     // 1. Validator Logic (AI Requirement)
-    // This will throw an error if validation fails
     validateSchedule({
         scheduleDate,
         startTime,
         endTime
     });
 
-    // 2. Conflict Check (Detailed)
-    for (const schedule of existingSchedule) {
-        if (hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
+    // 2. Conflict Check — use appliesOnDate to find schedules that actually appear on this date
+    // Normalize scheduleDate to UTC Midnight
+    const targetDate = toUTCDateOnly(scheduleDate);
+
+    for (const schedule of allUserSchedules) {
+        if (appliesOnDate(schedule, targetDate) && hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(
                 409,
-                `Schedule conflict with existing "${task.title}"`
+                `Schedule conflict with existing "${schedule.task?.title || 'Unknown'}"`
             );
         }
     }
@@ -79,7 +90,7 @@ export const createSchedule = async (data) => {
     const duplicateWhere = {
         userId,
         taskId,
-        scheduleDate: new Date(scheduleDate),
+        scheduleDate: targetDate,
         startTime: normalizeStartTime,
         endTime: normalizeEndTime,
         recurrence,
@@ -101,7 +112,7 @@ export const createSchedule = async (data) => {
     // 1️⃣ Create schedule
     const schedule = await prisma.schedule.create({
         data: {
-            scheduleDate: new Date(scheduleDate),
+            scheduleDate: targetDate,
             startTime: normalizeStartTime,
             endTime: normalizeEndTime,
             recurrence,
@@ -112,49 +123,66 @@ export const createSchedule = async (data) => {
         }
     });
 
-    // 2️⃣ Increment schedule usage
-    const { month, year } = getCurrentMonthYear();
-
-    await prisma.usageStat.update({
-        where: {
-            userId_month_year: {
-                userId,
-                month,
-                year
-            }
-        },
-        data: {
-            scheduleCount: { increment: 1 }
-        }
-    });
+    // Usage increment is handled by the controller via incrementUsage()
 
     return schedule;
 };
 
 
-// Get All Schedules and Task Schedules
+// Local date helpers removed in favor of date.utils.js imports
+// startOfDay replaced by toUTCDateOnly/startOfUTCDate
+// appliesOnDate replaced by imported utility
+
+// Get All Schedules (Expanded Instances)
 export const getSchedules = async (userId, from, to, taskId) => {
+    // Default to Today -> Today + 30 days if no range provided
+    const startDate = from ? toUTCDateOnly(from) : startOfUTCDate();
 
-    const where = {
-        userId,
-    };
-
-    if (taskId) {
-        where.taskId = taskId;
+    let endDate;
+    if (to) {
+        endDate = toUTCDateOnly(to);
+    } else {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        endDate = startOfUTCDate(d);
     }
 
-    if (from && to) {
-        where.scheduleDate = {};
-        if (from) {
-            where.scheduleDate.gte = new Date(from);
-        }
-        if (to) {
-            where.scheduleDate.lte = new Date(to);
-        }
-    }
+    // Ensure strictly UTC midnight (toUTCDateOnly does this, but being explicit for range end)
+    // Actually toUTCDateOnly returns UTC midnight.
+    // For the range query we want to include the whole end day? 
+    // The previous code had `startDate.setUTCHours(0,0,0,0)` and didn't seem to set end of day for `endDate`.
+    // Let's look at logic.
+    // loops usually go <= endDate. 
+    // If we use < we might miss, <= is usually inclusive of 00:00:00 if strictly equal. 
+    // But let's check strict equality downstream or usage.
+    // The query uses lte: endDate.
+    // If endDate is 00:00:00, then it catches things ON that day at 00:00:00.
+    // Schedule dates are stored as UTC midnight. So `lte: 2026-02-17T00:00:00Z` matches.
 
+    // So simply normalizing to UTC midnight is correct.
+    endDate.setUTCHours(23, 59, 59, 999);
+
+    // 1. Fetch Definitions
     const schedules = await prisma.schedule.findMany({
-        where,
+        where: {
+            userId,
+            ...(taskId && { taskId }),
+            OR: [
+                {
+                    recurrence: "NONE",
+                    scheduleDate: { gte: startDate, lte: endDate }
+                },
+                {
+                    recurrence: { not: "NONE" },
+                    scheduleDate: { lte: endDate }, // Started before end of range
+                    OR: [
+                        { repeatUntil: null },
+                        { repeatUntil: { gte: startDate } } // Ends after start of range
+                    ]
+                }
+            ]
+        },
+        orderBy: { startTime: 'asc' },
         include: {
             task: {
                 select: {
@@ -162,31 +190,94 @@ export const getSchedules = async (userId, from, to, taskId) => {
                     title: true,
                     description: true,
                     priority: true,
-                    category: {
-                        select: {
-                            id: true,
-                            name: true,
-                            color: true
-                        }
-                    }
+                    dueDate: true
                 }
             }
-        }, orderBy: [
-            {
-                scheduleDate: "asc"
-            },
-            {
-                startTime: "asc"
-            }
-        ]
+        }
     });
-    return schedules;
+
+    // 2. Fetch Completions & Missed for Range
+    const [completions, missed] = await Promise.all([
+        prisma.scheduleCompletion.findMany({
+            where: {
+                userId,
+                completedOn: { gte: startDate, lte: endDate }
+            }
+        }),
+        prisma.missedSchedule.findMany({
+            where: {
+                userId,
+                missedOn: { gte: startDate, lte: endDate }
+            }
+        })
+    ]);
+
+    const completedMap = new Map(); // key: "YYYY-MM-DD", val: Set(scheduleId)
+    completions.forEach(c => {
+        const key = c.completedOn.toISOString().slice(0, 10);
+        if (!completedMap.has(key)) completedMap.set(key, new Set());
+        completedMap.get(key).add(c.scheduleId);
+    });
+
+    const missedMap = new Map();
+    missed.forEach(m => {
+        const key = m.missedOn.toISOString().slice(0, 10);
+        if (!missedMap.has(key)) missedMap.set(key, new Set());
+        missedMap.get(key).add(m.scheduleId);
+    });
+
+    // 3. Expand Instances
+    const instances = [];
+    const loopDate = new Date(startDate);
+
+    while (loopDate <= endDate) {
+        const dayKey = loopDate.toISOString().slice(0, 10);
+        const dayDate = new Date(loopDate); // copy
+
+        for (const s of schedules) {
+            if (appliesOnDate(s, dayDate)) {
+                let status = "PENDING";
+                if (completedMap.get(dayKey)?.has(s.id)) status = "COMPLETED";
+                else if (missedMap.get(dayKey)?.has(s.id)) status = "MISSED";
+
+                instances.push({
+                    id: s.id, // Keep original ID for editing
+                    scheduleId: s.id,
+                    taskId: s.taskId,
+                    title: s.task.title,
+                    description: s.task.description,
+                    priority: s.task.priority,
+                    category: s.task.category,
+                    scheduleDate: dayKey, // The specific instance date
+                    startTime: s.startTime ? s.startTime.toISOString().slice(11, 16) : null,
+                    endTime: s.endTime ? s.endTime.toISOString().slice(11, 16) : null,
+                    status,
+                    // Recurrence Details for Editing
+                    recurrence: s.recurrence,
+                    repeatUntil: s.repeatUntil ? s.repeatUntil.toISOString().split('T')[0] : null,
+                    repeatOnDays: s.repeatOnDays,
+                    notes: s.notes,
+                    startScheduleDate: s.scheduleDate // Original recurrence start date
+                });
+            }
+        }
+
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
+    }
+
+    // Sort by Date then Time
+    return instances.sort((a, b) => {
+        const dateA = new Date(`${a.scheduleDate}T${a.startTime || '00:00'}:00Z`);
+        const dateB = new Date(`${b.scheduleDate}T${b.startTime || '00:00'}:00Z`);
+        return dateA - dateB;
+    });
 };
 
 
 // Update schedule
 export const updateSchedule = async (userId, scheduleId, data) => {
     const {
+        taskId,
         scheduleDate,
         startTime,
         endTime,
@@ -238,14 +329,12 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     const normalizeRepeatUntil = repeatUntil ? new Date(`${repeatUntil}T23:59:59`) : null;
 
 
-    // Check for time conflicts
-    const existingSchedule = await prisma.schedule.findMany({
+    // Check for time conflicts — must check ALL schedules that expand onto this date
+    const allUserSchedules = await prisma.schedule.findMany({
         where: {
             userId,
-            scheduleDate: new Date(scheduleDate),
-            NOT: {
-                id: scheduleId
-            },
+            NOT: { id: scheduleId },
+            task: { is: { deletedAt: null } }
         },
         include: {
             task: {
@@ -254,18 +343,19 @@ export const updateSchedule = async (userId, scheduleId, data) => {
         }
     });
 
-    for (const schedule of existingSchedule) {
-        if (hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
+    const targetDate = toUTCDateOnly(scheduleDate);
+    for (const schedule of allUserSchedules) {
+        if (appliesOnDate(schedule, targetDate) && hasTimeConflict(schedule, normalizeStartTime, normalizeEndTime)) {
             throw new ApiError(409,
-                `Schedule conflict with existing "${schedule.task.title}" - (${schedule.startTime} - ${schedule.endTime})`);
+                `Schedule conflict with existing "${schedule.task?.title || 'Unknown'}" (${schedule.startTime} - ${schedule.endTime})`);
         }
     }
 
     // Duplicate where to check the schedule is already exists or not
     const duplicateWhere = {
         userId,
-        taskId: existing.taskId,
-        scheduleDate: new Date(scheduleDate),
+        taskId: taskId || existing.taskId,
+        scheduleDate: targetDate,
         startTime: normalizeStartTime,
         endTime: normalizeEndTime,
         recurrence,
@@ -297,12 +387,13 @@ export const updateSchedule = async (userId, scheduleId, data) => {
             id: scheduleId,
         },
         data: {
-            scheduleDate: new Date(scheduleDate),
+            scheduleDate: targetDate,
             startTime: normalizeStartTime,
             endTime: normalizeEndTime,
             recurrence,
             repeatUntil: normalizeRepeatUntil,
             repeatOnDays: repeatOnDays ?? [],
+            taskId: taskId || existing.taskId,
             notes,
         }
     });

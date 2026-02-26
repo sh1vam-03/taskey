@@ -1,50 +1,12 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { buildDailyStatsMap } from "./dashboard.service.js";
-import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { getCurrentMonthYear, toUTCDateOnly, startOfUTCDate } from "../utils/date.utils.js";
+import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
 
-/* -------------------------------------------------------------------------- */
-/*                               DATE UTILS                                   */
-/* -------------------------------------------------------------------------- */
+// Local date utils removed in favor of centralized date.utils.js
 
-export const toUTCDate = (input) => {
-    const d = input instanceof Date ? input : new Date(input);
-    if (isNaN(d.getTime())) return null;
-
-    return new Date(Date.UTC(
-        d.getUTCFullYear(),
-        d.getUTCMonth(),
-        d.getUTCDate()
-    ));
-};
-
-/* -------------------------------------------------------------------------- */
-/*                       PRODUCTIVITY SCORE (DERIVED)                          */
-/* -------------------------------------------------------------------------- */
-
-const clamp = (v, min = 0, max = 100) =>
-    Math.max(min, Math.min(max, v));
-
-export const calculateProductivityScore = ({
-    total,
-    completed,
-    missed,
-    sleepHours,
-    exercise
-}) => {
-    if (!total || total === 0) return 0;
-
-    let score = (completed / total) * 100;
-
-    // strong signal
-    score -= missed * 5;
-
-    // mild lifestyle modifiers
-    if (sleepHours != null && sleepHours < 5) score -= 5;
-    if (exercise === true) score += 3;
-
-    return clamp(Math.round(score));
-};
+// toUTCDate removed
 
 /* -------------------------------------------------------------------------- */
 /*                           UPSERT (NO SCORE)                                 */
@@ -57,11 +19,15 @@ export const upsertBehaviorLog = async (userId, payload) => {
 
     if (!mood) throw new ApiError(400, "Mood is required");
 
-    const day = toUTCDate(date ?? new Date());
+    // Use toUTCDateOnly if date string provided, else startOfUTCDate for today
+    const day = date ? toUTCDateOnly(date) : startOfUTCDate();
     if (!day) throw new ApiError(400, "Invalid date");
 
-    const today = toUTCDate(new Date());
-    if (day > today) {
+    const today = startOfUTCDate();
+    const maxDate = new Date(today);
+    maxDate.setUTCDate(today.getUTCDate() + 1); // Allow 1 day buffer for timezone differences
+
+    if (day > maxDate) {
         throw new ApiError(400, "Future dates are not allowed");
     }
 
@@ -71,6 +37,10 @@ export const upsertBehaviorLog = async (userId, payload) => {
             userId_date: { userId, date: day }
         }
     });
+
+    const isNew = !existing;
+
+    // Usage limit check is handled by the controller
 
     // 2️⃣ Upsert behavior
     const behavior = await prisma.behaviorLog.upsert({
@@ -89,34 +59,29 @@ export const upsertBehaviorLog = async (userId, payload) => {
             mood,
             notes,
             sleepHours,
-            exercise,
+            exercise
         }
     });
 
-    /**
-     * 3️⃣ Increment usage ONLY if it's a NEW record
-     * (editing same day should NOT count again)
-     */
-    if (!existing) {
-        const { month, year } = getCurrentMonthYear();
+    // Usage increment is handled by the controller via incrementUsage()
+    return { ...behavior, isNew };
+};
 
-        await prisma.usageStat.update({
-            where: {
-                userId_month_year: {
-                    userId,
-                    month,
-                    year
-                }
-            },
-            data: {
-                behaviorCount: { increment: 1 }
-            }
-        });
-    }
+
+/* -------------------------------------------------------------------------- */
+/*                         GET LATEST BEHAVIOR                                 */
+/* -------------------------------------------------------------------------- */
+
+export const getLatestBehaviorLog = async (userId) => {
+    if (!userId) throw new ApiError(401, "Unauthorized");
+
+    const behavior = await prisma.behaviorLog.findFirst({
+        where: { userId },
+        orderBy: { date: "desc" }
+    });
 
     return behavior;
 };
-
 
 /* -------------------------------------------------------------------------- */
 /*                         GET BEHAVIOR BY DATE                                */
@@ -125,7 +90,7 @@ export const upsertBehaviorLog = async (userId, payload) => {
 export const getBehaviorLogByDate = async (userId, date) => {
     if (!userId) throw new ApiError(401, "Unauthorized");
 
-    const day = toUTCDate(date);
+    const day = toUTCDateOnly(date);
     if (!day) throw new ApiError(400, "Invalid date");
 
     const behavior = await prisma.behaviorLog.findUnique({
@@ -147,10 +112,21 @@ export const getBehaviorLogByDate = async (userId, date) => {
 
     return {
         ...behavior,
+        behaviorScore: calculateBehaviorScore({
+            sleepHours: behavior.sleepHours,
+            exercise: behavior.exercise,
+            mood: behavior.mood
+        }),
         productivityScore: calculateProductivityScore({
             ...stats,
             sleepHours: behavior.sleepHours,
-            exercise: behavior.exercise
+            exercise: behavior.exercise,
+            mood: behavior.mood,
+            behaviorScore: calculateBehaviorScore({
+                sleepHours: behavior.sleepHours,
+                exercise: behavior.exercise,
+                mood: behavior.mood
+            })
         })
     };
 };
@@ -165,7 +141,10 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         throw new ApiError(400, "Days must be between 1 and 90");
     }
 
-    const end = toUTCDate(new Date());
+    // End date includes tomorrow (buffer for timezone)
+    const end = startOfUTCDate();
+    end.setUTCDate(end.getUTCDate() + 1);
+
     const start = new Date(end);
     start.setUTCDate(end.getUTCDate() - (days - 1));
 
@@ -181,40 +160,79 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         return {
             avgProductivity: 0,
             moodDistribution: {},
-            daysLogged: 0
+            daysLogged: 0,
+            history: [] // Add empty history
         };
     }
 
     let totalScore = 0;
     const moodDistribution = {};
+    const history = [];
 
-    for (const log of logs) {
-        const statsMap = await buildDailyStatsMap(userId, log.date, log.date);
-        const key = log.date.toISOString().slice(0, 10);
+    // Create a map of existing logs for quick lookup
+    const logsMap = new Map();
+    logs.forEach(log => {
+        logsMap.set(log.date.toISOString().slice(0, 10), log);
+    });
 
-        const stats = statsMap[key] ?? {
-            total: 0,
-            completed: 0,
-            missed: 0
-        };
+    // ⚡ OPTIMIZATION: Fetch stats for the ENTIRE range once, instead of inside the loop
+    const statsMap = await buildDailyStatsMap(userId, start, end);
 
-        const score = calculateProductivityScore({
-            ...stats,
-            sleepHours: log.sleepHours,
-            exercise: log.exercise
+    // Iterate through EACH day in the range to build history (filling gaps)
+    const loopDate = new Date(start);
+    while (loopDate <= end) {
+        const key = loopDate.toISOString().slice(0, 10);
+        // const dayDate = new Date(loopDate); // No longer needed for individual fetch
+        const log = logsMap.get(key);
+
+        let behaviorScore = 0;
+        let productivityScore = 0;
+
+        if (log) {
+            // Calculate score for existing log
+            // const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate); // OLD SLOW WAY
+            const stats = statsMap[key] ?? { total: 0, completed: 0, missed: 0 };
+
+            const bScore = calculateBehaviorScore({
+                sleepHours: log.sleepHours,
+                exercise: log.exercise,
+                mood: log.mood
+            });
+
+            const pScore = calculateProductivityScore({
+                ...stats,
+                behaviorScore: bScore
+            });
+
+            behaviorScore = bScore;
+            productivityScore = pScore;
+
+            // Accumulate metadata for summary stats only from existing logs
+            totalScore += pScore; // Keep average based on productivity? Or behavior? Let's keep productivity for "Average Productivity" if usage implies.
+            // Actually, if the user wants "Behavior Score" focus, maybe average should be behavior?
+            // "avgProductivity" is the return key.
+            // I'll keep totalScore as productivity for now to minimize breakage, but I will return both in history.
+            moodDistribution[log.mood] = (moodDistribution[log.mood] || 0) + 1;
+        }
+
+        history.push({
+            date: key,
+            behaviorScore,
+            productivityScore,
+            score: productivityScore // Fallback
         });
 
-        totalScore += score;
-        moodDistribution[log.mood] =
-            (moodDistribution[log.mood] || 0) + 1;
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
     }
 
     return {
-        avgProductivity: Math.round(totalScore / logs.length),
+        avgProductivity: logs.length > 0 ? Math.round(totalScore / logs.length) : 0,
         moodDistribution,
-        daysLogged: logs.length
+        daysLogged: logs.length,
+        history
     };
 };
+
 
 /**
  * Explain why a productivity score was high or low
@@ -225,7 +243,7 @@ export const explainProductivityScore = async (userId, date) => {
         throw new ApiError(401, "Unauthorized");
     }
 
-    const day = toUTCDate(date ?? new Date());
+    const day = date ? toUTCDateOnly(date) : startOfUTCDate();
     if (!day) {
         throw new ApiError(400, "Invalid date");
     }

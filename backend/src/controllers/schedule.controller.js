@@ -1,7 +1,8 @@
 import * as scheduleService from "../services/schedule.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
-import { nextDay } from "date-fns";
+import { toUTCDateOnly } from "../utils/date.utils.js";
+import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
 /**
  * @route POST /api/schedules
@@ -15,6 +16,9 @@ export const createSchedule = asyncHandler(async (req, res) => {
     if (!taskId || !scheduleDate || !startTime || !endTime) {
         throw new ApiError(400, "Required fields are missing");
     }
+
+    // Check Limit
+    await checkUsageLimit(userId, 'schedule');
 
     const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -55,8 +59,8 @@ export const createSchedule = asyncHandler(async (req, res) => {
         }
 
         for (const day of repeatOnDays) {
-            if (day < 1 || day > 7) {
-                throw new ApiError(400, "Invalid day of week");
+            if (day < 0 || day > 6) {
+                throw new ApiError(400, "Invalid day of week (0-6 required)");
             }
         }
     }
@@ -82,6 +86,10 @@ export const createSchedule = asyncHandler(async (req, res) => {
         repeatUntil,
         repeatOnDays
     });
+
+    // Increment Usage
+    await incrementUsage(userId, 'schedule');
+
     res.status(201).json({
         success: true,
         message: "Schedule created successfully",
@@ -100,8 +108,12 @@ export const getSchedules = asyncHandler(async (req, res) => {
     const { from, to, taskId } = req.query;
 
     if (from || to) {
-        if (from > to) {
-            throw new ApiError(400, "from must be less than to");
+        if (from && to) {
+            const fromDate = toUTCDateOnly(from);
+            const toDate = toUTCDateOnly(to);
+            if (fromDate > toDate) {
+                throw new ApiError(400, "from must be less than to");
+            }
         }
     }
 
@@ -123,9 +135,9 @@ export const getSchedules = asyncHandler(async (req, res) => {
 export const updateSchedule = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const scheduleId = req.params.id;
-    const { scheduleDate, startTime, endTime, recurrence = "NONE", repeatUntil, repeatOnDays, notes } = req.body;
+    const { taskId, scheduleDate, startTime, endTime, recurrence = "NONE", repeatUntil, repeatOnDays, notes } = req.body;
 
-    if (!scheduleDate || !startTime || !endTime) {
+    if (!scheduleDate || !startTime || !endTime || !taskId) {
         throw new ApiError(400, "Required fields are missing");
     }
 
@@ -168,8 +180,8 @@ export const updateSchedule = asyncHandler(async (req, res) => {
         }
 
         for (const day of repeatOnDays) {
-            if (day < 1 || day > 7) {
-                throw new ApiError(400, "Invalid day of week");
+            if (day < 0 || day > 6) {
+                throw new ApiError(400, "Invalid day of week (0-6 required)");
             }
         }
     }
@@ -190,6 +202,7 @@ export const updateSchedule = asyncHandler(async (req, res) => {
         userId,
         scheduleId,
         {
+            taskId,
             scheduleDate,
             startTime,
             endTime,

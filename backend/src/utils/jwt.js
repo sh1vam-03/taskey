@@ -9,13 +9,13 @@ export const generateJti = () => crypto.randomUUID();
 // =======================
 // ACCESS TOKEN
 // =======================
-export const signAccessToken = ({ userId, jti }) => {
-    if (!userId || !jti) {
-        throw new Error("userId and jti are required to sign access token");
+export const signAccessToken = ({ userId, tokenVersion, jti }) => {
+    if (!userId || !jti || !tokenVersion) {
+        throw new Error("userId, tokenVersion, and jti are required to sign access token");
     }
 
     return jwt.sign(
-        { userId, jti },
+        { userId, tokenVersion, jti },
         process.env.JWT_ACCESS_SECRET,
         {
             expiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
@@ -30,13 +30,13 @@ export const verifyAccessToken = (token) => {
 // =======================
 // REFRESH TOKEN
 // =======================
-export const signRefreshToken = ({ userId, jti }) => {
-    if (!userId || !jti) {
-        throw new Error("userId and jti are required to sign refresh token");
+export const signRefreshToken = ({ userId, tokenVersion, jti }) => {
+    if (!userId || !jti || !tokenVersion) {
+        throw new Error("userId, tokenVersion, and jti are required to sign refresh token");
     }
 
     return jwt.sign(
-        { userId, jti },
+        { userId, tokenVersion, jti },
         process.env.JWT_REFRESH_SECRET,
         {
             expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,

@@ -3,9 +3,13 @@ import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 import {
     signAccessToken,
     signRefreshToken,
+    verifyRefreshToken,
     generateJti,
 } from "../utils/jwt.js";
-import { generateOtp } from "../utils/otp.js";
+import { generateOtp, hashOtp } from "../utils/otp.js";
+import { PLANS } from "../config/plans.config.js";
+import { PlanType } from "@prisma/client";
+import { sendOtpEmail, sendPasswordResetEmail } from "./email.service.js";
 import { addMinutes, addDays } from "date-fns";
 import {
     OtpPurpose,
@@ -33,18 +37,27 @@ export const signup = async (name, email, password) => {
             name,
             email,
             password: hashedPassword,
+            subscriptionCredits: PLANS[PlanType.FREE].credits.MONTHLY || 0,
+            topupCredits: 0
         },
     });
 
+    // Generate secure OTP
     const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
 
     await prisma.otp.create({
         data: {
-            code: otp,
+            code: hashedOtp,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             expiresAt: addMinutes(new Date(), 10),
             userId: user.id,
         },
+    });
+
+    await sendOtpEmail({
+        to: user.email,
+        otp: otp,
     });
 
     return {
@@ -63,10 +76,12 @@ export const verifyOtp = async (email, otpCode) => {
 
     if (!user) throw new ApiError(404, "User not found");
 
+    const hashedInputOtp = hashOtp(otpCode);
+
     const otpRecord = await prisma.otp.findFirst({
         where: {
             userId: user.id,
-            code: otpCode,
+            code: hashedInputOtp,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             isUsed: false,
             expiresAt: { gte: new Date() },
@@ -94,7 +109,7 @@ export const verifyOtp = async (email, otpCode) => {
 /* =========================
    LOGIN
 ========================= */
-export const login = async (email, password, userAgent, ipAddress) => {
+export const login = async (email, password, userAgent, ipAddress, remember = false) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
@@ -120,16 +135,17 @@ export const login = async (email, password, userAgent, ipAddress) => {
         throw new ApiError(401, "Invalid email or password");
     }
 
-    // Generate session
     const jti = generateJti();
 
     const accessToken = signAccessToken({
         userId: user.id,
+        tokenVersion: user.tokenVersion,
         jti,
     });
 
     const refreshToken = signRefreshToken({
         userId: user.id,
+        tokenVersion: user.tokenVersion,
         jti,
     });
 
@@ -144,7 +160,10 @@ export const login = async (email, password, userAgent, ipAddress) => {
             refreshTokenHash,
             userAgent,
             ipAddress,
-            expiresAt: addDays(new Date(), 30),
+            expiresAt: remember
+                ? addDays(new Date(), 21)
+                : addMinutes(new Date(), 30),
+            isPersistent: remember,
             userId: user.id,
         },
     });
@@ -157,12 +176,16 @@ export const login = async (email, password, userAgent, ipAddress) => {
             name: user.name,
             email: user.email,
             plan: user.plan,
+            createdAt: user.createdAt,
+            subscriptionCredits: user.subscriptionCredits || 0,
+            topupCredits: user.topupCredits || 0,
+            timezone: user.timezone,
         },
     };
 };
 
 /* =========================
-   LOGOUT (SINGLE DEVICE)
+   LOGOUT
 ========================= */
 export const logout = async (sessionId) => {
     await prisma.session.update({
@@ -196,88 +219,344 @@ export const otpRequest = async (email) => {
         data: { isUsed: true },
     });
 
-    const otpCode = generateOtp();
+    const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
 
     await prisma.otp.create({
         data: {
-            code: otpCode,
+            code: hashedOtp,
             purpose: OtpPurpose.EMAIL_VERIFICATION,
             expiresAt: addMinutes(new Date(), 10),
             userId: user.id,
         },
     });
 
+    await sendOtpEmail({
+        to: user.email,
+        otp: otp,
+    });
+
     return { message: "OTP sent successfully" };
 };
 
 /* =========================
-   FORGOT PASSWORD OTP
+   FORGOT PASSWORD
 ========================= */
-export const forgotPasswordOtp = async (email) => {
+export const forgotPassword = async (email) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
 
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) {
+        throw new ApiError(404, "User with this email does not exist");
+    }
 
-    const otpCode = generateOtp();
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    await prisma.otp.create({
+    const passwordResetToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    const passwordResetExpires = addMinutes(new Date(), 15);
+
+    await prisma.user.update({
+        where: { id: user.id },
         data: {
-            code: otpCode,
-            purpose: OtpPurpose.PASSWORD_RESET,
-            expiresAt: addMinutes(new Date(), 10),
-            userId: user.id,
+            passwordResetToken,
+            passwordResetExpires,
         },
     });
 
-    return { message: "OTP sent successfully" };
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    await sendPasswordResetEmail({
+        to: user.email,
+        resetLink,
+    });
+
+    return { message: "Reset link has been sent to your email." };
 };
 
 /* =========================
    RESET PASSWORD
 ========================= */
-export const resetPassword = async (email, otp, password) => {
-    const user = await prisma.user.findUnique({
-        where: { email },
-    });
+export const resetPassword = async (token, password) => {
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
 
-    if (!user) throw new ApiError(404, "User not found");
-
-    const otpRecord = await prisma.otp.findFirst({
+    const user = await prisma.user.findFirst({
         where: {
-            userId: user.id,
-            code: otp,
-            purpose: OtpPurpose.PASSWORD_RESET,
-            isUsed: false,
-            expiresAt: { gte: new Date() },
+            passwordResetToken: hashedToken,
+            passwordResetExpires: { gt: new Date() },
         },
     });
 
-    if (!otpRecord) {
-        throw new ApiError(400, "Invalid or expired OTP");
+    if (!user) {
+        throw new ApiError(400, "Token is invalid or has expired");
     }
 
     const hashedPassword = await hashPassword(password);
 
-    await prisma.$transaction([
-        prisma.user.update({
-            where: { id: user.id },
-            data: { password: hashedPassword },
-        }),
-        prisma.otp.update({
-            where: { id: otpRecord.id },
-            data: { isUsed: true },
-        }),
-    ]);
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            password: hashedPassword,
+            passwordResetToken: null,
+            passwordResetExpires: null,
+            tokenVersion: { increment: 1 }
+        },
+    });
+
+    await prisma.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() }
+    });
 
     return { message: "Password reset successfully" };
 };
 
 /* =========================
-   DELETE ACCOUNT
+   REFRESH TOKEN
 ========================= */
-export const deleteMyAccount = async (userId) => {
+export const refreshToken = async (refreshToken) => {
+    if (!refreshToken) {
+        throw new ApiError(401, "Refresh token required");
+    }
+
+    let decoded;
+    try {
+        decoded = verifyRefreshToken(refreshToken);
+    } catch {
+        throw new ApiError(401, "Invalid refresh token");
+    }
+
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
+
+    const session = await prisma.session.findFirst({
+        where: {
+            refreshTokenHash,
+            revokedAt: null,
+            expiresAt: {
+                gt: new Date(),
+            },
+        },
+        include: {
+            user: true,
+        },
+    });
+
+    if (!session) {
+        throw new ApiError(401, "Session expired");
+    }
+
+    if (decoded.tokenVersion !== session.user.tokenVersion) {
+        throw new ApiError(401, "Token revoked");
+    }
+
+    const newJti = generateJti();
+
+    const newAccessToken = signAccessToken({
+        userId: session.userId,
+        tokenVersion: session.user.tokenVersion,
+        jti: newJti,
+    });
+
+    const newRefreshToken = signRefreshToken({
+        userId: session.userId,
+        tokenVersion: session.user.tokenVersion,
+        jti: newJti,
+    });
+
+    const newRefreshTokenHash = crypto
+        .createHash("sha256")
+        .update(newRefreshToken)
+        .digest("hex");
+
+    await prisma.$transaction([
+        prisma.session.update({
+            where: { id: session.id },
+            data: { revokedAt: new Date() },
+        }),
+        prisma.session.create({
+            data: {
+                accessTokenJti: newJti,
+                refreshTokenHash: newRefreshTokenHash,
+                userAgent: session.userAgent,
+                ipAddress: session.ipAddress,
+                expiresAt: session.isPersistent
+                    ? addDays(new Date(), 21)
+                    : addMinutes(new Date(), 30),
+                isPersistent: session.isPersistent,
+                userId: session.userId,
+            },
+        }),
+    ]);
+
+    return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        isPersistent: session.isPersistent,
+    };
+};
+
+/* =========================
+   LOGOUT ALL
+========================= */
+export const logoutAll = async (userId) => {
+    await prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } }
+    });
+
+    await prisma.session.updateMany({
+        where: {
+            userId,
+            revokedAt: null,
+        },
+        data: {
+            revokedAt: new Date(),
+        },
+    });
+
+    return { message: "Logged out from all devices" };
+};
+
+/* =========================
+   UPDATE PROFILE
+========================= */
+export const updateProfile = async (userId, data) => {
+    const { name, timezone } = data;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (timezone) updateData.timezone = timezone;
+
+    const user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+            id: true,
+            name: true,
+            email: true, // Read-only
+            plan: true,
+            isEmailVerified: true,
+            createdAt: true,
+            subscriptionCredits: true,
+            topupCredits: true,
+            timezone: true,
+        }
+    });
+
+    return user;
+};
+
+/* =========================
+   REQUEST SECURITY OTP
+========================= */
+export const requestSecurityOtp = async (userId, currentPassword = null) => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new ApiError(404, "User not found");
+
+    // Optional: Pre-validate password if provided (e.g. for Change Password flow)
+    if (currentPassword) {
+        const isPasswordValid = await comparePassword(currentPassword, user.password);
+        if (!isPasswordValid) throw new ApiError(400, "Incorrect current password");
+    }
+
+    // Invalidate old security OTPs
+    await prisma.otp.updateMany({
+        where: { userId, purpose: OtpPurpose.SECURITY_ACTION, isUsed: false },
+        data: { isUsed: true }
+    });
+
+    const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
+
+    await prisma.otp.create({
+        data: {
+            code: hashedOtp,
+            purpose: OtpPurpose.SECURITY_ACTION,
+            expiresAt: addMinutes(new Date(), 10),
+            userId: user.id
+        }
+    });
+
+    await sendOtpEmail({ to: user.email, otp, subject: "Your Security Code" });
+
+    return { message: "Security code sent to your email" };
+};
+
+/* =========================
+   VERIFY SECURITY OTP HElPER
+========================= */
+const verifySecurityOtp = async (userId, otpCode) => {
+    const hashedInputOtp = hashOtp(otpCode);
+
+    const otpRecord = await prisma.otp.findFirst({
+        where: {
+            userId,
+            code: hashedInputOtp,
+            purpose: OtpPurpose.SECURITY_ACTION,
+            isUsed: false,
+            expiresAt: { gte: new Date() }
+        }
+    });
+
+    if (!otpRecord) throw new ApiError(400, "Invalid or expired security code");
+
+    await prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { isUsed: true }
+    });
+
+    return true;
+};
+
+/* =========================
+   CHANGE PASSWORD (OTP)
+========================= */
+export const changePassword = async (userId, oldPassword, newPassword, otp) => {
+    if (!otp) throw new ApiError(400, "Security OTP is required");
+    await verifySecurityOtp(userId, otp);
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+
+    if (!user) throw new ApiError(404, "User not found");
+
+    const isPasswordValid = await comparePassword(oldPassword, user.password);
+    if (!isPasswordValid) {
+        throw new ApiError(400, "Incorrect current password");
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            password: hashedPassword,
+            tokenVersion: { increment: 1 }
+        },
+    });
+
+    return { message: "Password updated successfully" };
+};
+
+/* =========================
+   DELETE ACCOUNT (OTP)
+========================= */
+export const deleteMyAccount = async (userId, otp) => {
+    if (!otp) throw new ApiError(400, "Security OTP is required");
+    await verifySecurityOtp(userId, otp);
+
     await prisma.user.delete({
         where: { id: userId },
     });
@@ -298,110 +577,11 @@ export const getMyProfile = async (userId) => {
             plan: true,
             isEmailVerified: true,
             createdAt: true,
+            subscriptionCredits: true,
+            topupCredits: true,
+            timezone: true,
         },
-    });
-
-    if (!user) throw new ApiError(404, "User not found");
+    }); if (!user) throw new ApiError(404, "User not found");
 
     return user;
-};
-
-
-
-/* =========================
-   REFRESH TOKEN
-========================= */
-export const refreshToken = async (refreshToken) => {
-    if (!refreshToken) {
-        throw new ApiError(401, "Refresh token required");
-    }
-
-    let decoded;
-    try {
-        decoded = verifyRefreshToken(refreshToken);
-    } catch {
-        throw new ApiError(401, "Invalid refresh token");
-    }
-
-    // Hash incoming refresh token
-    const refreshTokenHash = crypto
-        .createHash("sha256")
-        .update(refreshToken)
-        .digest("hex");
-
-    // Find existing session
-    const session = await prisma.session.findFirst({
-        where: {
-            refreshTokenHash,
-            revokedAt: null,
-            expiresAt: {
-                gt: new Date(),
-            },
-        },
-        include: {
-            user: true,
-        },
-    });
-
-    if (!session) {
-        throw new ApiError(401, "Session expired");
-    }
-
-    // Rotate session (VERY IMPORTANT)
-    const newJti = generateJti();
-
-    const newAccessToken = signAccessToken({
-        userId: session.userId,
-        jti: newJti,
-    });
-
-    const newRefreshToken = signRefreshToken({
-        userId: session.userId,
-        jti: newJti,
-    });
-
-    const newRefreshTokenHash = crypto
-        .createHash("sha256")
-        .update(newRefreshToken)
-        .digest("hex");
-
-    // Revoke old session & create new one
-    await prisma.$transaction([
-        prisma.session.update({
-            where: { id: session.id },
-            data: { revokedAt: new Date() },
-        }),
-        prisma.session.create({
-            data: {
-                accessTokenJti: newJti,
-                refreshTokenHash: newRefreshTokenHash,
-                userAgent: session.userAgent,
-                ipAddress: session.ipAddress,
-                expiresAt: addDays(new Date(), 30),
-                userId: session.userId,
-            },
-        }),
-    ]);
-
-    return {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-    };
-};
-
-/* =========================
-   LOGOUT ALL SESSIONS
-========================= */
-export const logoutAll = async (userId) => {
-    await prisma.session.updateMany({
-        where: {
-            userId,
-            revokedAt: null,
-        },
-        data: {
-            revokedAt: new Date(),
-        },
-    });
-
-    return { message: "Logged out from all devices" };
 };

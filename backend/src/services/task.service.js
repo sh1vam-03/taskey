@@ -1,9 +1,9 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { getCurrentMonthYear, startOfUTCDate, toUTCDateOnly } from "../utils/date.utils.js";
 
 export const createTask = async (userId, taskData) => {
-    const { title, description, priority, dueDate, categoryId } = taskData;
+    const { title, description, priority, dueDate, taskDate, categoryId } = taskData;
 
     // Validate category if provided
     if (categoryId) {
@@ -25,27 +25,14 @@ export const createTask = async (userId, taskData) => {
             title,
             description,
             priority,
-            dueDate: dueDate ? new Date(dueDate) : null,
+            dueDate: dueDate ? toUTCDateOnly(dueDate) : null,
+            taskDate,
             categoryId,
             userId,
         },
     });
 
-    // 2️⃣ Increment monthly task usage
-    const { month, year } = getCurrentMonthYear();
-
-    await prisma.usageStat.update({
-        where: {
-            userId_month_year: {
-                userId,
-                month,
-                year,
-            },
-        },
-        data: {
-            taskCount: { increment: 1 },
-        },
-    });
+    // Usage increment is handled by the controller via incrementUsage()
 
     return task;
 };
@@ -56,29 +43,35 @@ export const getTasks = async (userId, query) => {
     const {
         categoryId,
         priority,
-        isArchived,
         search,
         page = 1,
         limit = 10,
         sortBy = 'createdAt',
-        sortOrder = 'desc'
+        sortOrder = 'desc',
+        includeArchived = 'false',
+        excludeCompleted,
+        date,
+        dueDate
     } = query;
 
     const where = {
         userId,
-        deletedAt: null,
+        deletedAt: null
+    };
+
+    // Archived Check
+    if (includeArchived === 'true') {
+        where.isArchived = true;
+    } else {
+        where.isArchived = false;
     }
 
-    if (categoryId) {
+    if (categoryId && categoryId !== 'ALL') {
         where.categoryId = categoryId;
     }
 
-    if (priority) {
+    if (priority && priority !== 'ALL') {
         where.priority = priority;
-    }
-
-    if (isArchived !== undefined) {
-        where.isArchived = isArchived === 'true';
     }
 
     if (search) {
@@ -88,7 +81,65 @@ export const getTasks = async (userId, query) => {
         };
     }
 
-    // pagination
+    // Determine Date Mode (Today/Calendar vs Master List)
+    const completionContextDate = date
+        ? toUTCDateOnly(date)
+        : (dueDate ? toUTCDateOnly(dueDate) : null);
+
+    // Completion Filter (Only in Date Mode)
+    if (completionContextDate && excludeCompleted === 'true') {
+        where.dailyCompletions = {
+            none: {
+                completedDate: completionContextDate
+            }
+        };
+    }
+
+    // Smart Date Filter (Only if dueDate is provided - Date Mode)
+    if (dueDate) {
+        const targetDate = toUTCDateOnly(dueDate);
+        const targetEnd = new Date(targetDate);
+        targetEnd.setUTCDate(targetDate.getUTCDate() + 1);
+        const dayOfWeek = targetDate.getUTCDay();
+
+        where.OR = [
+            // 1. Unscheduled & Created on this day
+            { AND: [{ dueDate: null }, { createdAt: { gte: targetDate, lt: targetEnd } }] },
+
+            // 2. Completed on this day
+            { dailyCompletions: { some: { completedDate: targetDate } } },
+
+            // 3. Scheduled on this day (Recurrence logic)
+            {
+                schedules: {
+                    some: {
+                        OR: [
+                            // Single Occurrence on Target Date
+                            { recurrence: 'NONE', scheduleDate: { gte: targetDate, lt: targetEnd } },
+
+                            // Recurring Active
+                            {
+                                recurrence: { in: ['DAILY', 'WEEKLY', 'MONTHLY'] },
+                                scheduleDate: { lte: targetDate },
+                                AND: [
+                                    { OR: [{ repeatUntil: null }, { repeatUntil: { gte: targetDate } }] },
+                                    {
+                                        OR: [
+                                            { recurrence: 'DAILY' },
+                                            { recurrence: 'WEEKLY', repeatOnDays: { has: dayOfWeek } },
+                                            { recurrence: 'MONTHLY' }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        ];
+    }
+
+    // Pagination
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
 
@@ -102,14 +153,56 @@ export const getTasks = async (userId, query) => {
                 [sortBy]: sortOrder
             },
             include: {
-                category: true
+                category: true,
+                schedules: true,
+                dailyCompletions: completionContextDate ? {
+                    where: {
+                        completedDate: completionContextDate
+                    }
+                } : false
             }
         }),
         prisma.task.count({ where })
     ]);
 
+    // Format response
+    const formattedTasks = tasks.map(task => {
+        const primarySchedule = task.schedules && task.schedules.length > 0 ? task.schedules[0] : null;
+
+        // Status Logic
+        let status = 'ACTIVE';
+        if (completionContextDate) {
+            status = task.dailyCompletions && task.dailyCompletions.length > 0 ? 'COMPLETED' : 'PENDING';
+        }
+
+        return {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            isArchived: task.isArchived,
+            createdAt: task.createdAt,
+            category: task.category ? {
+                id: task.category.id,
+                name: task.category.name,
+                color: task.category.color,
+                icon: task.category.icon
+            } : null,
+            schedule: primarySchedule ? {
+                type: primarySchedule.recurrence,
+                date: primarySchedule.scheduleDate,
+                days: primarySchedule.repeatOnDays,
+                until: primarySchedule.repeatUntil,
+                time: primarySchedule.startTime,
+                endTime: primarySchedule.endTime
+            } : null,
+            status
+        };
+    });
+
     return {
-        tasks,
+        tasks: formattedTasks,
         meta: {
             total,
             page: Number(page),
@@ -117,7 +210,7 @@ export const getTasks = async (userId, query) => {
             totalPages: Math.ceil(total / limit)
         }
     };
-}
+};
 
 
 export const getTask = async (userId, taskId) => {
@@ -186,7 +279,7 @@ export const updateTask = async (userId, taskId, taskData) => {
     }
 
     if (taskData.dueDate !== undefined) {
-        data.dueDate = taskData.dueDate ? new Date(taskData.dueDate) : null;
+        data.dueDate = taskData.dueDate ? toUTCDateOnly(taskData.dueDate) : null;
     }
 
     if (taskData.categoryId !== undefined) {

@@ -4,9 +4,22 @@ import ApiError from "../utils/ApiError.js";
 
 export const completeSchedule = asyncHandler(async (req, res) => {
     const { id: userId } = req.user;
-    const { id } = req.params;
+    let { id } = req.params;
+    let { date } = req.body; // Extract date
 
-    const data = await service.completeSchedule(id, userId);
+    // Handle Composite ID (UUID-YYYY-MM-DD)
+    // If id length > 36 (UUID is 36), it likely contains date
+    if (id && id.length > 36) {
+        // Expected format: UUID(36)-YYYY-MM-DD
+        const scheduleIdPart = id.slice(0, 36);
+        const datePart = id.slice(37); // Skip hyphen
+
+        id = scheduleIdPart;
+        // Prefer date from body, fallback to ID date
+        if (!date) date = datePart;
+    }
+
+    const data = await service.completeSchedule(id, userId, date);
 
     res.status(201).json({
         success: true,
@@ -17,9 +30,19 @@ export const completeSchedule = asyncHandler(async (req, res) => {
 
 export const undoCompleteSchedule = asyncHandler(async (req, res) => {
     const { id: userId } = req.user;
-    const { id } = req.params;
+    let { id } = req.params;
+    let { date } = req.body; // Extract date
 
-    await service.undoCompleteSchedule(id, userId);
+    // Handle Composite ID (UUID-YYYY-MM-DD)
+    if (id && id.length > 36) {
+        const scheduleIdPart = id.slice(0, 36);
+        const datePart = id.slice(37);
+
+        id = scheduleIdPart;
+        if (!date) date = datePart;
+    }
+
+    await service.undoCompleteSchedule(id, userId, date);
 
     res.json({
         success: true,

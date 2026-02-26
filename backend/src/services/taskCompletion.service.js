@@ -2,13 +2,14 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 
 
+import { toUTCDateOnly, startOfUTCDate } from "../utils/date.utils.js";
+
+
 function normalizeUTCDate(date) {
-    const d = date ? new Date(date) : new Date();
-    return new Date(Date.UTC(
-        d.getUTCFullYear(),
-        d.getUTCMonth(),
-        d.getUTCDate()
-    ));
+    if (!date) {
+        throw new ApiError(400, "Date is required (YYYY-MM-DD)");
+    }
+    return toUTCDateOnly(date);
 }
 
 
@@ -42,7 +43,8 @@ export const completeTask = async (userId, taskId, date) => {
     });
 
     if (existing) {
-        throw new ApiError(409, "Task already completed for this date");
+        return existing;
+        // throw new ApiError(409, "Task already completed for this date");
     }
 
     // 3️⃣ Create completion

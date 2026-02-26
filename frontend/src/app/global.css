@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: 'Satoshi', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  :root {
+    --bg: #000000;
+    --card: #0a0a0a;
+    --border: #1f1f1f;
+    --text: #ffffff;
+    --text-secondary: #a1a1aa;
+    --heading: #ffffff;
+    --primary: #ffffff;
+    --secondary: #0a0a0a;
+
+    /* Layout Variables */
+    --container-width: 1200px;
+    --container-padding: clamp(1rem, 5vw, 2.5rem);
+    --section-spacing: clamp(4rem, 10vh, 8rem);
+  }
+
+  html,
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+
+  /* Global Input Styling for Tech Terminal Field */
+  input,
+  textarea,
+  select {
+    @apply bg-black border border-white/20 text-white font-mono text-sm px-4 py-3 rounded-sm outline-none transition-all duration-300;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply border-cyan-500 shadow-[0_0_10px_#06b6d44d];
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-600 uppercase tracking-widest text-[10px];
+  }
+}
+
+@keyframes scan {
+  from {
+    top: 0%;
+  }
+
+  to {
+    top: 100%;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.animate-scan {
+  animation: scan 3s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}

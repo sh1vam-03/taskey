@@ -1,5 +1,6 @@
 import * as behaviorService from "../services/behavior.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
 /* ---------------- UPSERT ---------------- */
 
@@ -9,12 +10,21 @@ export const upsertBehavior = asyncHandler(async (req, res) => {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
+    // Check limit before any behavior log operation
+    await checkUsageLimit(userId, 'behavior');
+
     const data = await behaviorService.upsertBehaviorLog(userId, req.body);
+
+    // Increment usage on every behavior log interaction (create + update)
+    await incrementUsage(userId, 'behavior');
+
+    // Remove internal flag before sending response
+    const { isNew, ...responseData } = data;
 
     res.status(200).json({
         success: true,
         message: "Behavior log saved successfully",
-        data
+        data: responseData
     });
 });
 
@@ -32,6 +42,20 @@ export const getBehaviorByDate = asyncHandler(async (req, res) => {
     }
 
     const data = await behaviorService.getBehaviorLogByDate(userId, date);
+
+    res.json({
+        success: true,
+        data
+    });
+});
+
+export const getLatestBehavior = asyncHandler(async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const data = await behaviorService.getLatestBehaviorLog(userId);
 
     res.json({
         success: true,

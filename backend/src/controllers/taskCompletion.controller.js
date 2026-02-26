@@ -1,5 +1,6 @@
 import asyncHandler from "../utils/asyncHandler.js";
-import * as     taskCompletionService from "../services/taskCompletion.service.js";
+import * as taskCompletionService from "../services/taskCompletion.service.js";
+import ApiError from "../utils/ApiError.js";
 
 
 /**
@@ -10,8 +11,17 @@ import * as     taskCompletionService from "../services/taskCompletion.service.j
 
 export const completeTask = asyncHandler(async (req, res) => {
     const userId = req.user.id; //From JWT
-    const { id } = req.params;
-    const { date } = req.body;
+    let { id } = req.params;
+    let { date } = req.body;
+
+    // Handle Composite ID (UUID-YYYY-MM-DD)
+    if (id && id.length > 36) {
+        const taskIdPart = id.slice(0, 36);
+        const datePart = id.slice(37);
+
+        id = taskIdPart;
+        if (!date) date = datePart;
+    }
 
     // Input Validation
     const task = await taskCompletionService.completeTask(userId, id, date);
@@ -31,8 +41,17 @@ export const completeTask = asyncHandler(async (req, res) => {
 
 export const undoTaskCompletion = asyncHandler(async (req, res) => {
     const userId = req.user.id; //From JWT
-    const id = req.params.id;
-    const date = req.body.date;
+    let id = req.params.id;
+    let date = req.body.date;
+
+    // Handle Composite ID (UUID-YYYY-MM-DD)
+    if (id && id.length > 36) {
+        const taskIdPart = id.slice(0, 36);
+        const datePart = id.slice(37);
+
+        id = taskIdPart;
+        if (!date) date = datePart;
+    }
 
     if (!date) {
         throw new ApiError(400, "date is required to undo completion");

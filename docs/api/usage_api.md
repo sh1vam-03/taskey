@@ -1,26 +1,33 @@
-# 📊 Usage API
+# 📈 Usage API
 
-Base URL: `/api/usage`
+Track resource usage against plan limits.
 
-## Middleware
-- `authMiddleware`
+**Base URL:** `/api/usage`
 
 ---
 
 ## 1. Get My Usage
-Get current usage statistics for the month (Tasks, Schedules, Behaviors count).
-- **URL:** `/me`
+Retrieve current month's usage counts.
+
 - **Method:** `GET`
-- **Response:**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "month": 5,
-      "year": 2024,
-      "taskCount": 12,
-      "scheduleCount": 5,
-      "behaviorCount": 10
+- **URL:** `/me`
+- **Auth Required:** Yes
+
+### Success Response (200)
+```json
+{
+  "success": true,
+  "data": {
+    "month": 5,
+    "year": 2024,
+    "taskCount": 12,
+    "scheduleCount": 5,
+    "behaviorCount": 10,
+    "limits": {
+      "task": 20,
+      "schedule": 30,
+      "behavior": 15
     }
   }
-  ```
+}
+```

@@ -4,10 +4,16 @@ import ApiError from "../utils/ApiError.js";
 /**
  * Normalize date to UTC start-of-day
  */
+import { toUTCDateOnly, startOfUTCDate } from "../utils/date.utils.js";
+
+/**
+ * Normalize date to UTC start-of-day
+ */
 const normalizeDate = (date) => {
-    const d = date ? new Date(date) : new Date();
-    d.setUTCHours(0, 0, 0, 0);
-    return d;
+    if (!date) {
+        throw new ApiError(400, "Date is required (YYYY-MM-DD)");
+    }
+    return toUTCDateOnly(date);
 };
 
 /**
