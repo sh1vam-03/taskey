@@ -75,30 +75,21 @@ const aiService = {
 
         (async () => {
             try {
-                const response = await fetch(
-                    `${BASE_URL}/ai/conversations/${conversationId}/message?stream=true`,
+                const response = await api.post(
+                    `/ai/conversations/${conversationId}/message?stream=true`,
+                    { message, stream: true },
                     {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ message, stream: true }),
-                        credentials: "include",
-                        signal: controller.signal,
+                        responseType: 'stream',
+                        adapter: 'fetch', // Forces Axios to use the Fetch API natively, exposing a ReadableStream
+                        signal: controller.signal
                     }
                 );
 
-                if (!response.ok) {
-                    let errorMsg = "Failed to send message";
-                    try {
-                        const errData = await response.json();
-                        errorMsg = errData.message || errorMsg;
-                    } catch (_) { /* ignore parse error */ }
+                // Axios handles 401 token refresh transparently, so no need for custom retry logic here.
+                // If the request ultimately fails (e.g., after refresh attempts), Axios will throw an error.
 
-                    const err = new Error(errorMsg);
-                    err.status = response.status;
-                    throw err;
-                }
-
-                const reader = response.body.getReader();
+                // The response.data is now a ReadableStream thanks to responseType: 'stream' and adapter: 'fetch'
+                const reader = response.data.getReader();
                 const decoder = new TextDecoder();
                 let fullText = "";
                 let buffer = "";
