@@ -186,21 +186,21 @@ const compileChatOnlyGraph = (model) => {
     return workflow.compile();
 };
 
-/**
- * Returns a cached compiled graph for the given model ID + streaming mode.
- *
- * @param {string}  modelId   - "gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini"
- * @param {boolean} streaming
- * @returns {CompiledGraph}
- */
-const getGraph = (modelId, streaming = false) => {
+export const getGraph = async (modelId, streaming = false) => {
     const cacheKey = `${modelId}-${streaming ? "stream" : "sync"}`;
 
     if (!graphCache.has(cacheKey)) {
         if (graphCache.size > 20) graphCache.clear(); // safety eviction
 
         const model = buildModel(modelId, streaming);
-        const compiledGraph = modelId === "sarvam-m" ? compileChatOnlyGraph(model) : compileAgentGraph(model);
+
+        let compiledGraph;
+        if (modelId === "sarvam-m") {
+            const { compileSarvamGraph } = await import("../sarvam/graph.js");
+            compiledGraph = compileSarvamGraph(model);
+        } else {
+            compiledGraph = compileAgentGraph(model);
+        }
 
         graphCache.set(cacheKey, compiledGraph);
     }
@@ -230,7 +230,7 @@ export const runAgentGraph = async ({
     conversationId,
     chatModel = "gemini-1.5-flash"
 }) => {
-    const app = getGraph(chatModel, false);
+    const app = await getGraph(chatModel, false);
 
     const finalState = await app.invoke(
         { messages },
@@ -257,7 +257,7 @@ export const streamAgentGraph = async function* ({
     conversationId,
     chatModel = "gemini-1.5-flash"
 }) {
-    const app = getGraph(chatModel, true);
+    const app = await getGraph(chatModel, true);
 
     const stream = await app.streamEvents(
         { messages },

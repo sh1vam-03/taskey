@@ -31,8 +31,17 @@ export const getDashboardOverview = async (userId, dateString) => {
 };
 
 export const getTodayDashboard = async (userId, dateString) => {
-    // IF dateString is provided, use it. Else default to server today.
-    const today = dateString ? toUTCDateOnly(dateString) : startOfUTCDate();
+    // IF dateString is provided, use it. Else default to User's localized Today
+    let today;
+    if (dateString) {
+        today = toUTCDateOnly(dateString);
+    } else {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+        const timezone = user?.timezone || "UTC";
+        const localDateStr = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+        today = toUTCDateOnly(localDateStr);
+    }
+
     const tomorrow = new Date(today);
     tomorrow.setUTCDate(today.getUTCDate() + 1);
 
