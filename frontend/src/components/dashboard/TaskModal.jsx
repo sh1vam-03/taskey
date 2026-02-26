@@ -143,6 +143,7 @@ export default function TaskModal({ isOpen, onClose, taskToEdit = null, onTaskSa
                                 type="date"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
+                                min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
                             />
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 import AboutClient from "./AboutClient";
 
 export const metadata = {
-    title: 'Manifesto | Taskey',
+    title: 'About | TASKTIME',
 }
 
 export default function AboutPage() {

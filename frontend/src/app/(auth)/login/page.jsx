@@ -1,7 +1,7 @@
 import LoginForm from "@/features/auth/components/LoginForm"
 
 export const metadata = {
-    title: 'Access Terminal | Taskey',
+    title: 'Login | TASKTIME',
 }
 
 export default function Login() {

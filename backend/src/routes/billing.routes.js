@@ -33,6 +33,13 @@ router.post(
     billingController.createTopUp
 );
 
+router.post(
+    "/top-up/verify",
+    authMiddleware,
+    requireRole("USER"),
+    billingController.verifyTopUp
+);
+
 router.get(
     "/current",
     authMiddleware,

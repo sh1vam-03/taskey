@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import prisma from "../config/db.js";
 import { PLANS } from "../config/plans.config.js";
+import { addMonths, addYears } from "date-fns";
 
 export const handleRazorpayWebhook = async (req, res) => {
     try {
@@ -61,19 +62,24 @@ const handleSubscriptionCharged = async (payload) => {
         return;
     }
 
-    // Update Subscription
-    // Calculate next credits based on plan
+    // Calculate credits: always grant monthly portion (cron handles yearly drip)
     const planConfig = PLANS[subscription.plan];
-    const credits = planConfig?.credits[subscription.billingCycle] || 0;
+    const monthlyCredits = planConfig?.credits?.MONTHLY || 0;
+    const isYearly = subscription.billingCycle === "YEARLY";
+    const now = new Date();
+
+    // Expiry: +1 month for monthly, +1 year for yearly
+    const expiresAt = isYearly ? addYears(now, 1) : addMonths(now, 1);
 
     await prisma.subscription.update({
         where: { id: subscription.id },
         data: {
-            isActive: true, // It is charged, so active
-            lastBilledAt: new Date(),
-            nextBillingAt: new Date(subEntity.charge_at * 1000), // Unix to Date
-            cycleCredits: credits, // Reset/Refill credits
-            lastCreditGrantedAt: new Date()
+            isActive: true,
+            lastBilledAt: now,
+            nextBillingAt: new Date(subEntity.charge_at * 1000),
+            cycleCredits: monthlyCredits,
+            lastCreditGrantedAt: now,
+            lastCreditDistributedAt: now
         }
     });
 
@@ -82,8 +88,8 @@ const handleSubscriptionCharged = async (payload) => {
         where: { razorpayPaymentId: paymentEntity.id },
         update: {
             status: "PAID",
-            amount: paymentEntity.amount, // in paise
-            updatedAt: new Date()
+            amount: paymentEntity.amount,
+            updatedAt: now
         },
         create: {
             userId: subscription.userId,
@@ -97,18 +103,23 @@ const handleSubscriptionCharged = async (payload) => {
         }
     });
 
-    // 🚨 GRANT CREDITS TO USER BALANCE 🚨
+    // 🚨 GRANT CREDITS (RESET, not accumulate) + set expiry 🚨
     await prisma.$transaction([
         prisma.user.update({
             where: { id: subscription.userId },
-            data: { aiCreditBalance: { increment: credits } }
+            data: {
+                subscriptionCredits: monthlyCredits,
+                subscriptionCreditsExpiresAt: expiresAt
+            }
         }),
         prisma.aiCreditLedger.create({
             data: {
                 userId: subscription.userId,
-                credits: credits,
+                credits: monthlyCredits,
                 source: "PLAN_CYCLE",
-                reason: "Subscription Renewal",
+                reason: isYearly
+                    ? "Subscription Charged — yearly first month drip"
+                    : "Subscription Charged — monthly credits reset",
                 paymentId: paymentEntity.id
             }
         })
@@ -149,10 +160,17 @@ const handlePaymentCaptured = async (payload) => {
             return;
         }
 
-        // 1. Record Payment
+        // 1. Find existing Payment record
         const payment = await prisma.payment.findFirst({
             where: { razorpayOrderId: paymentEntity.order_id }
         });
+
+        // Guard: If payment already marked PAID, credits were already granted
+        // by the frontend verify flow — skip to prevent double-crediting
+        if (payment?.status === "PAID") {
+            console.log(`Top-Up payment ${paymentEntity.order_id} already processed, skipping webhook credit grant.`);
+            return;
+        }
 
         if (payment) {
             await prisma.payment.update({
@@ -163,7 +181,7 @@ const handlePaymentCaptured = async (payload) => {
                 }
             });
         } else {
-            // Should verify why payment record missing, but create anyway
+            // Payment record missing (edge case) — create it
             await prisma.payment.create({
                 data: {
                     userId,
@@ -178,11 +196,11 @@ const handlePaymentCaptured = async (payload) => {
             });
         }
 
-        // 2. Grant Credits
+        // 2. Grant Top-Up Credits (permanent, never expire)
         await prisma.$transaction([
             prisma.user.update({
                 where: { id: userId },
-                data: { aiCreditBalance: { increment: credits } }
+                data: { topupCredits: { increment: credits } }
             }),
             prisma.aiCreditLedger.create({
                 data: {
@@ -195,7 +213,7 @@ const handlePaymentCaptured = async (payload) => {
             })
         ]);
 
-        console.log(`Granted ${credits} credits to ${userId} via Top-Up`);
+        console.log(`Granted ${credits} credits to ${userId} via Top-Up webhook`);
     } else {
         // Handle other payments (e.g. one-off invoice not top-up?)
     }

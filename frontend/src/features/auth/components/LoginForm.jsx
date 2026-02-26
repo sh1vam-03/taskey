@@ -54,7 +54,7 @@ export default function LoginForm() {
                 </h1>
 
                 <p className="text-center opacity-80 mb-8">
-                    Log in to continue managing your tasks
+                    Log in to access your TASKTIME account
                 </p>
 
                 {error && <p className="text-red-500 text-sm mb-4 font-mono">{error}</p>}
@@ -64,7 +64,7 @@ export default function LoginForm() {
                     {/* Email */}
                     <div className="group">
                         <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase group-focus-within:text-cyan-400 transition-colors">
-                            User_ID / Email
+                            Email address
                         </label>
                         <div className="relative">
                             {isMounted ? (
@@ -83,7 +83,7 @@ export default function LoginForm() {
                     {/* Password */}
                     <div className="group">
                         <label className="block mb-1 text-xs font-mono font-bold tracking-widest text-gray-500 uppercase group-focus-within:text-cyan-400 transition-colors">
-                            Passcode
+                            Password
                         </label>
                         <div className="flex items-stretch gap-3">
                             {isMounted ? (
@@ -117,10 +117,10 @@ export default function LoginForm() {
                                 onChange={(e) => setRemember(e.target.checked)}
                                 className="accent-cyan-500 bg-zinc-950 border-white/10 w-4 h-4 cursor-pointer"
                             />
-                            REMEMBER_SESSION
+                            REMEMBER ME
                         </label>
                         <Link href="/forgot-password" className="hover:text-cyan-400 transition-colors font-mono text-xs uppercase tracking-wider">
-                            Reset_Access?
+                            Forgot password?
                         </Link>
                     </div>
 
@@ -131,14 +131,14 @@ export default function LoginForm() {
                         variant="scanline"
                         className="w-full sm:w-auto mt-4"
                     >
-                        {loading ? "Authenticating..." : "Initialize_Session"}
+                        {loading ? "Authenticating..." : "LOGIN"}
                     </Button>
 
                     {/* Switch */}
                     <p className="text-xs text-center text-gray-500 font-mono mt-4">
-                        // NO_ACTIVE_ID?
+                        Don't have an account?
                         <Link href="/signup" className="ml-2 text-cyan-500 hover:text-white transition-colors uppercase tracking-widest">
-                            CREATE_NODE
+                            Create account
                         </Link>
                     </p>
                 </form>

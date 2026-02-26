@@ -13,7 +13,7 @@ export default function BehaviorPage() {
     const { success } = useToast();
     const [summary, setSummary] = useState(null);
     const [todayLog, setTodayLog] = useState(null); // Keeps track of today specifically for logging
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const [dayDetails, setDayDetails] = useState(null); // Data for the selected date
     const [explanation, setExplanation] = useState("");
     const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function BehaviorPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA');
             const [summaryData, logData, explainData, latestData] = await Promise.all([
                 behaviorService.getSummary(chartPeriod),
                 behaviorService.getBehaviorByDate(today).catch(() => null),
@@ -136,52 +136,59 @@ export default function BehaviorPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Score Gauge */}
-                <Card className="flex flex-col items-center justify-center relative overflow-hidden min-h-[400px]">
+                <Card className="relative overflow-hidden min-h-[420px]">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                         <BrainCircuit className="w-64 h-64" />
                     </div>
 
-                    <h2 className="text-gray-400 text-sm font-mono font-bold uppercase tracking-widest mb-8">
-                        Behavior Score
-                    </h2>
+                    <div className="flex flex-col h-full justify-between items-center z-10 relative">
+                        {/* Top: Title */}
+                        <h2 className="text-gray-400 text-sm font-mono font-bold uppercase tracking-widest mt-2">
+                            Behavior Score
+                        </h2>
 
-                    {loading ? (
-                        <div className="w-48 h-48 rounded-full border-4 border-white/5 animate-spin border-t-cyan-500 flex items-center justify-center">
-                            <span className="text-cyan-500 font-mono text-xs animate-pulse">CALCULATING...</span>
-                        </div>
-                    ) : (
-                        <div className="relative group">
-                            <div className={`
+                        {/* Center: Gauge */}
+                        <div className="flex-1 flex items-center justify-center py-6">
+                            {loading ? (
+                                <div className="w-48 h-48 rounded-full border-4 border-white/5 animate-spin border-t-cyan-500 flex items-center justify-center">
+                                    <span className="text-cyan-500 font-mono text-xs animate-pulse">CALCULATING...</span>
+                                </div>
+                            ) : (
+                                <div className="relative group">
+                                    <div className={`
                                 w-56 h-56 rounded-full border-8 flex items-center justify-center transition-all duration-1000
                                 ${getScoreColor(currentScore).replace('text-', 'border-')} 
                                 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-black/50 backdrop-blur-sm
                             `}>
-                                <div className="text-center z-10">
-                                    <span className={`text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
-                                        {detailsLoading ? (
-                                            <span className="text-4xl animate-pulse">...</span>
-                                        ) : (
-                                            currentScore || 0
-                                        )}
-                                    </span>
-                                    <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
-                                        {selectedDate === new Date().toISOString().split('T')[0] ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
+                                        <div className="text-center z-10">
+                                            <span className={`text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
+                                                {detailsLoading ? (
+                                                    <span className="text-4xl animate-pulse">...</span>
+                                                ) : (
+                                                    currentScore || 0
+                                                )}
+                                            </span>
+                                            <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
+                                                {selectedDate === new Date().toLocaleDateString('en-CA') ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {/* Decorative rings */}
+                                    <div className="absolute inset-0 rounded-full border border-white/5 scale-110 animate-pulse-slow" />
+                                    <div className="absolute inset-0 rounded-full border border-white/5 scale-125 opacity-30" />
                                 </div>
-                            </div>
-
-                            {/* Decorative rings */}
-                            <div className="absolute inset-0 rounded-full border border-white/5 scale-110 animate-pulse-slow" />
-                            <div className="absolute inset-0 rounded-full border border-white/5 scale-125 opacity-30" />
+                            )}
                         </div>
-                    )}
 
-                    <div className="mt-10 text-center max-w-md bg-white/5 p-4 rounded-lg border border-white/5 backdrop-blur-sm">
-                        <div className="flex items-start justify-center gap-3 text-gray-300 text-sm">
-                            <Lightbulb className="text-yellow-500 shrink-0 mt-0.5 h-4 w-4" />
-                            <p className="font-mono text-xs leading-relaxed">
-                                {loading || detailsLoading ? "ANALYZING NEURAL PATTERNS..." : explanation}
-                            </p>
+                        {/* Bottom: Explanation */}
+                        <div className="text-center w-full max-w-md bg-white/5 p-4 rounded-lg border border-white/5 backdrop-blur-sm">
+                            <div className="flex items-start justify-center gap-3 text-gray-300 text-sm">
+                                <Lightbulb className="text-yellow-500 shrink-0 mt-0.5 h-4 w-4" />
+                                <p className="font-mono text-xs leading-relaxed">
+                                    {loading || detailsLoading ? "ANALYZING NEURAL PATTERNS..." : explanation}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </Card>
@@ -220,11 +227,15 @@ export default function BehaviorPage() {
                                 <PerformanceChart
                                     key={chartPeriod}
                                     data={summary?.history || []}
-                                    type="area"
-                                    dataKey="behaviorScore"
+                                    dataKeys={[
+                                        {
+                                            key: 'behaviorScore',
+                                            name: 'Behavior Score',
+                                            color: chartPeriod === 7 ? "#06b6d4" : "#a855f7"
+                                        }
+                                    ]}
                                     xAxisKey="date"
                                     height={250}
-                                    color={chartPeriod === 7 ? "#06b6d4" : "#a855f7"}
                                 />
                             )}
                         </div>
@@ -246,7 +257,7 @@ export default function BehaviorPage() {
                                 </span>
                                 <button
                                     onClick={handleNextDay}
-                                    disabled={selectedDate >= new Date().toISOString().split('T')[0]}
+                                    disabled={selectedDate >= new Date().toLocaleDateString('en-CA')}
                                     className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <ChevronRight className="h-4 w-4" />
@@ -255,28 +266,34 @@ export default function BehaviorPage() {
                         </div>
 
                         <div className="grid grid-cols-5 gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
-                            {Array.from({ length: 5 }).map((_, i) => {
-                                const date = subDays(new Date(), 4 - i);
-                                const dateStr = format(date, 'yyyy-MM-dd');
-                                const isSelected = selectedDate === dateStr;
-                                const isToday = isSameDay(date, new Date());
+                            {(() => {
+                                // Calculate 5-day window centered on selected date, but clamped to Today
+                                const today = new Date();
+                                let endWindow = addDays(parseISO(selectedDate), 2);
+                                if (endWindow > today) endWindow = today;
 
-                                return (
-                                    <button
-                                        key={dateStr}
-                                        onClick={() => handleDateSelect(dateStr)}
-                                        className={`
+                                return Array.from({ length: 5 }).map((_, i) => {
+                                    const date = subDays(endWindow, 4 - i);
+                                    const dateStr = format(date, 'yyyy-MM-dd');
+                                    const isSelected = selectedDate === dateStr;
+
+                                    return (
+                                        <button
+                                            key={dateStr}
+                                            onClick={() => handleDateSelect(dateStr)}
+                                            className={`
                                             flex flex-col items-center p-2 rounded-lg border transition-all min-w-[60px]
                                             ${isSelected
-                                                ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                                                : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'}
+                                                    ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                                                    : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'}
                                         `}
-                                    >
-                                        <span className="text-[10px] uppercase font-bold">{isToday ? 'TDY' : format(date, 'EEE')}</span>
-                                        <span className={`text-lg font-mono ${isSelected ? 'text-blue-400' : ''}`}>{format(date, 'd')}</span>
-                                    </button>
-                                );
-                            })}
+                                        >
+                                            <span className="text-[10px] uppercase font-bold">{format(date, 'EEE')}</span>
+                                            <span className={`text-lg font-mono ${isSelected ? 'text-blue-400' : ''}`}>{format(date, 'd')}</span>
+                                        </button>
+                                    );
+                                });
+                            })()}
                         </div>
                     </Card>
 

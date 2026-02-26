@@ -1,37 +1,40 @@
-import { runAgentGraph } from "../graph/main.graph.js";
 
-/**
- * AI Execution Service
- * Abstraction layer over the LangGraph runner.
- * Handles validation, logging, and standardization of inputs/outputs.
- */
-export const executeAgent = async (params) => {
-    const { userId, messages, user, conversationId } = params;
+// No longer available
 
-    // 1. Validation
-    if (!userId) throw new Error("executeAgent: userId is required");
-    if (!messages || !Array.isArray(messages)) throw new Error("executeAgent: messages array is required");
+// import { runAgentGraph } from "../graph/main.graph.js";
 
-    // 2. Execution
-    try {
-        const start = Date.now();
+// /**
+//  * AI Execution Service
+//  * Abstraction layer over the LangGraph runner.
+//  * Handles validation, logging, and standardization of inputs/outputs.
+//  */
+// export const executeAgent = async (params) => {
+//     const { userId, messages, user, conversationId } = params;
 
-        // Execute Graph
-        const result = await runAgentGraph({
-            userId,
-            messages,
-            user,
-            conversationId
-        });
+//     // 1. Validation
+//     if (!userId) throw new Error("executeAgent: userId is required");
+//     if (!messages || !Array.isArray(messages)) throw new Error("executeAgent: messages array is required");
 
-        const duration = Date.now() - start;
-        // console.log(`[AI-EXEC] Graph finished in ${duration}ms for user ${userId}`);
+//     // 2. Execution
+//     try {
+//         const start = Date.now();
 
-        return result;
+//         // Execute Graph
+//         const result = await runAgentGraph({
+//             userId,
+//             messages,
+//             user,
+//             conversationId
+//         });
 
-    } catch (error) {
-        console.error("[AI-EXEC] Graph Execution Failed:", error);
-        // We could re-throw a clearer error or return a fallback message
-        throw new Error(`AI Agent validation failed: ${error.message}`);
-    }
-};
+//         const duration = Date.now() - start;
+//         // console.log(`[AI-EXEC] Graph finished in ${duration}ms for user ${userId}`);
+
+//         return result;
+
+//     } catch (error) {
+//         console.error("[AI-EXEC] Graph Execution Failed:", error);
+//         // We could re-throw a clearer error or return a fallback message
+//         throw new Error(`AI Agent validation failed: ${error.message}`);
+//     }
+// };

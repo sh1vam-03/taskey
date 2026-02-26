@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import billingService from '@/services/billing.service';
@@ -11,34 +13,44 @@ import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 import {
     Settings, User, CreditCard, Bell, Shield, LogOut,
-    Trash2, Cpu, Zap, Calendar, ShieldCheck, Mail
+    Trash2, Cpu, Zap, Calendar, ShieldCheck, Mail, Globe, Lock
 } from 'lucide-react';
 
 export default function SettingsPage() {
-    const { user, logout, logoutAll } = useAuth();
+    const { user, logout, logoutAll, loading: authLoading } = useAuth();
     const { toast, success, error, info } = useToast();
     const router = useRouter();
 
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [logoutModal, setLogoutModal] = useState(false);
+
+    // Modals
     const [logoutAllModal, setLogoutAllModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
-    const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-    // AI Preferences (Local State)
-    const [aiPrefs, setAiPrefs] = useState({
-        voiceAutoStart: false,
-        responseStyle: 'PROFESSIONAL',
-        dailyDigest: true,
-        streakReminders: true
-    });
+    // Deletion State
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
+    const [deleteOtp, setDeleteOtp] = useState("");
+    const [isDeleteOtpSent, setIsDeleteOtpSent] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
+
+    // Profile Editing State
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [selectedTimezone, setSelectedTimezone] = useState("");
+    const timezones = Intl.supportedValuesOf('timeZone');
+
+    // Password Change State
+    const [changePasswordModal, setChangePasswordModal] = useState(false);
+    const [pwdData, setPwdData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    const [pwdOtp, setPwdOtp] = useState("");
+    const [isPwdOtpSent, setIsPwdOtpSent] = useState(false);
+    const [pwdError, setPwdError] = useState("");
+
+
 
     useEffect(() => {
         const loadData = async () => {
-            // Load Prefs from LocalStorage
-            const savedPrefs = localStorage.getItem('taskey_ai_prefs');
-            if (savedPrefs) setAiPrefs(JSON.parse(savedPrefs));
 
             try {
                 const subData = await billingService.getCurrentSubscription();
@@ -52,47 +64,98 @@ export default function SettingsPage() {
         loadData();
     }, []);
 
-    const updatePref = (key, value) => {
-        const newPrefs = { ...aiPrefs, [key]: value };
-        setAiPrefs(newPrefs);
-        localStorage.setItem('taskey_ai_prefs', JSON.stringify(newPrefs));
+    useEffect(() => {
+        if (user) {
+            setEditName(user.name || "");
+            setSelectedTimezone(user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
+        }
+    }, [user]);
+
+    // --- Profile Update ---
+    const handleUpdateProfile = async () => {
+        if (!editName.trim()) return error("Name cannot be empty");
+
+        try {
+            await authService.updateProfile({ name: editName, timezone: selectedTimezone });
+            success("Profile updated successfully");
+            setIsEditingProfile(false);
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (err) {
+            console.error(err);
+            error(err.response?.data?.message || "Failed to update profile");
+        }
     };
 
-    const handleLogout = async () => {
-        await logout();
+    // --- Password Change Flow ---
+    const initiateChangePassword = async () => {
+        setPwdError("");
+        if (!pwdData.oldPassword || !pwdData.newPassword) return setPwdError("All password fields are required");
+        if (pwdData.newPassword !== pwdData.confirmPassword) return setPwdError("New passwords do not match");
+        if (pwdData.newPassword.length < 6) return setPwdError("Password must be at least 6 characters");
+
+        try {
+            // Verify old password immediately before sending OTP
+            await authService.requestSecurityOtp(pwdData.oldPassword);
+            setIsPwdOtpSent(true);
+            info("Security code sent to your email");
+        } catch (err) {
+            setPwdError(err.response?.data?.message || "Failed to verify password");
+        }
+    };
+
+    const finalizeChangePassword = async () => {
+        setPwdError("");
+        if (!pwdOtp) return setPwdError("Please enter the security code");
+
+        try {
+            await authService.changePassword(pwdData.oldPassword, pwdData.newPassword, pwdOtp);
+            success("Password changed successfully");
+            setChangePasswordModal(false);
+            setPwdData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+            setPwdOtp("");
+            setIsPwdOtpSent(false);
+            setPwdError("");
+        } catch (err) {
+            setPwdError(err.response?.data?.message || "Failed to change password");
+        }
+    };
+
+    // ...
+
+
+
+    // --- Delete Account Flow ---
+    const initiateDeleteAccount = async () => {
+        setDeleteError("");
+        if (deleteConfirmText !== "DELETE") return setDeleteError("Please type DELETE to confirm.");
+
+        try {
+            await authService.requestSecurityOtp();
+            setIsDeleteOtpSent(true);
+            info("Security code sent to your email");
+        } catch (err) {
+            setDeleteError(err.response?.data?.message || "Failed to send OTP");
+        }
+    };
+
+    const finalizeDeleteAccount = async () => {
+        setDeleteError("");
+        if (!deleteOtp) return setDeleteError("Please enter the security code");
+
+        try {
+            await authService.deleteAccount(deleteOtp);
+            success("Account deleted successfully.");
+            window.location.href = '/signup';
+        } catch (err) {
+            setDeleteError(err.response?.data?.message || "Failed to delete account");
+        }
     };
 
     const handleLogoutAll = async () => {
         await logoutAll();
     };
 
-    const handleChangePassword = async () => {
-        if (!user?.email) return;
-        try {
-            await authService.forgotPassword(user.email);
-            success("Password reset link sent to your email.");
-        } catch (err) {
-            error("Failed to send reset link.");
-        }
-    };
-
-    const handleDeleteAccount = async () => {
-        if (deleteConfirmText !== "DELETE") {
-            error("Please type DELETE to confirm.");
-            return;
-        }
-
-        try {
-            await authService.deleteAccount();
-            success("Account deleted successfully.");
-            window.location.href = '/signup';
-        } catch (err) {
-            console.error(err);
-            error("Failed to delete account. Please try again.");
-        }
-    };
-
-    if (loading) return <SkeletonLoader type="card" className="h-96" />;
+    if (loading || authLoading) return <SkeletonLoader type="card" className="h-96" />;
 
     return (
         <div className="space-y-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -125,38 +188,80 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">
+                            {/* Display Name */}
                             <div className="space-y-1">
                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-mono">Display Name</label>
-                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
-                                    {user?.name}
-                                </div>
+                                {isEditingProfile ? (
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={editName}
+                                            onChange={(e) => setEditName(e.target.value)}
+                                            className="w-full bg-white/5 border border-cyan-500/50 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                            autoFocus
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono flex justify-between items-center group">
+                                        {user?.name}
+                                        <button
+                                            onClick={() => setIsEditingProfile(true)}
+                                            className="text-xs text-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
+                                        >
+                                            Edit
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Email - Read Only */}
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-mono">Neural ID (Email)</label>
-                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
+                                <label className="text-xs text-gray-500 uppercase tracking-wider font-mono flex items-center gap-1">
+                                    Neural ID (Email) <Lock className="w-3 h-3 text-gray-600" />
+                                </label>
+                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-400 font-mono cursor-not-allowed opacity-70">
                                     {user?.email}
                                 </div>
                             </div>
 
-                            {/* Advanced Info */}
+                            {/* Timezone Selector */}
                             <div className="space-y-1">
                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-mono flex items-center gap-2">
-                                    <Zap className="h-3 w-3 text-yellow-500" /> AI Credits
+                                    <Globe className="h-3 w-3 text-blue-500" /> Timezone
                                 </label>
-                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
-                                    {user?.aiCreditBalance || 0}
-                                </div>
+                                {isEditingProfile ? (
+                                    <select
+                                        value={selectedTimezone}
+                                        onChange={(e) => setSelectedTimezone(e.target.value)}
+                                        className="w-full bg-black/20 border border-cyan-500/50 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                    >
+                                        {timezones.map(tz => (
+                                            <option key={tz} value={tz} className="bg-black text-white">{tz}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
+                                        {selectedTimezone}
+                                    </div>
+                                )}
                             </div>
+
                             <div className="space-y-1">
                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-mono flex items-center gap-2">
-                                    <Calendar className="h-3 w-3 text-cyan-500" /> Joined Date
+                                    <Calendar className="h-3 w-3 text-cyan-500" /> Joined Date <Lock className="w-3 h-3 text-gray-600" />
                                 </label>
-                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
+                                <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-400 font-mono cursor-not-allowed opacity-70">
                                     {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                                 </div>
                             </div>
                         </div>
-                        <p className="mt-4 text-xs text-gray-500">* Profile editing is managed by the central authority. Contact support for changes.</p>
+
+                        {/* Save Actions */}
+                        {isEditingProfile && (
+                            <div className="mt-6 flex justify-end gap-3 animate-in fade-in">
+                                <Button size="sm" variant="ghost" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
+                                <Button size="sm" onClick={handleUpdateProfile} className="bg-cyan-500 text-black hover:bg-cyan-400">Save Changes</Button>
+                            </div>
+                        )}
                     </Card>
 
                     {/* 2. AI Preferences */}
@@ -167,15 +272,15 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between pointer-events-none opacity-60">
                                 <div className="space-y-0.5">
-                                    <label className="text-sm font-medium text-gray-200">Response Style</label>
+                                    <label className="text-sm font-medium text-gray-200 flex items-center gap-2">Response Style <Lock className="w-3 h-3 text-gray-500" /></label>
                                     <p className="text-xs text-gray-500">Adjust the personality of your AI assistant.</p>
                                 </div>
                                 <select
-                                    className="bg-black/20 border border-white/10 rounded-md text-sm text-gray-300 focus:ring-cyan-500 focus:border-cyan-500 p-2"
-                                    value={aiPrefs.responseStyle}
-                                    onChange={(e) => updatePref('responseStyle', e.target.value)}
+                                    className="bg-black/20 border border-white/10 rounded-md text-sm text-gray-300 p-2 w-64"
+                                    disabled
+                                    value="PROFESSIONAL"
                                 >
                                     <option value="PROFESSIONAL">Professional (Concise)</option>
                                     <option value="MOTIVATIONAL">Motivational (Supportive)</option>
@@ -184,12 +289,15 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="border-t border-white/5 pt-4">
-                                <Toggle
-                                    label="Voice Mode Auto-Start"
-                                    checked={aiPrefs.voiceAutoStart}
-                                    onChange={(val) => updatePref('voiceAutoStart', val)}
-                                />
-                                <p className="text-xs text-gray-500 mt-1 ml-1">Automatically activate voice input when opening the AI assistant.</p>
+                                <div className="pointer-events-none opacity-60">
+                                    <Toggle
+                                        label={<span className="flex items-center gap-2">Voice Mode Auto-Start <Lock className="w-3 h-3 text-gray-500" /></span>}
+                                        checked={false}
+                                        onChange={() => { }}
+                                        disabled={true}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1 ml-1">Automatically activate voice input when opening the AI assistant.</p>
+                                </div>
                             </div>
                         </div>
                     </Card>
@@ -202,16 +310,20 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <Toggle
-                                label="Daily Briefing"
-                                checked={aiPrefs.dailyDigest}
-                                onChange={(val) => updatePref('dailyDigest', val)}
-                            />
-                            <Toggle
-                                label="Streak Maintenance Reminders"
-                                checked={aiPrefs.streakReminders}
-                                onChange={(val) => updatePref('streakReminders', val)}
-                            />
+                            <div className="space-y-4 pointer-events-none opacity-60">
+                                <Toggle
+                                    label={<span className="flex items-center gap-2">Daily Briefing <Lock className="w-3 h-3 text-gray-500" /></span>}
+                                    checked={false}
+                                    onChange={() => { }}
+                                    disabled={true}
+                                />
+                                <Toggle
+                                    label={<span className="flex items-center gap-2">Streak Maintenance Reminders <Lock className="w-3 h-3 text-gray-500" /></span>}
+                                    checked={false}
+                                    onChange={() => { }}
+                                    disabled={true}
+                                />
+                            </div>
                         </div>
                     </Card>
 
@@ -260,14 +372,14 @@ export default function SettingsPage() {
 
                         <div className="space-y-3">
                             <button
-                                onClick={handleChangePassword}
+                                onClick={() => setChangePasswordModal(true)}
                                 className="w-full flex items-center px-4 py-3 text-sm font-medium text-gray-300 border border-white/10 rounded-md hover:bg-white/5 transition-colors"
                             >
                                 <Mail className="w-4 h-4 mr-2" />
                                 Change Password
                             </button>
                             <p className="text-[10px] text-gray-500 px-1">
-                                Sends a secure reset link to your email.
+                                Update your security credentials.
                             </p>
                         </div>
                     </Card>
@@ -297,12 +409,6 @@ export default function SettingsPage() {
                                 Delete Information
                             </button>
 
-                            <button
-                                className="w-full flex items-center justify-center px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
-                                onClick={() => setLogoutModal(true)}
-                            >
-                                Log Out Current Session
-                            </button>
                         </div>
                     </Card>
 
@@ -314,15 +420,72 @@ export default function SettingsPage() {
                 </div>
             </div>
 
+            {/* Change Password Modal */}
             <ConfirmationModal
-                isOpen={logoutModal}
-                onClose={() => setLogoutModal(false)}
-                onConfirm={handleLogout}
-                title="Disconnect Session"
-                message="Are you sure you want to terminate your current neural session?"
-                confirmText="Log Out"
-                variant="danger"
-            />
+                isOpen={changePasswordModal}
+                onClose={() => { setChangePasswordModal(false); setIsPwdOtpSent(false); setPwdOtp(""); setPwdError(""); }}
+                onConfirm={isPwdOtpSent ? finalizeChangePassword : initiateChangePassword}
+                title="Change Password"
+                message={isPwdOtpSent ? "Enter the security code sent to your email." : "Enter your current password and a new secure password."}
+                confirmText={isPwdOtpSent ? "Verify & Update" : "Next (Send OTP)"}
+                variant="default"
+            >
+                <div className="space-y-4 mt-4">
+                    {pwdError && (
+                        <div className="p-3 bg-red-950/50 border border-red-500/50 rounded-md text-red-200 text-xs font-mono text-center animate-in fade-in slide-in-from-top-1">
+                            {pwdError}
+                        </div>
+                    )}
+                    {!isPwdOtpSent ? (
+                        <>
+                            <div className="space-y-1">
+                                <div className="flex justify-between">
+                                    <label className="text-xs text-gray-500 uppercase font-mono">Current Password</label>
+                                    <a href="/forgot-password" className="text-[10px] text-cyan-500 hover:underline">Forgot password?</a>
+                                </div>
+                                <input
+                                    type="password"
+                                    className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    value={pwdData.oldPassword}
+                                    onChange={(e) => setPwdData({ ...pwdData, oldPassword: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-500 uppercase font-mono">New Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    value={pwdData.newPassword}
+                                    onChange={(e) => setPwdData({ ...pwdData, newPassword: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-500 uppercase font-mono">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    value={pwdData.confirmPassword}
+                                    onChange={(e) => setPwdData({ ...pwdData, confirmPassword: e.target.value })}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-1 animate-in fade-in">
+                            <label className="text-xs text-cyan-400 uppercase font-mono">Security OTP Code</label>
+                            <input
+                                type="text"
+                                className="w-full bg-black/50 border border-cyan-500/50 rounded px-3 py-2 text-white text-lg tracking-widest text-center focus:border-cyan-500 focus:outline-none"
+                                placeholder="0 0 0 0 0 0"
+                                value={pwdOtp}
+                                onChange={(e) => setPwdOtp(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    )}
+                </div>
+            </ConfirmationModal>
+
+
 
             <ConfirmationModal
                 isOpen={logoutAllModal}
@@ -334,24 +497,51 @@ export default function SettingsPage() {
                 variant="danger"
             />
 
+            {/* Delete Account Modal */}
             <ConfirmationModal
                 isOpen={deleteModal}
-                onClose={() => setDeleteModal(false)}
-                onConfirm={handleDeleteAccount}
+                onClose={() => { setDeleteModal(false); setIsDeleteOtpSent(false); setDeleteOtp(""); setDeleteConfirmText(""); setDeleteError(""); }}
+                onConfirm={isDeleteOtpSent ? finalizeDeleteAccount : initiateDeleteAccount}
                 title="Delete Account"
-                message="WARNING: This action is irreversible. All your data will be permanently erased. Type 'DELETE' to confirm."
-                confirmText="Permanently Delete"
+                message="WARNING: This action is irreversible. All your data will be permanently erased."
+                confirmText={isDeleteOtpSent ? "Confirm Deletion" : "Send OTP to Delete"}
                 variant="danger"
             >
-                <div className="mt-4">
-                    <label className="block text-xs text-gray-500 uppercase mb-1">Confirmation</label>
-                    <input
-                        type="text"
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
-                        placeholder="Type DELETE"
-                        value={deleteConfirmText}
-                        onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    />
+                <div className="mt-4 space-y-4">
+                    {deleteError && (
+                        <div className="p-3 bg-red-950/50 border border-red-500/50 rounded-md text-red-200 text-xs font-mono text-center animate-in fade-in slide-in-from-top-1">
+                            {deleteError}
+                        </div>
+                    )}
+                    {!isDeleteOtpSent ? (
+                        <>
+                            <div className="p-3 bg-red-950/20 border border-red-500/30 rounded text-xs text-red-200">
+                                This will remove your account, subscription, and all data immediately.
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-500 uppercase mb-1">Type DELETE to continue</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white text-sm"
+                                    placeholder="DELETE"
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-1 animate-in fade-in">
+                            <label className="text-xs text-red-400 uppercase font-mono">Security OTP Code</label>
+                            <input
+                                type="text"
+                                className="w-full bg-black/50 border border-red-500/50 rounded px-3 py-2 text-white text-lg tracking-widest text-center focus:border-red-500 focus:outline-none"
+                                placeholder="0 0 0 0 0 0"
+                                value={deleteOtp}
+                                onChange={(e) => setDeleteOtp(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    )}
                 </div>
             </ConfirmationModal>
         </div>

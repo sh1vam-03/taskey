@@ -36,8 +36,7 @@ export const dashboardNavigation = [
     {
         section: "Account",
         items: [
-            { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
-            { name: "Usage", href: "/dashboard/usage", icon: BarChart3 },
+            { name: "Billing & Usage", href: "/dashboard/billing", icon: CreditCard },
             { name: "Settings", href: "/dashboard/settings", icon: Settings },
         ],
     },

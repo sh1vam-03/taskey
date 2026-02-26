@@ -1,69 +1,181 @@
-import asyncHandler from "../../utils/asyncHandler.js";
-import prisma from "../../config/db.js";
-import { runAgentGraph } from "../graph/main.graph.js";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import { transcribeAudio } from "./stt.service.js";
-import { speakText } from "./tts.service.js";
-import { inferVoiceEmotion } from "./voice.emotion.js";
-import fs from 'fs';
-
 /**
- * POST /api/ai/conversations/:id/voice
- * Send voice message and receive audio response + text persistence
+ * Voice Controller
+ * Standalone voice pipeline handler.
+ *
+ * All active voice routes are registered in ai.routes.js.
+ * This controller is retained as a shared implementation that can be
+ * mounted on additional routers if needed.
+ *
+ * Model resolution (all from user record):
+ *   STT: user.aiSttModel      ("saaras:v3" | "whisper-1")
+ *   LLM: user.aiVoiceModel    ("gemini-1.5-flash" | "sarvam-30b" | "gpt-4o-mini")
+ *   TTS: user.aiTtsModel      ("bulbul:v3" | "tts-1")
+ *
+ * STT language: user.aiSarvamLang    (input language hint for Saaras v3)
+ * TTS speaker:  user.aiSarvamSpeaker (voice selection for Bulbul v3)
+ * TTS language: AUTO-DETECTED from LLM output text (never user-set)
+ *
+ * FIX: Changed plain `throw new Error(...)` to `throw new ApiError(...)` so
+ * errors return consistent JSON { success: false, message } responses instead
+ * of unhandled 500s with HTML stack traces.
  */
-// Imports
+
+import asyncHandler from "../../utils/asyncHandler.js";
+import ApiError from "../../utils/ApiError.js";
+import prisma from "../../config/db.js";
+import { transcribeAudio } from "./stt.service.js";
+import {
+    speakText,
+    getAudioMimeType,
+    DEFAULT_SPEAKER
+} from "./tts.service.js";
+import { inferVoiceEmotion } from "./voice.emotion.js";
 import { validateInputSafety } from "../validators/safety.validator.js";
 import { processAiRequest } from "../services/aiOrchestrator.service.js";
-import { checkCreditBalance } from "../services/aiToken.service.js"; // Needed for pre-check only if transcription costs
+import {
+    checkCreditBalance,
+    deductCredits,
+    calcVoiceCost,
+    estimateMaxChatCost
+} from "../services/aiToken.service.js";
+import fs from "fs";
 
-// ...
+import { VALID_STT_MODELS, VALID_TTS_MODELS, VALID_CHAT_MODELS } from "../../config/plans.config.js";
 
+const resolveSttModel = (user) => VALID_STT_MODELS.includes(user?.aiSttModel) ? user.aiSttModel : "saaras:v3";
+const resolveTtsModel = (user) => VALID_TTS_MODELS.includes(user?.aiTtsModel) ? user.aiTtsModel : "bulbul:v3";
+const resolveVoiceModel = (user) => VALID_CHAT_MODELS.includes(user?.aiVoiceModel) ? user.aiVoiceModel : "gemini-1.5-flash";
+
+/** Safely delete a temp file — warns on failure but never throws. */
+const safeUnlink = (filePath) => {
+    if (filePath && fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {
+            console.warn(`[VoiceController] Failed to delete temp file ${filePath}:`, e.message);
+        }
+    }
+};
+
+/**
+ * Full voice pipeline: Audio → STT → LLM → TTS → Audio response.
+ *
+ * Billing:
+ *   STT: per-minute (saaras:v3 or whisper-1)
+ *   LLM: token-based inside processAiRequest (uses user.aiVoiceModel)
+ *   TTS: per-minute (bulbul:v3 or tts-1)
+ */
 export const sendVoiceMessage = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const user = req.user;
 
-    // 0. Strict Billing Pre-Check (Early fail)
-    await checkCreditBalance(user.id);
+    // FIX: Use ApiError (400) instead of plain Error for consistent JSON error responses
+    if (!req.file) throw new ApiError(400, "Audio file is required");
 
-    if (!req.file) throw new Error("Audio file is required");
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) throw new ApiError(404, "User not found");
 
-    // 1. Transcribe Audio
-    const inputText = await transcribeAudio(req.file.path);
-
-    // 2. Process via Orchestrator (Safety + Agent + Saving + standard billing)
-    const savedAiMsg = await processAiRequest({
-        userId: user.id,
-        conversationId: id,
-        message: inputText,
-        mode: "VOICE"
-    });
-
-    const aiContentString = savedAiMsg.content;
-
-    // 3. Generate Audio Response (TTS)
-    const emotionContext = { summary: aiContentString };
-    const emotion = inferVoiceEmotion(emotionContext);
-    const audioPathResult = await speakText({ text: aiContentString, emotion });
-
-    // 4. Update Timestamp (Orchestrator did this, but maybe redundant updates are fine or we skip)
-    // Orchestrator already updated lastMessageAt.
-
-    // 5. Clean up Temp Audio
-    try {
-        if (req.file && req.file.path) {
-            fs.unlinkSync(req.file.path);
-        }
-    } catch (e) {
-        console.warn("Failed to delete temp audio file:", e.message);
+    if (user.plan !== "PRO_PLUS") {
+        throw new ApiError(403, "Voice mode is only available on the Pro Plus plan.");
     }
 
-    res.json({
-        success: true,
-        data: {
-            message: savedAiMsg,
-            audioPath: audioPathResult,
-            inputText,
-            emotion
+    const sttModel = resolveSttModel(user);
+    const ttsModel = resolveTtsModel(user);
+    const voiceModel = resolveVoiceModel(user);
+
+    // Conservative pre-check: 1 min STT + max LLM cost + 1 min TTS
+    await checkCreditBalance(
+        user.id,
+        calcVoiceCost(sttModel, 1) + estimateMaxChatCost(voiceModel) + calcVoiceCost(ttsModel, 1)
+    );
+
+    let ttsAudioPath = null;
+
+    try {
+        // ── 1. STT ─────────────────────────────────────────────
+        const { text: inputText, durationMinutes: sttDuration } = await transcribeAudio(
+            req.file.path,
+            sttModel,
+            { languageCode: user.aiSarvamLang || "unknown" }
+        );
+
+        if (!validateInputSafety(inputText)) {
+            safeUnlink(req.file.path);
+            throw new ApiError(400, "Unsafe content detected in audio transcription.");
         }
-    });
+
+        const sttCredits = calcVoiceCost(sttModel, sttDuration);
+        await deductCredits({
+            userId: user.id,
+            conversationId: id,
+            credits: sttCredits,
+            model: sttModel,
+            type: "VOICE",
+            provider: sttModel,
+            meta: { durationMinutes: sttDuration }
+        });
+
+        safeUnlink(req.file.path);
+
+        if (!inputText?.trim()) {
+            throw new ApiError(400, "Could not understand audio — transcript was empty.");
+        }
+
+        // ── 2. LLM (billing inside orchestrator, uses user.aiVoiceModel) ──
+        const savedAiMsg = await processAiRequest({
+            userId: user.id,
+            conversationId: id,
+            message: inputText,
+            mode: "VOICE"
+        });
+
+        const aiContentString = savedAiMsg.content; // already normalized string from orchestrator
+
+        // ── 3. TTS — language auto-detected from LLM output ────
+        const emotion = inferVoiceEmotion({ summary: aiContentString });
+        const { audioPath, durationMinutes: ttsDuration, detectedLang } = await speakText({
+            text: aiContentString,
+            emotion,
+            ttsModel,
+            speaker: user.aiSarvamSpeaker || DEFAULT_SPEAKER
+        });
+
+        ttsAudioPath = audioPath;
+
+        const ttsCredits = calcVoiceCost(ttsModel, ttsDuration);
+        await deductCredits({
+            userId: user.id,
+            conversationId: id,
+            credits: ttsCredits,
+            model: ttsModel,
+            type: "VOICE",
+            provider: ttsModel,
+            meta: { durationMinutes: ttsDuration, detectedLang }
+        });
+
+        // ── 4. Read TTS file and respond ───────────────────────
+        const audioBuffer = fs.readFileSync(audioPath);
+        const audioBase64 = audioBuffer.toString("base64");
+        const mimeType = getAudioMimeType(ttsModel);
+        const audioDataUrl = `data:${mimeType};base64,${audioBase64}`;
+
+        safeUnlink(audioPath);
+        ttsAudioPath = null;
+
+        res.json({
+            success: true,
+            data: {
+                message: savedAiMsg,
+                audioUrl: audioDataUrl,
+                inputText,
+                emotion,
+                models: { stt: sttModel, llm: voiceModel, tts: ttsModel },
+                billing: {
+                    stt: { model: sttModel, credits: sttCredits, durationMinutes: sttDuration },
+                    tts: { model: ttsModel, credits: ttsCredits, durationMinutes: ttsDuration, detectedLang }
+                }
+            }
+        });
+    } catch (error) {
+        safeUnlink(req.file?.path);
+        safeUnlink(ttsAudioPath);
+        throw error;
+    }
 });

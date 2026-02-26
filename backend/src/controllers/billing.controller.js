@@ -36,6 +36,26 @@ export const cancelMySubscription = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @route POST /api/billing/top-up/verify
+ */
+export const verifyTopUp = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+
+    const result = await billingService.verifyTopUpPayment(
+        userId,
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature
+    );
+
+    res.status(200).json({
+        success: true,
+        data: result,
+    });
+});
+
+/**
  * @route POST /api/billing/top-up
  */
 export const createTopUp = asyncHandler(async (req, res) => {

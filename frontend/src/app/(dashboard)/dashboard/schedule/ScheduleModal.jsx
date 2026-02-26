@@ -9,50 +9,80 @@ import Button from '@/components/ui/Button';
 import { AlertCircle, Clock, Calendar, Repeat } from 'lucide-react';
 
 export default function ScheduleModal({ isOpen, onClose, selectedDate, onScheduleSaved, scheduleToEdit }) {
-    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
+    // Build default values from props (available on FIRST render)
+    const getDefaults = () => {
+        if (scheduleToEdit) {
+            return {
+                taskId: scheduleToEdit.taskId || '',
+                scheduleDate: scheduleToEdit.startScheduleDate
+                    ? new Date(scheduleToEdit.startScheduleDate).toISOString().split('T')[0]
+                    : scheduleToEdit.scheduleDate || '',
+                startTime: scheduleToEdit.startTime || '09:00',
+                endTime: scheduleToEdit.endTime || '10:00',
+                recurrence: scheduleToEdit.recurrence || 'NONE',
+                repeatUntil: scheduleToEdit.repeatUntil
+                    ? new Date(scheduleToEdit.repeatUntil).toISOString().split('T')[0]
+                    : '',
+                repeatOnDays: scheduleToEdit.repeatOnDays || []
+            };
+        }
+        return {
+            taskId: '',
+            scheduleDate: selectedDate || new Date().toISOString().split('T')[0],
+            startTime: '09:00',
+            endTime: '10:00',
+            recurrence: 'NONE',
+            repeatUntil: '',
+            repeatOnDays: []
+        };
+    };
+
+    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
+        defaultValues: getDefaults()
+    });
+
     const [loading, setLoading] = useState(false);
-    const [tasks, setTasks] = useState([]);
     const [error, setError] = useState(null);
 
+    // Initialize tasks with current task IMMEDIATELY (synchronous, before first paint)
+    const [tasks, setTasks] = useState(() => {
+        if (scheduleToEdit && scheduleToEdit.taskId) {
+            return [{ id: scheduleToEdit.taskId, title: scheduleToEdit.title }];
+        }
+        return [];
+    });
+
     const DAYS = [
-        { id: 1, label: 'M' },
-        { id: 2, label: 'T' },
-        { id: 3, label: 'W' },
-        { id: 4, label: 'T' },
-        { id: 5, label: 'F' },
-        { id: 6, label: 'S' },
-        { id: 7, label: 'S' }
+        { id: 1, label: 'M' },  // Monday
+        { id: 2, label: 'T' },  // Tuesday
+        { id: 3, label: 'W' },  // Wednesday
+        { id: 4, label: 'T' },  // Thursday
+        { id: 5, label: 'F' },  // Friday
+        { id: 6, label: 'S' },  // Saturday
+        { id: 0, label: 'S' }   // Sunday (0 = Sunday in backend)
     ];
 
+    // Fetch full task list in background (to populate other options)
     useEffect(() => {
         if (isOpen) {
-            taskService.getTasks().then(data => setTasks(data.tasks || [])).catch(console.error);
+            taskService.getTasks({ limit: 100 }).then(data => {
+                let schedulable = (data.tasks || []).filter(t => {
+                    if (scheduleToEdit && t.id === scheduleToEdit.taskId) return true;
+                    return !t.dueDate;
+                });
 
-            if (scheduleToEdit) {
-                // EDIT MODE
-                reset({
-                    taskId: scheduleToEdit.taskId,
-                    scheduleDate: scheduleToEdit.startScheduleDate ? new Date(scheduleToEdit.startScheduleDate).toISOString().split('T')[0] : scheduleToEdit.scheduleDate,
-                    startTime: scheduleToEdit.startTime,
-                    endTime: scheduleToEdit.endTime,
-                    recurrence: scheduleToEdit.recurrence || 'NONE',
-                    repeatUntil: scheduleToEdit.repeatUntil ? new Date(scheduleToEdit.repeatUntil).toISOString().split('T')[0] : '',
-                    repeatOnDays: scheduleToEdit.repeatOnDays || []
-                });
-            } else {
-                // CREATE MODE
-                reset({
-                    taskId: '',
-                    scheduleDate: selectedDate || new Date().toISOString().split('T')[0],
-                    startTime: '09:00',
-                    endTime: '10:00',
-                    recurrence: 'NONE',
-                    repeatUntil: ''
-                });
-            }
-            setError(null);
+                // Ensure current task is always in the list
+                if (scheduleToEdit && scheduleToEdit.taskId) {
+                    const isPresent = schedulable.some(t => t.id === scheduleToEdit.taskId);
+                    if (!isPresent) {
+                        schedulable = [{ id: scheduleToEdit.taskId, title: scheduleToEdit.title }, ...schedulable];
+                    }
+                }
+
+                setTasks(schedulable);
+            }).catch(console.error);
         }
-    }, [isOpen, selectedDate, reset, scheduleToEdit]);
+    }, [isOpen, scheduleToEdit]);
 
     const onSubmit = async (data) => {
         setLoading(true);
@@ -67,8 +97,8 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
         } else if (payload.recurrence === 'DAILY') {
             payload.repeatOnDays = [];
         } else if (payload.recurrence === 'WEEKLY') {
-            // Ensure repeatOnDays is array of numbers
-            payload.repeatOnDays = (data.repeatOnDays || []).map(Number);
+            const days = data.repeatOnDays || [];
+            payload.repeatOnDays = (Array.isArray(days) ? days : String(days).split(',').filter(Boolean)).map(Number);
         } else if (payload.recurrence === 'MONTHLY') {
             payload.repeatOnDays = [];
         }
@@ -140,6 +170,7 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                         <input
                             type="date"
                             {...register('scheduleDate', { required: true })}
+                            min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm scheme-dark"
                         />
                     </div>
@@ -196,15 +227,15 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                                             type="button"
                                             onClick={() => toggleDay(day.id)}
                                             className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all ${watchRepeatOnDays?.includes(day.id)
-                                                    ? 'bg-cyan-500 text-black'
-                                                    : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                                                ? 'bg-cyan-500 text-black'
+                                                : 'bg-white/5 text-gray-500 hover:bg-white/10'
                                                 }`}
                                         >
                                             {day.label}
                                         </button>
                                     ))}
                                 </div>
-                                <input type="hidden" {...register('repeatOnDays')} />
+                                {/* repeatOnDays managed by setValue(), no hidden input needed */}
                             </div>
                         )}
 

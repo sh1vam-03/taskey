@@ -8,40 +8,45 @@ const error = (msg) => JSON.stringify({ success: false, error: msg });
 export const checkUsageTool = () => {
     return new DynamicStructuredTool({
         name: "check_usage",
-        description: "Check current AI token usage.",
+        description: "Check current AI credit balance and plan status.",
         schema: z.object({}),
         func: async (_args, config) => {
             try {
                 const userId = config.configurable?.user?.id || config.configurable?.userId;
                 if (!userId) return error("User ID missing in configuration");
 
-                // Fetch real usage from User table
                 const user = await prisma.user.findUnique({
                     where: { id: userId },
-                    select: { aiTokenBalance: true, plan: true }
+                    select: {
+                        subscriptionCredits: true,
+                        topupCredits: true,
+                        plan: true,
+                    },
                 });
 
                 if (!user) return error("User not found.");
 
-                // Logic based on Plan (Example limits)
-                let limit = 5000;
-                if (user.plan === 'PRO') limit = 50000;
-                if (user.plan === 'ULTRA') limit = 100000;
+                const totalBalance = (user.subscriptionCredits || 0) + (user.topupCredits || 0);
 
-                // Balance is what remains (or what is used depending on schema logic).
-                // Schema: aiTokenBalance Int @default(0). 
-                // Usually balance implies 'credits left'. But 'tokenBalance' might be 'used'.
-                // Let's assume it's CREDITS LEFT based on top-up logic.
+                // Credit limits by plan (adjust to match your plans.config)
+                const limits = {
+                    FREE: 10,
+                    PRO: 300,
+                    PRO_PLUS: 900,
+                };
+                const limit = limits[user.plan] ?? 500;
 
                 return success({
-                    balance: user.aiTokenBalance,
+                    balance: totalBalance,
+                    subscriptionCredits: user.subscriptionCredits || 0,
+                    topupCredits: user.topupCredits || 0,
                     plan: user.plan,
-                    status: user.aiTokenBalance > 0 ? "HEALTHY" : "EXHAUSTED"
+                    limit,
+                    status: totalBalance > 0 ? "HEALTHY" : "EXHAUSTED",
                 });
-
             } catch (e) {
                 return error(`Error checking usage: ${e.message}`);
             }
-        }
+        },
     });
 };

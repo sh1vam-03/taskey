@@ -1,7 +1,7 @@
 import PrivacyClient from "./PrivacyClient";
 
 export const metadata = {
-    title: 'Privacy Protocol | Taskey',
+    title: 'Privacy Policy | TASKTIME',
 }
 
 export default function PrivacyPage() {

@@ -1,187 +1,321 @@
 'use client';
 
 import React from 'react';
-import { CheckSquare, Clock, Calendar, Edit2, Trash2, CheckCircle2, Circle, Repeat, Timer } from 'lucide-react';
-import Button from '@/components/ui/Button';
+import {
+    CheckSquare, Clock, Calendar, Edit2, Trash2,
+    CheckCircle2, Circle, Repeat, ArrowDown, ArrowUp,
+    Minus, Timer
+} from 'lucide-react';
 
-// Days Map
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Types: 'TASK' | 'SCHEDULE' | 'SCHEDULED' (legacy)
+// Priority styling config
+const PRIORITY = {
+    HIGH: {
+        bar: 'bg-red-500',
+        barGlow: 'shadow-[0_0_8px_rgba(239,68,68,0.3)]',
+        badge: 'bg-red-500/15 border-red-500/30 text-red-400',
+        icon: ArrowUp,
+        label: 'HIGH',
+    },
+    MEDIUM: {
+        bar: 'bg-amber-500',
+        barGlow: 'shadow-[0_0_8px_rgba(245,158,11,0.3)]',
+        badge: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
+        icon: Minus,
+        label: 'MED',
+    },
+    LOW: {
+        bar: 'bg-blue-500',
+        barGlow: 'shadow-[0_0_8px_rgba(59,130,246,0.3)]',
+        badge: 'bg-blue-500/15 border-blue-500/30 text-blue-400',
+        icon: ArrowDown,
+        label: 'LOW',
+    },
+};
+
 export default function UniversalTaskCard({
     item,
-    type = 'TASK', // 'TASK' or 'SCHEDULE'
+    type = 'TASK',
     onComplete,
     onEdit,
     onDelete,
     hideActions = false
 }) {
-    // Normalize Data
     const isCompleted = item.status === 'COMPLETED' || item.isCompleted;
+    const isMissed = item.status === 'MISSED';
 
-    // Extract Schedule Data
+    // Extract data
     const schedule = item.schedule || {};
-    const hasSchedule = !!item.schedule || type === 'SCHEDULE' || item.type === 'SCHEDULED';
     const startTime = schedule.time || item.startTime;
+    const endTime = schedule.endTime || item.endTime;
     const recurrence = schedule.type || item.recurrence;
     const repeatDays = schedule.days || item.repeatOnDays;
     const repeatUntil = schedule.until || item.repeatUntil;
     const scheduleDate = schedule.date || item.scheduleDate;
+    const title = item.title || item.task?.title || 'Untitled';
+    const description = item.notes || item.description || item.task?.description;
+    const category = item.category || item.task?.category;
+    const priority = (item.priority || 'MEDIUM').toUpperCase();
+    const p = PRIORITY[priority] || PRIORITY.MEDIUM;
+    const PIcon = p.icon;
 
-    // Helper: Priority Colors
-    const getPriorityColor = (p) => {
-        switch (p) {
-            case 'HIGH': return 'border-red-500/30 text-red-500';
-            case 'MEDIUM': return 'border-yellow-500/30 text-yellow-500';
-            case 'LOW': return 'border-blue-500/30 text-blue-500';
-            default: return 'border-gray-500/30 text-gray-500';
-        }
-    };
+    const isScheduleType = type === 'SCHEDULE' || item.type === 'SCHEDULED' || !!item.schedule?.type || !!item.recurrence;
 
-    // Helper: Recurrence Text
-    const getRecurrenceDetails = () => {
-        if (!recurrence || recurrence === 'NONE') return null;
-        if (recurrence === 'DAILY') return 'Daily';
-        if (recurrence === 'WEEKLY') {
-            if (!repeatDays || repeatDays.length === 0) return 'Weekly';
-            // Sort days 0-6
-            const sortedDays = [...repeatDays].sort((a, b) => a - b);
-            return `Weekly: ${sortedDays.map(d => DAY_NAMES[d]).join(', ')}`;
-        }
-        if (recurrence === 'MONTHLY') return 'Monthly';
-        return recurrence;
-    };
+    // Format time → returns { time: '9:00', period: 'am' } or null
+    const fmt = (t) => {
+        if (!t) return null;
 
-    const recurrenceText = getRecurrenceDetails();
+        let hours, minutes;
 
-    // Time/Icon Block Logic
-    const renderLeftBlock = () => {
-        if (startTime) {
-            // Schedule: Show Time
-            // Parse time string (HH:mm:ss or ISO)
-            const timeStr = new Date(startTime).toString() !== 'Invalid Date'
-                ? new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : String(startTime).slice(0, 5);
-
-            return (
-                <div className={`flex flex-col items-center justify-center h-12 w-16 shrink-0 rounded-lg border border-white/10 font-mono text-xs ${isCompleted ? 'bg-zinc-900/50 text-gray-500' : 'bg-black text-cyan-500'}`}>
-                    <span className="font-bold">{timeStr}</span>
-                    <Clock className="h-3 w-3 opacity-50 mt-0.5" />
-                </div>
-            );
+        // "HH:mm" string from backend
+        if (typeof t === 'string' && /^\d{2}:\d{2}$/.test(t)) {
+            [hours, minutes] = t.split(':').map(Number);
         } else {
-            // Task: Show Priority/Icon
-            const priorityLower = (item.priority || 'MEDIUM').toUpperCase();
-
-            return (
-                <div className={`flex items-center justify-center h-12 w-12 shrink-0 rounded-lg border border-white/10 ${isCompleted ? 'bg-zinc-900/50 text-gray-500' : 'bg-black text-white'}`}>
-                    <CheckSquare className={`h-5 w-5 ${isCompleted ? 'text-gray-600' : 'text-cyan-500'}`} />
-                </div>
-            );
+            const d = new Date(t);
+            if (isNaN(d.getTime())) return null;
+            hours = d.getHours();
+            minutes = d.getMinutes();
         }
+
+        const period = hours >= 12 ? 'pm' : 'am';
+        const h12 = hours % 12 || 12;
+        return { time: `${h12}:${String(minutes).padStart(2, '0')}`, period };
     };
+
+    const fmtStart = fmt(startTime);
+    const fmtEnd = fmt(endTime);
+
+    // Helper to render time with inline period
+    const TimeDisplay = ({ data, size = 'lg' }) => {
+        if (!data) return null;
+        const isLg = size === 'lg';
+        return (
+            <span className="inline-flex items-baseline gap-[2px] whitespace-nowrap">
+                <span className={isLg ? 'text-[20px] font-bold' : 'text-[15px] font-medium'}>
+                    {data.time}
+                </span>
+                <span className={`${isLg ? 'text-[11px]' : 'text-[10px]'} font-medium uppercase opacity-60`}>
+                    {data.period}
+                </span>
+            </span>
+        );
+    };
+
+    // Recurrence
+    const recText = (() => {
+        if (!isScheduleType) return null;
+        if (!recurrence || recurrence === 'NONE') return 'ONETIME';
+        if (recurrence === 'DAILY') return 'DAILY';
+        if (recurrence === 'WEEKLY') {
+            if (!repeatDays?.length) return 'WEEKLY';
+            return `WEEKLY - ${[...repeatDays].sort((a, b) => a - b).map(d => DAY_NAMES[d]).join(', ')}`;
+        }
+        if (recurrence === 'MONTHLY') {
+            // Extract day from scheduleDate or use today
+            const d = scheduleDate ? new Date(scheduleDate).getDate() : new Date().getDate();
+            return `MONTHLY at ${d}`;
+        }
+        return recurrence;
+    })();
+
+    // Smart due date label
+    // Rules:
+    // - Scheduled items → NEVER show due date label (they show recurrence label)
+    // - Unscheduled with dueDate → show smart label (TODAY, END at X)
+    // - Unscheduled without dueDate → show TODAY
+    const dueDateLabel = (() => {
+        // Scheduled items don't get due date labels
+        if (isScheduleType) return null;
+
+        const raw = item.dueDate;
+
+        // No due date on unscheduled task → default to TODAY
+        if (!raw) return 'TODAY';
+
+        const due = new Date(raw);
+        if (isNaN(due.getTime())) return 'TODAY';
+
+        const now = new Date();
+        const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dueLocal = new Date(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+
+        if (dueLocal.getTime() === todayLocal.getTime()) return 'TODAY';
+
+        const dueDay = dueLocal.getDate();
+        const dueMonth = MONTH_NAMES[dueLocal.getMonth()];
+        const dueYear = String(dueLocal.getFullYear()).slice(-2);
+
+        if (dueLocal.getFullYear() === now.getFullYear() && dueLocal.getMonth() === now.getMonth()) {
+            return `END at ${dueDay}`;
+        }
+        if (dueLocal.getFullYear() === now.getFullYear()) {
+            return `END at ${dueDay} ${dueMonth}`;
+        }
+        return `END at ${dueDay} ${dueMonth} ${dueYear}`;
+    })();
+
+
 
     return (
-        <div className={`group/card flex items-center justify-between gap-4 rounded-lg border transition-all duration-200 p-3 
-            ${isCompleted ? 'bg-zinc-900/30 border-white/5 opacity-70' : 'bg-white/5 border-white/5 hover:border-cyan-500/30 hover:bg-white/10'}`}>
+        <div
+            className={`
+      relative group
+      bg-black
+      border border-white/10
+      hover:border-cyan-500/40
+      transition-all duration-200
+      px-4 py-3
+      ${isCompleted ? "opacity-60" : ""}
+      ${isMissed ? "border-red-500/40 bg-red-950/10" : ""}
+    `}
+        >
 
-            <div className="flex items-start gap-4 grow min-w-0">
-                {/* Left Block (Time or Icon) */}
-                {renderLeftBlock()}
+            {/* Corner Brackets (smaller) */}
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20 group-hover:border-cyan-500" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20 group-hover:border-cyan-500" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20 group-hover:border-cyan-500" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 group-hover:border-cyan-500" />
+
+            {/* Main Row */}
+            <div className="grid grid-cols-[100px_1fr_auto] items-start gap-3">
+
+                {/* Time */}
+                <div className="flex flex-col font-mono leading-none">
+                    {fmtStart ? (
+                        <span className="text-cyan-400 tracking-tight">
+                            <TimeDisplay data={fmtStart} size="lg" />
+                        </span>
+                    ) : (
+                        <span className="text-white/30 text-[13px] font-bold tracking-widest uppercase">
+                            ANYTIME
+                        </span>
+                    )}
+                    {fmtEnd && (
+                        <span className="text-gray-500 mt-1">
+                            <TimeDisplay data={fmtEnd} size="sm" />
+                        </span>
+                    )}
+                </div>
 
                 {/* Content */}
-                <div className="min-w-0 grow">
-                    <div className="flex items-start justify-between gap-2">
-                        <h4 className={`font-medium truncate transition-colors ${isCompleted ? 'text-gray-500 line-through' : 'text-white group-hover/card:text-cyan-400'}`}>
-                            {item.title || item.task?.title || "Untitled"}
-                        </h4>
-                    </div>
+                <div className="min-w-0">
+                    <h3
+                        className={`text-sm font-semibold text-white leading-tight truncate
+            ${isCompleted ? "line-through opacity-50" : ""}
+          `}
+                    >
+                        {title}
+                    </h3>
 
-                    {/* Recurrence & Schedule Info */}
-                    {(recurrenceText || scheduleDate) && (
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                            {recurrenceText && (
-                                <div className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-cyan-400/80 font-mono flex items-center gap-1 shrink-0">
-                                    <Repeat className="h-3 w-3" />
-                                    {recurrenceText}
-                                </div>
-                            )}
-
-                            {/* If One-time scheduled date exists and no recurrence */}
-                            {(!recurrenceText && scheduleDate) && (
-                                <div className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-gray-400 font-mono flex items-center gap-1 shrink-0">
-                                    <Calendar className="h-3 w-3" />
-                                    {new Date(scheduleDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                </div>
-                            )}
-
-                            {/* Until Date */}
-                            {repeatUntil && (
-                                <div className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-gray-500 font-mono flex items-center gap-1 shrink-0">
-                                    <span className="opacity-50">Until:</span>
-                                    {new Date(repeatUntil).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Description */}
-                    {(item.description || item.notes || item.task?.description) && (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                            {item.notes || item.description || item.task?.description}
+                    {description && (
+                        <p
+                            className={`text-[11px] text-gray-500 font-mono mt-1 truncate
+              ${isCompleted ? "line-through opacity-40" : ""}
+            `}
+                        >
+                            {"> " + description}
                         </p>
                     )}
                 </div>
 
-                {/* Meta: Priority & Category */}
-                <div className="hidden sm:flex flex-col items-end gap-1.5 shrink-0 self-center">
-                    {/* Priority Badge */}
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono uppercase ${getPriorityColor(item.priority || 'MEDIUM')}`}>
-                        {item.priority || 'MEDIUM'}
-                    </span>
-
-                    {/* Category */}
-                    {(item.category || item.task?.category) && (
-                        <span className="text-[10px] uppercase font-mono text-gray-500 px-1.5 py-0.5 flex items-center gap-1">
-                            {(item.category?.color || item.task?.category?.color) && (
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.category?.color || item.task?.category?.color }}></span>
-                            )}
-                            {item.category?.name || item.task?.category?.name}
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* Actions */}
-            {!hideActions && (
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {/* Hover Actions (Edit/Delete) */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity translate-x-2 group-hover/card:translate-x-0 duration-200">
+                {/* Edit/Delete */}
+                {!hideActions && (
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {onEdit && (
-                            <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="p-1.5 text-gray-500 hover:text-cyan-400 hover:bg-white/10 rounded transition-colors">
-                                <Edit2 className="h-4 w-4" />
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                                className="text-gray-500 hover:text-cyan-400"
+                            >
+                                <Edit2 size={14} />
                             </button>
                         )}
                         {onDelete && (
-                            <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors">
-                                <Trash2 className="h-4 w-4" />
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+                                className="text-gray-500 hover:text-red-500"
+                            >
+                                <Trash2 size={14} />
                             </button>
                         )}
                     </div>
+                )}
+            </div>
 
-                    {/* Completion Toggle */}
-                    {onComplete && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); onComplete(item); }}
-                            className={`ml-1 transition-colors ${isCompleted ? 'text-green-500 hover:text-gray-400' : 'text-gray-600 hover:text-green-500 hover:bg-green-500/10'}`}
-                        >
-                            {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                        </Button>
+            {/* Bottom Meta Row (tight) */}
+            <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/5 text-[9px] font-mono uppercase tracking-wider">
+
+                {/* Left */}
+                <div className="flex items-center gap-2">
+
+                    {recText && (
+                        <span className="text-purple-400 border border-purple-500/20 px-1.5 py-[2px]">
+                            {recText}
+                        </span>
                     )}
+
+                    {dueDateLabel && (
+                        <span className={`border px-1.5 py-[2px] ${dueDateLabel === 'TODAY'
+                            ? 'text-green-400 border-green-500/20'
+                            : 'text-orange-400 border-orange-500/20'
+                            }`}>
+                            {dueDateLabel}
+                        </span>
+                    )}
+
+                    {isMissed && (
+                        <span className="text-red-400 border border-red-500/30 px-1.5 py-[2px]">
+                            MISSED
+                        </span>
+                    )}
+
                 </div>
-            )}
+
+                {/* Right */}
+                <div className="flex items-center gap-2">
+
+                    <span
+                        className={`px-1.5 py-[2px] border
+            ${priority === "HIGH"
+                                ? "text-red-400 border-red-500/30"
+                                : priority === "LOW"
+                                    ? "text-blue-400 border-blue-500/30"
+                                    : "text-amber-400 border-amber-500/30"
+                            }
+          `}
+                    >
+                        {priority}
+                    </span>
+
+                    <span className="text-gray-400 border border-white/10 px-1.5 py-[2px]">
+                        {isScheduleType ? "SCHEDULED" : "TASK"}
+                    </span>
+
+                    {category && (
+                        <span className="text-cyan-500 border border-cyan-900/30 px-1.5 py-[2px]">
+                            {category.name || category}
+                        </span>
+                    )}
+
+                    {onComplete && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onComplete(item); }}
+                            className={`
+              ml-1
+              ${isCompleted
+                                    ? "text-green-500"
+                                    : "text-gray-500 hover:text-green-400"
+                                }
+            `}
+                        >
+                            {isCompleted ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                        </button>
+                    )}
+
+                </div>
+            </div>
+
         </div>
     );
 }

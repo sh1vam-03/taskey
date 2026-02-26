@@ -32,11 +32,11 @@ export default function SignupForm() {
         setSuccess("")
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!name.trim()) return setError("Name is required")
+        if (!name.trim()) return setError("Please enter your name")
         if (!emailRegex.test(email)) return setError("Please enter a valid email address")
 
         if (password.length < 8) return setError("Password must be at least 8 characters long")
-        if (!/[A-Z]/.test(password) && !/[0-9]/.test(password)) return setError("Password should contain at least one uppercase letter or number")
+        if (!/[A-Z]/.test(password) && !/[0-9]/.test(password)) return setError("Password must include at least one uppercase letter or number")
 
         if (password !== confirmPassword) return setError("Passwords do not match")
 
@@ -44,7 +44,7 @@ export default function SignupForm() {
             setLoading(true)
             await signup(name, email, password)
             setStep("otp")
-            setSuccess("Account initialization started. Enter authorization code sent to email.")
+            setSuccess("We've sent a verification code to your email.")
         } catch (err) {
             setError(err.message)
         } finally {
@@ -56,12 +56,12 @@ export default function SignupForm() {
         e.preventDefault()
         setError("")
 
-        if (!otp) return setError("Authorization code is required")
+        if (!otp) return setError("Please enter the verification code")
 
         try {
             setLoading(true)
             await verifyOtp(email, otp)
-            setSuccess("Identity verified. Initializing session...")
+            setSuccess("Email verified. Signing you in...")
 
             // Auto login
             await login(email, password)
@@ -98,7 +98,7 @@ export default function SignupForm() {
             await requestOtp(email)
             setTimer(30)
             setCanResend(false)
-            setSuccess("OTP resent successfully")
+            setSuccess("Verification code sent successfully.")
         } catch (err) {
             setError(err.message)
         } finally {
@@ -110,13 +110,13 @@ export default function SignupForm() {
         <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
             <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
                 <h1 className="text-2xl font-bold text-center text-[var(--heading)]">
-                    {step === "form" ? "Create Your Account" : "Verify OTP"}
+                    {step === "form" ? "Create Your Account" : "Verify your email"}
                 </h1>
 
                 <p className="text-center opacity-80">
                     {step === "form"
-                        ? "Sign up to start organizing your life with Taskey"
-                        : "Enter the OTP sent to your email"}
+                        ? "Sign up to start organizing your life with TASKTIME"
+                        : "Enter the 6-digit code sent to your email address."}
                 </p>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -126,7 +126,7 @@ export default function SignupForm() {
                     <form onSubmit={handleContinue} className="flex flex-col gap-5">
                         {/* Name */}
                         <input
-                            placeholder="Name"
+                            placeholder="Full name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             suppressHydrationWarning
@@ -135,7 +135,7 @@ export default function SignupForm() {
 
                         {/* Email */}
                         <input
-                            placeholder="Email"
+                            placeholder="Email address"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             suppressHydrationWarning
@@ -183,6 +183,9 @@ export default function SignupForm() {
                                 {showConfirmPassword ? "Hide" : "Show"}
                             </Button>
                         </div>
+                        <span className="text-xs text-gray-500">
+                            By signing up, you agree to our <Link href="/terms" className="text-cyan-500 hover:text-cyan-200">Terms of Service</Link> and <Link href="/privacy" className="text-cyan-500 hover:text-cyan-200">Privacy Policy</Link>.
+                        </span>
 
                         <Button
                             className="w-full sm:w-auto mt-4"
@@ -190,7 +193,7 @@ export default function SignupForm() {
                             isLoading={loading}
                             variant="scanline"
                         >
-                            {loading ? "Sending..." : "Initialize_Account"}
+                            {loading ? "Creating account..." : "Create account"}
                         </Button>
                     </form>
                 )}
@@ -198,7 +201,7 @@ export default function SignupForm() {
                 {step === "otp" && (
                     <form onSubmit={handleSignup} className="flex flex-col gap-5">
                         <input
-                            placeholder="Enter Code"
+                            placeholder="Enter 6-digit code"
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
                             suppressHydrationWarning
@@ -211,7 +214,7 @@ export default function SignupForm() {
                             isLoading={loading}
                             variant="scanline"
                         >
-                            {loading ? "Verifying..." : "Confirm_Identity"}
+                            {loading ? "Verifying..." : "Verify email"}
                         </Button>
 
                         <div className="text-sm text-center opacity-80 font-mono text-gray-500">
@@ -223,10 +226,10 @@ export default function SignupForm() {
                                     onClick={handleResendOtp}
                                     className="underline decoration-cyan-500 underline-offset-4"
                                 >
-                                    Resend_Signal
+                                    Resend code
                                 </Button>
                             ) : (
-                                <span>Signal_Refind_In: {timer}s</span>
+                                <span>Resend available in {timer}s</span>
                             )}
                         </div>
                     </form>

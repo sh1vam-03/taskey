@@ -38,18 +38,12 @@ export default function SecurityClient() {
             <div className="w-full max-w-[var(--container-width)] mx-auto relative z-10">
                 {/* HERO */}
                 <div className="text-center mb-24">
-                    <div className="inline-block border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-8">
-                        <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest flex items-center gap-2">
-                            <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
-                            // SYSTEM_DEFENSE: ACTIVE
-                        </span>
-                    </div>
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white">
-                        Security Architecture
+                        Security First
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                        Security is not a feature; it is the substrate. <br />
-                        We engineer zero-trust environments for your neural data.
+                        We take security seriously. <br />
+                        Your data is encrypted, isolated, and protected using modern industry standards. TASKTIME is designed with a security-first architecture to safeguard your information.
                     </p>
                 </div>
 
@@ -57,23 +51,23 @@ export default function SecurityClient() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/10 rounded-sm overflow-hidden mb-32 border border-white/10">
                     {[
                         {
-                            title: "End-to-End Encryption",
-                            desc: "All data in transit is secured via TLS 1.3. Data at rest is encrypted using AES-256 GCM standards within isolated cloud shards.",
+                            title: "Data Encryption",
+                            desc: "All data is encrypted in transit using TLS 1.3 and encrypted at rest using industry-standard AES-256 encryption. This ensures your information remains protected during transmission and storage.",
                             icon: <FaLock />
                         },
                         {
-                            title: "AI Safety Barriers",
-                            desc: "Our Neural Engine implements strict input sanitization to prevent prompt injection attacks and ensures data from one user never leaks to another's context.",
+                            title: "AI Data Isolation",
+                            desc: "User data is logically isolated. One user's data is never accessible to another. AI processing does not share context across accounts.",
                             icon: <FaShieldAlt />
                         },
                         {
-                            title: "Infrastructure Isolation",
-                            desc: "We utilize ephemeral compute instances that spin down immediately after processing, minimizing the attack surface for persistent threats.",
+                            title: "Secure Infrastructure",
+                            desc: "We use secure cloud infrastructure with strict access controls, network monitoring, and continuous updates to reduce vulnerabilities and protect against threats.",
                             icon: <FaServer />
                         },
                         {
-                            title: "Human Access Control",
-                            desc: "No human engineer can access user data without explicit cryptographic consent keys generated during support inquiries.",
+                            title: "Access Control & Permissions",
+                            desc: "Access to production systems is restricted to authorized personnel only. Internal access is logged, monitored, and granted strictly on a need-to-know basis.",
                             icon: <FaUserSecret />
                         }
                     ].map((item, i) => (
@@ -103,9 +97,9 @@ export default function SecurityClient() {
                     <h3 className="text-2xl font-bold text-white mb-4">White Hat Program</h3>
                     <p className="text-gray-400 max-w-2xl mx-auto mb-8">
                         We welcome collaboration with the security research community.
-                        If you identify a vulnerability in the Neural Architecture, report it immediately.
+                        If you believe you have discovered a security vulnerability, please report it responsibly. We appreciate responsible disclosure and will review all valid security reports promptly.
                     </p>
-                    <Link href="mailto:security@taskey.ai">
+                    <Link href="mailto:security@tasktime.in">
                         <Button variant="scanline" size="lg" className="uppercase tracking-wider">
                             Report Vulnerability
                         </Button>

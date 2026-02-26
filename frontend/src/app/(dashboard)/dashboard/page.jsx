@@ -6,6 +6,7 @@ import dashboardService from '@/services/dashboard.service';
 import usageService from '@/services/usage.service';
 import billingService from '@/services/billing.service';
 import behaviorService from '@/services/behavior.service';
+import BehaviorLogModal from '@/components/dashboard/BehaviorLogModal';
 import scheduleService from '@/services/schedule.service';
 import { Zap, CheckSquare, Trophy, BrainCircuit, TrendingUp, Activity, Calendar, ArrowRight, Bot, Target } from 'lucide-react';
 import UniversalTaskCard from '@/components/dashboard/UniversalTaskCard';
@@ -29,29 +30,30 @@ export default function DashboardOverview() {
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const behaviorLogged = useRef(false);
+    const [showBehaviorModal, setShowBehaviorModal] = useState(false);
 
     // 1. Behavior Update (Once on Load)
+    // 1. Check Behavior Log (Once on Load)
     useEffect(() => {
-        const logBehavior = async () => {
-            if (behaviorLogged.current) return;
-            behaviorLogged.current = true;
+        const checkBehaviorLog = async () => {
+            if (!user) return;
             try {
-                // Call behavior update silently
-                await behaviorService.upsertBehavior({
-                    date: new Date().toISOString().split('T')[0],
-                    mood: "NEUTRAL", // Default to NEUTRAL for auto-log
-                    notes: "Daily Dashboard Check-in"
-                });
+                // Get local date (YYYY-MM-DD)
+                const localDate = new Date().toLocaleDateString('en-CA');
+
+                // Check if log exists for today
+                const log = await behaviorService.getBehaviorByDate(localDate);
+
+                if (!log) {
+                    // No log found for today -> Open Modal
+                    setShowBehaviorModal(true);
+                }
             } catch (err) {
-                // Silent fail for behavior log
-                console.warn("Behavior log failed:", err);
+                console.error("Failed to check behavior log:", err);
             }
         };
 
-        if (user) {
-            logBehavior();
-        }
+        checkBehaviorLog();
     }, [user]);
 
     // 2. Fetch Overview Data
@@ -85,30 +87,43 @@ export default function DashboardOverview() {
 
     const handleToggleItem = async (item) => {
         try {
-            // Optimistic Update (Optional: could be handled by local state, but refetch is safer for now)
+            // Optimistic Update: Immediately update UI
+            const isNowCompleted = !(item.status === 'COMPLETED' || item.isCompleted);
+            const status = isNowCompleted ? 'COMPLETED' : 'PENDING';
+
+            setOverview(prev => ({
+                ...prev,
+                timeline: prev.timeline.map(t =>
+                    t.id === item.id ? { ...t, status, isCompleted: isNowCompleted } : t
+                ),
+                todayTasksCount: isNowCompleted ? prev.todayTasksCount - 1 : prev.todayTasksCount + 1,
+                completedTasksCount: isNowCompleted ? prev.completedTasksCount + 1 : prev.completedTasksCount - 1
+            }));
+
+            // Sync with background
+            const localDate = new Date().toLocaleDateString('en-CA');
 
             if (item.type === 'SCHEDULED') {
-                if (item.status === 'COMPLETED') {
-                    await scheduleService.undoCompleteSchedule(item.id);
+                if (!isNowCompleted) {
+                    await scheduleService.undoCompleteSchedule(item.id, localDate);
                 } else {
-                    await scheduleService.completeSchedule(item.id);
+                    await scheduleService.completeSchedule(item.id, localDate);
                 }
             } else {
                 // Task (UNSCHEDULED)
-                if (item.status === 'COMPLETED' || item.isCompleted) {
-                    await taskService.undoCompleteTask(item.id);
+                if (!isNowCompleted) {
+                    await taskService.undoCompleteTask(item.id, localDate);
                 } else {
-                    await taskService.completeTask(item.id);
+                    await taskService.completeTask(item.id, localDate);
                 }
             }
 
-            // Refetch
-            const localDate = new Date().toLocaleDateString('en-CA');
+            // Silent Refetch to ensure consistency (optional, can be debounced)
             const overviewData = await dashboardService.getOverview(localDate);
             setOverview(overviewData);
         } catch (err) {
             console.error("Failed to toggle item:", err);
-            // Optionally show a toast
+            // Revert state on error (optional implementation)
         }
     };
 
@@ -188,10 +203,13 @@ export default function DashboardOverview() {
                     <Card
                         title="Today Tasks"
                         icon={CheckSquare}
+                        className="min-h-[140px]"
                     >
-                        <div className="flex items-baseline gap-2 mt-2">
-                            <span className="text-3xl font-bold text-white">{overview?.todayTasksCount || 0}</span>
-                            <span className="text-sm text-gray-500">/ {overview?.todayTasksTotal || 0}</span>
+                        <div className="flex-1 flex items-center">
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl font-bold text-white">{overview?.todayTasksCount || 0}</span>
+                                <span className="text-sm text-gray-500">/ {overview?.todayTasksTotal || 0}</span>
+                            </div>
                         </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Pending Actions
@@ -202,8 +220,11 @@ export default function DashboardOverview() {
                     <Card
                         title="Completed"
                         icon={Trophy}
+                        className="min-h-[140px]"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.completedTasksCount || 0}</div>
+                        <div className="flex-1 flex items-center">
+                            <div className="text-3xl font-bold text-white">{overview?.completedTasksCount || 0}</div>
+                        </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Tasks Finished
                         </p>
@@ -211,11 +232,23 @@ export default function DashboardOverview() {
 
                     {/* Productivity Score */}
                     <Card
-                        title="Productivity Score"
+                        title={
+                            <div className="flex items-center gap-2">
+                                <span>Productivity Score</span>
+                                <div className="group relative">
+                                    <Activity className="h-4 w-4 text-gray-500 hover:text-cyan-400 cursor-help transition-colors" />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-cyan-100 bg-cyan-950/90 border border-cyan-500/20 rounded shadow-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                        Tasks (70%) + Lifestyle (30%)
+                                    </div>
+                                </div>
+                            </div>
+                        }
                         icon={BrainCircuit}
-                        description="Tasks (70%) + Lifestyle (30%)"
+                        className="min-h-[140px]"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.productivityScore || 0}</div>
+                        <div className="flex-1 flex items-center">
+                            <div className="text-3xl font-bold text-white">{overview?.productivityScore || 0}</div>
+                        </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Daily Efficiency Index
                         </p>
@@ -225,8 +258,11 @@ export default function DashboardOverview() {
                     <Card
                         title="Current Streak"
                         icon={TrendingUp}
+                        className="min-h-[140px]"
                     >
-                        <div className="text-3xl font-bold text-white mt-2">{overview?.currentStreak || 0}</div>
+                        <div className="flex-1 flex items-center">
+                            <div className="text-3xl font-bold text-white">{overview?.currentStreak || 0}</div>
+                        </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
                             Day Streak
                         </p>
@@ -236,41 +272,43 @@ export default function DashboardOverview() {
                 {/* Overview Section */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
                     {/* Today's Timeline */}
-                    <Card
-                        className="lg:col-span-4 min-h-[400px]"
-                        title="Temporal Timeline"
-                        icon={Activity}
-                        description="Scheduled blocks for the current cycle."
-                    >
-                        <div className="space-y-4 mt-6">
-                            {overview?.timeline?.length > 0 ? (
-                                overview.timeline.map((item, i) => (
-                                    <UniversalTaskCard
-                                        key={i}
-                                        item={item}
-                                        type={item.type === 'SCHEDULED' ? 'SCHEDULE' : 'TASK'}
-                                        onComplete={() => handleToggleItem(item)}
-                                    />
-                                ))
+                    <div className="lg:col-span-4 lg:relative min-h-[500px] lg:min-h-[500px]">
+                        <Card
+                            className="h-full flex flex-col overflow-hidden lg:absolute lg:inset-0"
+                            title="Temporal Timeline"
+                            icon={Activity}
+                            description="Scheduled blocks for the current cycle."
+                        >
+                            <div className="space-y-4 mt-6 flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                                {overview?.timeline?.length > 0 ? (
+                                    overview.timeline.map((item, i) => (
+                                        <UniversalTaskCard
+                                            key={i}
+                                            item={item}
+                                            type={item.type === 'SCHEDULED' ? 'SCHEDULE' : 'TASK'}
+                                            onComplete={() => handleToggleItem(item)}
+                                        />
+                                    ))
 
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                                        <Calendar className="h-8 w-8 text-gray-600" />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-center">
+                                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                            <Calendar className="h-8 w-8 text-gray-600" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-white mb-1">Timeline Clear</h3>
+                                        <p className="text-gray-500 text-sm max-w-sm mb-6">
+                                            No temporal blocks allocated for this cycle. Initialize a schedule to begin.
+                                        </p>
+                                        <Link href="/dashboard/schedule">
+                                            <Button variant="secondary" size="sm">
+                                                Initialize Schedule
+                                            </Button>
+                                        </Link>
                                     </div>
-                                    <h3 className="text-lg font-medium text-white mb-1">Timeline Clear</h3>
-                                    <p className="text-gray-500 text-sm max-w-sm mb-6">
-                                        No temporal blocks allocated for this cycle. Initialize a schedule to begin.
-                                    </p>
-                                    <Link href="/dashboard/schedule">
-                                        <Button variant="secondary" size="sm">
-                                            Initialize Schedule
-                                        </Button>
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
+                                )}
+                            </div>
+                        </Card>
+                    </div>
 
                     {/* Quick Actions / Recent */}
                     <div className="lg:col-span-3 space-y-6">
@@ -312,28 +350,8 @@ export default function DashboardOverview() {
                         </Card>
 
                         <Card
-                            className="bg-linear-to-br from-cyan-900/10 to-transparent border-cyan-900/30"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-cyan-500/20 flex items-center justify-center animate-pulse">
-                                    <BrainCircuit className="h-5 w-5 text-cyan-400" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-white">System Optimizing</h4>
-                                    <p className="text-xs text-cyan-200/60 font-mono mt-1">
-                                        Analyzing usage patterns...
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Plan Summary */}
-                    <div className="lg:col-span-3">
-                        <Card
                             title="Plan Status"
                             icon={Target}
-                            className="h-full"
                         >
                             <div className="mt-4 space-y-4">
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
@@ -353,7 +371,6 @@ export default function DashboardOverview() {
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                                    были
                                     <span className="text-sm text-gray-400">Renewal</span>
                                     <span className="text-sm font-mono text-white">{subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : 'N/A'}</span>
                                 </div>
@@ -362,6 +379,16 @@ export default function DashboardOverview() {
                     </div>
                 </div>
             </div>
+
+            <BehaviorLogModal
+                isOpen={showBehaviorModal}
+                onClose={() => setShowBehaviorModal(false)}
+                onLogSaved={() => {
+                    // Refresh data after log
+                    const localDate = new Date().toLocaleDateString('en-CA');
+                    dashboardService.getOverview(localDate).then(setOverview);
+                }}
+            />
         </ErrorBoundary>
     );
 }

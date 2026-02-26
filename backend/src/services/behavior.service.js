@@ -1,24 +1,12 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import { buildDailyStatsMap } from "./dashboard.service.js";
-import { getCurrentMonthYear } from "../utils/date.utils.js";
+import { getCurrentMonthYear, toUTCDateOnly, startOfUTCDate } from "../utils/date.utils.js";
 import { calculateBehaviorScore, calculateProductivityScore } from "../utils/score.utils.js";
-import { checkUsageLimit, incrementUsage } from "../services/usageLimit.service.js";
 
-/* -------------------------------------------------------------------------- */
-/*                               DATE UTILS                                   */
-/* -------------------------------------------------------------------------- */
+// Local date utils removed in favor of centralized date.utils.js
 
-export const toUTCDate = (input) => {
-    const d = input instanceof Date ? input : new Date(input);
-    if (isNaN(d.getTime())) return null;
-
-    return new Date(Date.UTC(
-        d.getUTCFullYear(),
-        d.getUTCMonth(),
-        d.getUTCDate()
-    ));
-};
+// toUTCDate removed
 
 /* -------------------------------------------------------------------------- */
 /*                           UPSERT (NO SCORE)                                 */
@@ -31,11 +19,15 @@ export const upsertBehaviorLog = async (userId, payload) => {
 
     if (!mood) throw new ApiError(400, "Mood is required");
 
-    const day = toUTCDate(date ?? new Date());
+    // Use toUTCDateOnly if date string provided, else startOfUTCDate for today
+    const day = date ? toUTCDateOnly(date) : startOfUTCDate();
     if (!day) throw new ApiError(400, "Invalid date");
 
-    const today = toUTCDate(new Date());
-    if (day > today) {
+    const today = startOfUTCDate();
+    const maxDate = new Date(today);
+    maxDate.setUTCDate(today.getUTCDate() + 1); // Allow 1 day buffer for timezone differences
+
+    if (day > maxDate) {
         throw new ApiError(400, "Future dates are not allowed");
     }
 
@@ -46,12 +38,11 @@ export const upsertBehaviorLog = async (userId, payload) => {
         }
     });
 
-    // 2️⃣ Check Limits (Only if creating new)
-    if (!existing) {
-        await checkUsageLimit(userId, 'behavior');
-    }
+    const isNew = !existing;
 
-    // 3️⃣ Upsert behavior
+    // Usage limit check is handled by the controller
+
+    // 2️⃣ Upsert behavior
     const behavior = await prisma.behaviorLog.upsert({
         where: {
             userId_date: { userId, date: day }
@@ -72,14 +63,8 @@ export const upsertBehaviorLog = async (userId, payload) => {
         }
     });
 
-    /**
-     * 4️⃣ Increment usage ONLY if it's a NEW record
-     */
-    if (!existing) {
-        await incrementUsage(userId, 'behavior');
-    }
-
-    return behavior;
+    // Usage increment is handled by the controller via incrementUsage()
+    return { ...behavior, isNew };
 };
 
 
@@ -105,7 +90,7 @@ export const getLatestBehaviorLog = async (userId) => {
 export const getBehaviorLogByDate = async (userId, date) => {
     if (!userId) throw new ApiError(401, "Unauthorized");
 
-    const day = toUTCDate(date);
+    const day = toUTCDateOnly(date);
     if (!day) throw new ApiError(400, "Invalid date");
 
     const behavior = await prisma.behaviorLog.findUnique({
@@ -156,7 +141,10 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         throw new ApiError(400, "Days must be between 1 and 90");
     }
 
-    const end = toUTCDate(new Date());
+    // End date includes tomorrow (buffer for timezone)
+    const end = startOfUTCDate();
+    end.setUTCDate(end.getUTCDate() + 1);
+
     const start = new Date(end);
     start.setUTCDate(end.getUTCDate() - (days - 1));
 
@@ -187,11 +175,14 @@ export const getBehaviorSummary = async (userId, days = 7) => {
         logsMap.set(log.date.toISOString().slice(0, 10), log);
     });
 
+    // ⚡ OPTIMIZATION: Fetch stats for the ENTIRE range once, instead of inside the loop
+    const statsMap = await buildDailyStatsMap(userId, start, end);
+
     // Iterate through EACH day in the range to build history (filling gaps)
     const loopDate = new Date(start);
     while (loopDate <= end) {
         const key = loopDate.toISOString().slice(0, 10);
-        const dayDate = new Date(loopDate);
+        // const dayDate = new Date(loopDate); // No longer needed for individual fetch
         const log = logsMap.get(key);
 
         let behaviorScore = 0;
@@ -199,7 +190,7 @@ export const getBehaviorSummary = async (userId, days = 7) => {
 
         if (log) {
             // Calculate score for existing log
-            const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate);
+            // const statsMap = await buildDailyStatsMap(userId, dayDate, dayDate); // OLD SLOW WAY
             const stats = statsMap[key] ?? { total: 0, completed: 0, missed: 0 };
 
             const bScore = calculateBehaviorScore({
@@ -252,7 +243,7 @@ export const explainProductivityScore = async (userId, date) => {
         throw new ApiError(401, "Unauthorized");
     }
 
-    const day = toUTCDate(date ?? new Date());
+    const day = date ? toUTCDateOnly(date) : startOfUTCDate();
     if (!day) {
         throw new ApiError(400, "Invalid date");
     }

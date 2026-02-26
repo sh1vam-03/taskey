@@ -7,10 +7,9 @@ const requireRole = (role) => {
             throw new ApiError(401, "Unauthorized");
         }
 
-        if (req.user.role !== role) {
+        if (req.user.role.toUpperCase() !== role.toUpperCase()) {
             throw new ApiError(403, "Access denied");
         }
-
         next();
     };
 };

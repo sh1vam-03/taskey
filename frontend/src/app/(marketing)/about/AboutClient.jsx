@@ -44,17 +44,12 @@ export default function AboutClient() {
                     transition={{ duration: 0.6 }}
                     className="mb-12 lg:mb-24 text-center"
                 >
-                    <div className="inline-block border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-6 lg:mb-8">
-                        <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">
-                            // MISSION_LOG: AUGMENTATION
-                        </span>
-                    </div>
                     <h1 className="text-5xl md:text-8xl font-bold tracking-tighter mb-6 lg:mb-8 leading-[0.9]">
-                        Architecting the <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">Second Cortex.</span>
+                        Work Smarter. <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">Live Lighter.</span>
                     </h1>
                     <p className="text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed px-4">
-                        We aren't building a productivity tool. We are building the neural interface between your intent and execution.
+                        TASKTIME is your AI task and schedule partner — helping you plan, prioritize, and execute without the overwhelm.
                     </p>
                 </motion.div>
 
@@ -62,22 +57,22 @@ export default function AboutClient() {
                 <section className="mb-32 grid grid-cols-1 md:grid-cols-12 gap-12 items-start border-l border-white/10 pl-8 md:pl-12">
                     <div className="md:col-span-8 space-y-8">
                         <h2 className="text-3xl font-bold text-white tracking-tight">
-                            The Cognitive Bottleneck
+                            Why We Built TASKTIME
                         </h2>
                         <p className="text-lg text-gray-500 leading-relaxed">
-                            The modern world demands parallel processing, but the human brain is linear.
-                            We drown in context switching, notification interrupts, and administrative debris.
+                            Modern life is noisy. Notifications, meetings, messages, deadlines —
+                            everything competes for your attention.
                         </p>
                         <p className="text-lg text-gray-500 leading-relaxed">
-                            <span className="text-white font-semibold">Taskey</span> was forged to solve this latency.
-                            By offloading the sorting, scheduling, and remembering to an intelligent substrate,
-                            we liberate your biological hardware for what it does best: <span className="text-cyan-400">Creation</span>.
+                            <span className="text-white font-semibold">TASKTIME</span> was built to bring clarity back.
+                            It helps you decide what matters, schedule your time intelligently,
+                            and focus on meaningful work — <span className="text-cyan-400">without mental overload.</span>
                         </p>
                     </div>
                     <div className="md:col-span-4 font-mono text-xs text-gray-600 space-y-2 uppercase tracking-widest">
-                        <div><span className="text-cyan-500">●</span> Origin: San Francisco</div>
-                        <div><span className="text-cyan-500">●</span> Status: Scaling</div>
-                        <div><span className="text-cyan-500">●</span> Version: 1.0.4</div>
+                        <div><span className="text-cyan-500">●</span> Built for students, creators & founders</div>
+                        <div><span className="text-cyan-500">●</span> AI-powered task management & scheduling</div>
+                        <div><span className="text-cyan-500">●</span> Designed for focus</div>
                     </div>
                 </section>
 
@@ -85,19 +80,31 @@ export default function AboutClient() {
                 <div className="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>
                         <h2 className="text-4xl font-bold tracking-tighter mb-2 text-white">
-                            System Axioms
+                            What We Believe
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                            // Guiding Principles
+                            Our Principles
                         </p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-32">
                     {[
-                        { title: "Velocity First", desc: "Every millisecond of latency is a thought lost. We prioritize speed above all.", icon: <FaBolt /> },
-                        { title: "Data Enclave", desc: "Your thoughts are sovereign. Local-first encryption ensures absolute privacy.", icon: <FaFingerprint /> },
-                        { title: "Neural Adaptivity", desc: "The system molds to you. Strict rigid workflows are a relic of the past.", icon: <FaBrain /> }
+                        {
+                            title: "Clarity Over Complexity",
+                            desc: "Productivity should feel simple. We remove friction so you can focus on what matters.",
+                            icon: <FaBolt />
+                        },
+                        {
+                            title: "Privacy Matters",
+                            desc: "Your data belongs to you. We design with security and respect at the core.",
+                            icon: <FaFingerprint />
+                        },
+                        {
+                            title: "Built Around You",
+                            desc: "TASKTIME adapts to your working style instead of forcing rigid workflows.",
+                            icon: <FaBrain />
+                        }
                     ].map((item, i) => (
                         <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
@@ -122,9 +129,11 @@ export default function AboutClient() {
 
                 {/* TEAM / FOOTER HERO */}
                 <div className="text-center py-20 border-t border-white/10">
-                    <h3 className="text-2xl font-bold text-white mb-6">Join the Collective</h3>
+                    <h3 className="text-2xl font-bold text-white mb-6">Build the Future With Us</h3>
                     <p className="text-gray-400 max-w-xl mx-auto mb-8">
-                        We are a small team of engineers and designers obsessed with human performance.
+                        We’re building tools that help people think clearly and work intentionally.
+                        If that excites you, we’d love to connect.
+
                     </p>
                     <div className="inline-flex gap-4">
                         <Link href="/careers">

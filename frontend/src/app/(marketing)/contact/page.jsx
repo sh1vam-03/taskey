@@ -1,7 +1,7 @@
 import ContactClient from "./ContactClient";
 
 export const metadata = {
-    title: 'Uplink | Taskey',
+    title: 'Contact | TASKTIME',
 }
 
 export default function ContactPage() {

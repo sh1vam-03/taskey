@@ -16,7 +16,7 @@ const billingService = {
      */
     async subscribe(plan, billingCycle) {
         const response = await api.post("/billing/subscribe", { plan, billingCycle });
-        return response.data;
+        return response.data.data;
     },
 
     /**
@@ -42,6 +42,14 @@ const billingService = {
      */
     async createTopUp(topUpId) {
         const response = await api.post("/billing/top-up", { topUpId });
+        return response.data;
+    },
+
+    /**
+     * Verify Top-Up Payment
+     */
+    async verifyTopUp(paymentData) {
+        const response = await api.post("/billing/top-up/verify", paymentData);
         return response.data;
     },
 

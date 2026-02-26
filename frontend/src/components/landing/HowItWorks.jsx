@@ -5,36 +5,38 @@ export default function HowItWorks() {
     const steps = [
         {
             id: "01",
-            title: "INPUT_NODE",
-            subtitle: "Natural Input",
-            desc: "Voice or text command injection.",
+            title: "Tell TASKTIME what you need",
+            subtitle: "Add tasks naturally",
+            desc: "Type or speak what you need to do. TASKTIME understands everyday language.",
             icon: <FaMicrophone />
         },
         {
             id: "02",
-            title: "PROCESS_CORE",
-            subtitle: "Neural Analysis",
-            desc: "Pattern recognition & optimization.",
+            title: "AI plans it for you",
+            subtitle: "Smart scheduling",
+            desc: "TASKTIME analyzes your time, priorities, and deadlines to build the best schedule.",
             icon: <FaBrain />
         },
         {
             id: "03",
-            title: "OUTPUT_STREAM",
-            subtitle: "Execution",
-            desc: "Schedule generation & compliance.",
+            title: "Stay on track",
+            subtitle: "Execute with clarity",
+            desc: "Follow your optimized schedule, get reminders, and adapt when plans change.",
             icon: <FaCheckCircle />
         }
     ];
+    const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
+
 
     return (
         <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black border-t border-white/5" id="how-it-works">
             <div className="w-full max-w-[var(--container-width)] mx-auto">
                 <div className="mb-20 border-b border-white/10 pb-6">
                     <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">
-                        Workflow Logic
+                        How TASKTIME Works
                     </h2>
                     <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                        // EXECUTION_PIPELINE
+                        Three simple steps to smarter productivity.
                     </p>
                 </div>
 
@@ -64,7 +66,7 @@ export default function HowItWorks() {
                                         {step.subtitle}
                                     </h3>
                                     <p className="text-sm text-gray-500 font-mono leading-relaxed">
-                                        {"> " + step.desc}
+                                        {step.desc}
                                     </p>
                                 </div>
                             </div>

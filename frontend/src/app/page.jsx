@@ -1,45 +1,46 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AiEnergySphere from "@/components/ui/AiEnergySphere";
-import { BentoGrid, BentoGridItem } from "@/components/ui/BentoGrid";
 import Button from "@/components/ui/Button";
+import BentoGridSection from "@/components/landing/BentoGridSection";
 import InteractivePricing from "@/components/landing/InteractivePricing";
 import HowItWorks from "@/components/landing/HowItWorks";
 import DetailedFeatures from "@/components/landing/DetailedFeatures";
 import CallToAction from "@/components/landing/CallToAction";
-import { motion } from "framer-motion";
-import { FaBrain, FaCalendarAlt, FaShieldAlt, FaSync } from "react-icons/fa";
-import { MdSmartToy, MdPsychology } from "react-icons/md";
+
+// ─── Compute orb size outside React ─────────────────────────────────────────
+function computeOrbSize() {
+    if (typeof window === "undefined") return 900;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    let s = Math.min(1200, Math.max(600, w * 0.6));
+    if (h < 800) s = Math.min(s, 700);
+    return s;
+}
+
+const CONTAINER_CLASS =
+    "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
 
 export default function Home() {
-    // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1400); // Default desktop
+    const [orbSize, setOrbSize] = useState(900);
+    const rafId = useRef(null);
 
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-
-            // Base size on width, but cap it for smaller screens
-            let newSize = Math.min(1200, Math.max(600, width * 0.6));
-
-            // Height Constraint for Laptops (1366x768) and smaller
-            if (height < 800) {
-                newSize = Math.min(newSize, 700);
-            }
-
-            setOrbSize(newSize);
-        };
-
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
+    const handleResize = useCallback(() => {
+        if (rafId.current) cancelAnimationFrame(rafId.current);
+        rafId.current = requestAnimationFrame(() => setOrbSize(computeOrbSize()));
     }, []);
 
-    const CONTAINER_CLASS = "w-full max-w-[var(--container-width)] mx-auto px-[var(--container-padding)]";
+    useEffect(() => {
+        setOrbSize(computeOrbSize());
+        window.addEventListener("resize", handleResize, { passive: true });
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            if (rafId.current) cancelAnimationFrame(rafId.current);
+        };
+    }, [handleResize]);
 
     return (
         <main className="min-h-screen bg-black text-white overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-500">
@@ -48,107 +49,75 @@ export default function Home() {
                 <Navbar />
             </div>
 
-            {/* HERO SECTION with Neural Interface HUD */}
-            {/* Height: Fits 1366x768 without scrolling. vertical rhythm: var(--section-spacing) */}
-            <section className="relative min-h-[100dvh] max-h-[900px] flex flex-col items-center justify-center py-[var(--section-spacing)] border-b border-white/5 overflow-hidden transition-all duration-300">
+            {/* ── HERO ─────────────────────────────────────────────────────────── */}
+            <section className="relative min-h-[100dvh] max-h-[900px] flex flex-col items-center justify-center py-[var(--section-spacing)] border-b border-white/5 overflow-hidden">
 
-                {/* HUD Decorators */}
-                <div className="absolute top-0 left-0 w-full h-full pointer-events-none select-none overflow-hidden">
-                    {/* Vertical Lines */}
-                    <div className="absolute top-0 bottom-0 left-[10%] w-px bg-white/5" />
-                    <div className="absolute top-0 bottom-0 right-[10%] w-px bg-white/5" />
-
-                    {/* Grid Pattern */}
+                {/* HUD decorators */}
+                <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+                    <div className="absolute top-0 bottom-0 left-[10%] w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
+                    <div className="absolute top-0 bottom-0 right-[10%] w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]" />
-
-                    {/* Top Coordinates */}
-                    <div className="absolute top-32 left-[12%] font-mono text-[10px] text-gray-500 hidden sm:block">
-                        COORDS: 45.92, -12.04
-                    </div>
-                    <div className="absolute top-32 right-[12%] font-mono text-[10px] text-cyan-900/50 hidden sm:flex items-center gap-2">
-                        <span className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
-                        SYSTEM_ONLINE
-                    </div>
                 </div>
 
-                {/* Orb Container - BACKGROUND */}
-                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-60 md:opacity-100 transition-opacity duration-500">
-                    <AiEnergySphere size={orbSize} particleCount={1200} baseRadius={orbSize * 0.25} hoverRadius={100} />
+                {/* Orb */}
+                <div
+                    className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-60 md:opacity-100"
+                    style={{ willChange: "transform" }}
+                    aria-hidden="true"
+                >
+                    <AiEnergySphere
+                        size={orbSize}
+                        particleCount={1200}
+                        baseRadius={orbSize * 0.25}
+                        hoverRadius={100}
+                    />
                 </div>
 
+                {/* Hero copy */}
                 <div className={`relative z-20 text-center space-y-6 lg:space-y-8 mt-12 lg:mt-0 ${CONTAINER_CLASS}`}>
-
                     <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-bold tracking-tighter leading-[0.95] text-transparent bg-clip-text bg-[linear-gradient(to_bottom,white_40%,rgba(255,255,255,0.5)_100%)]">
-                        Your AI Thinking Partner.
+                        Plan Smarter. Work Faster.
+                        <br />
+                        Powered by AI.
                     </h1>
 
                     <p className="text-[clamp(1rem,2vw,1.25rem)] text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
-                        Taskey orchestrates your life with <span className="text-white font-medium">adaptive intelligence</span>.
-                        No friction. Just flow.
+                        TASKTIME helps you{" "}
+                        <span className="text-white font-medium">organize tasks, automate schedules,</span>{" "}
+                        and stay focused every day with intelligent planning.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-6 lg:pt-8 w-full max-w-xs sm:max-w-none mx-auto">
+
+                        {/*
+                         * PRIMARY CTA
+                         * variant="primary" → solid cyan fill, shimmer sweep, glow on hover.
+                         * This is the highest-priority action — should always stand out most.
+                         */}
                         <Link href="/signup" className="w-full sm:w-auto">
-                            <Button variant="scanline" size="lg" className="w-full sm:w-auto">
-                                INITIALIZE_SYSTEM
+                            <Button variant="primary" size="lg" className="w-full sm:w-auto">
+                                Get Started Free
                             </Button>
                         </Link>
+
+                        {/*
+                         * SECONDARY CTA
+                         * variant="ghost" → no background, no border at rest.
+                         * Appears lighter so it doesn't compete with the primary button.
+                         * Do NOT override colors here — the component handles it correctly.
+                         */}
                         <Link href="#how-it-works" className="w-full sm:w-auto">
-                            <Button variant="ghost" size="lg" className="text-gray-500 hover:text-white w-full sm:w-auto">
-                                // VIEW_SCHEMATICS
+                            <Button variant="ghost" size="lg" className="w-full sm:w-auto">
+                                See How It Works
                             </Button>
                         </Link>
+
                     </div>
                 </div>
             </section>
 
-            {/* SECTIONS */}
-
-            {/* 1. BENTO GRID (Restored) */}
-            <section className={`py-[var(--section-spacing)] ${CONTAINER_CLASS}`}>
-                <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
-                    <div>
-                        <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-tighter mb-4 text-white">
-                            Neural Nodes
-                        </h2>
-                        <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                            // System Intelligence v1.0
-                        </p>
-                    </div>
-                </div>
-
-                <BentoGrid>
-                    <BentoGridItem
-                        title="Neural Engine"
-                        description="Advanced decision matrices that adapt to your working style in real-time."
-                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
-                        icon={<FaBrain />}
-                        className="md:col-span-2"
-                    />
-                    <BentoGridItem
-                        title="Quantum Sync"
-                        description="Instant state synchronization across all connected neural nodes."
-                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
-                        icon={<FaSync />}
-                        className="md:col-span-1"
-                    />
-                    <BentoGridItem
-                        title="Privacy Core"
-                        description="Local-first processing ensuring your data never leaks from the secure enclave."
-                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
-                        icon={<FaShieldAlt />}
-                        className="md:col-span-1"
-                    />
-                    <BentoGridItem
-                        title="Decision Velocity"
-                        description="Reduce cognitive load with automated micro-decisions and routing."
-                        header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
-                        icon={<MdSmartToy />}
-                        className="md:col-span-2"
-                    />
-                </BentoGrid>
-            </section>
-
+            {/* ── SECTIONS ──────────────────────────────────────────────────────── */}
+            <BentoGridSection />
             <DetailedFeatures />
             <InteractivePricing />
             <HowItWorks />

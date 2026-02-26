@@ -16,7 +16,10 @@ router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 router.post("/logout", authMiddleware, authController.logout);
 router.delete("/me", authMiddleware, authController.deleteMyAccount);
+router.put("/me", authMiddleware, authController.updateProfile);
 router.get("/me", authMiddleware, authController.getMyProfile);
+router.post("/change-password", authMiddleware, authController.changePassword);
+router.post("/request-security-otp", authMiddleware, authController.requestSecurityOtp); // NEW
 router.post("/refresh", authController.refreshToken);
 router.post("/logout-all", authMiddleware, authController.logoutAll);
 

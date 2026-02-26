@@ -38,27 +38,36 @@ export default function CareersClient() {
             <div className="w-full max-w-[var(--container-width)] mx-auto relative z-10">
                 {/* HERO */}
                 <div className="text-center mb-12 lg:mb-24">
-                    <div className="inline-block border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 rounded-full mb-6 lg:mb-8">
-                        <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">
-                            // SYSTEM_EXPANSION: ACTIVE
-                        </span>
-                    </div>
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
-                        Join the <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">Neural Collective.</span>
+                        Build the Future <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">Intelligent Work.</span>
                     </h1>
                     <p className="text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed px-4">
-                        We are building the operating system for human intent. <br className="hidden md:block" />
-                        Help us architect the future of cognitive augmentation.
+                        TASKTIME is building AI tools that help people think clearly,
+                        <br className="hidden md:block" />
+                        prioritize better, and execute with confidence.
+                        Join us and help shape the future of productivity.
                     </p>
                 </div>
 
                 {/* CULTURE GRID */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-32">
                     {[
-                        { title: "Radical Autonomy", desc: "We don't manage. We agree on the 'Why' and let you execute the 'How'. Ownership is absolute.", icon: <FaRocket /> },
-                        { title: "Speed as a Habit", desc: "Perfect is the enemy of shipped. We iterate in real-time and deploy to production daily.", icon: <FaBolt /> },
-                        { title: "First Principles", desc: "We ignore 'industry standards'. We solve problems from the physics of the user experience.", icon: <FaLightbulb /> }
+                        {
+                            title: "Ownership Mindset",
+                            desc: "We trust people to own problems end-to-end. You’ll have real responsibility, not just tasks.",
+                            icon: <FaRocket />
+                        },
+                        {
+                            title: "Move Fast, Stay Thoughtful",
+                            desc: "We ship quickly, learn from feedback, and continuously improve without sacrificing quality.",
+                            icon: <FaBolt />
+                        },
+                        {
+                            title: "Build With Purpose",
+                            desc: "Every feature should make someone's life clearer, calmer, and more productive.",
+                            icon: <FaLightbulb />
+                        }
                     ].map((item, i) => (
                         <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
@@ -84,20 +93,20 @@ export default function CareersClient() {
                 <div className="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>
                         <h2 className="text-4xl font-bold tracking-tighter mb-2 text-white">
-                            Open Nodes
+                            Open Roles
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                            // Current Requisition
+                            We're Growing
                         </p>
                     </div>
                 </div>
 
                 <div className="space-y-4">
                     {[
-                        { role: "Senior Neural Architect", dept: "Engineering", type: "Remote / SF", id: "ENG-001" },
-                        { role: "Interface Designer", dept: "Design", type: "Remote", id: "DES-042" },
-                        { role: "AI Systems Engineer", dept: "Machine Learning", type: "London / Remote", id: "ML-101" },
-                        { role: "Product Growth API", dept: "Growth", type: "Remote", id: "MKT-202" }
+                        { role: "Senior Backend Engineer", dept: "Engineering", type: "Remote", id: "ENG-001" },
+                        { role: "Frontend Engineer (React / Next.js)", dept: "Engineering", type: "Remote", id: "ENG-002" },
+                        { role: "AI / ML Engineer", dept: "Machine Learning", type: "Remote", id: "ML-101" },
+                        { role: "Product Designer", dept: "Design", type: "Remote", id: "DES-042" }
                     ].map((job, i) => (
                         <motion.div
                             key={i}
@@ -120,17 +129,17 @@ export default function CareersClient() {
                                 </div>
                             </div>
                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500">
-                                // INITIALIZE_APPLICATION
+                                Apply Now
                             </Button>
                         </motion.div>
                     ))}
                 </div>
 
                 <div className="mt-20 text-center">
-                    <p className="text-gray-500 mb-6">Don't see your node?</p>
-                    <a href="mailto:careers@taskey.ai">
+                    <p className="text-gray-500 mb-6">Don’t see a role that fits? We’re always looking for exceptional talent.</p>
+                    <a href="mailto:careers@tasktime.in">
                         <Button variant="scanline" size="lg" className="uppercase tracking-wider">
-                            Transcode your resume to careers@taskey.ai
+                            Send your resume to careers@tasktime.in
                         </Button>
                     </a>
                 </div>

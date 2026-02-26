@@ -3,6 +3,15 @@ import api from './api';
 const taskService = {
     // Create Task
     createTask: async (taskData) => {
+        // Auto-inject taskDate (Local YYYY-MM-DD) if missing
+        if (!taskData.taskDate) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            taskData.taskDate = `${year}-${month}-${day}`;
+        }
+
         const response = await api.post('/task', taskData);
         return response.data;
     },

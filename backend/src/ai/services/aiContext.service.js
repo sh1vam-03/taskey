@@ -2,43 +2,53 @@ import prisma from "../../config/db.js";
 import { getRecentBehaviors, formatBehaviorContext } from "../memory/behavior.memory.js";
 import { getLastSummary } from "../memory/summary.store.js";
 import systemPrompt from "../prompts/system.prompt.js";
-import { getTasks } from "../../services/task.service.js";
-import { getSchedules } from "../../services/schedule.service.js";
+import { getDashboardOverview } from "../../services/dashboard.service.js";
+
+import { formatInTimeZone } from 'date-fns-tz';
 
 /**
  * Builds the full System Prompt with injected context.
  * Orchestrates: Profile + Behavior + Conversation Summary + System Rules + Real-time Workload
  */
 export const buildSystemContext = async (userId, user, conversationId = null) => {
-    const today = new Date();
-    const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const todayEnd = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+    const timeZone = user?.timezone || "UTC";
 
-    // 1. Parallel Data Fetching
-    const [behaviorLogs, summary, taskData, scheduleData] = await Promise.all([
+    // 1. Get the current date string explicitly in the user's configured timezone
+    const userLocalDateString = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+
+    // 2. Parallel Data Fetching with Fault Tolerance
+    const results = await Promise.allSettled([
         getRecentBehaviors(userId),
         getLastSummary(conversationId),
-        getTasks(userId, { isArchived: 'false', limit: 10, sortBy: 'priority', sortOrder: 'desc' }),
-        getSchedules(userId, todayStart, todayEnd)
+        getDashboardOverview(userId, userLocalDateString)
     ]);
+
+    const behaviorLogs = results[0].status === 'fulfilled' ? results[0].value : [];
+    const summary = results[1].status === 'fulfilled' ? results[1].value : null;
+    const dashboard = results[2].status === 'fulfilled' ? results[2].value : null;
+
+    // Log warnings if any service failed
+    if (results.some(r => r.status === 'rejected')) {
+        console.warn("[AI Context] Partial data failure:", results.filter(r => r.status === 'rejected').map(r => r.reason.message));
+    }
 
     // 2. Format Contexts
     const behaviorContext = formatBehaviorContext(behaviorLogs);
 
-    // Format Tasks
-    const pendingTasks = taskData.tasks.filter(t => t.dailyCompletions.length === 0);
-    const taskContext = pendingTasks.length > 0
-        ? `Pending Tasks (Top ${pendingTasks.length}):\n` + pendingTasks.map(t =>
-            `- [${t.priority}] ${t.title} ${t.dueDate ? `(Due: ${new Date(t.dueDate).toLocaleDateString()})` : ''}`
-        ).join("\n")
-        : "No pending tasks for today.";
+    let workloadContext = "No workload data available.";
+    if (dashboard) {
+        const timeline = dashboard.timeline || [];
+        const pendingItems = timeline.filter(t => t.status === 'PENDING' || t.status === 'OVERDUE');
 
-    // Format Schedule
-    const scheduleContext = scheduleData.length > 0
-        ? `Today's Schedule:\n` + scheduleData.map(s =>
-            `- ${s.startTime} - ${s.endTime}: ${s.title} (${s.status})`
-        ).join("\n")
-        : "No schedule blocks for today.";
+        const scheduleContext = pendingItems.length > 0
+            ? `Pending Items for Today (${pendingItems.length}):\n` + pendingItems.map(t => {
+                const timeStr = t.startTime ? `${t.startTime} - ${t.endTime}` : (t.type === "UNSCHEDULED" ? "Anytime Today" : "");
+                return `- [${t.priority || "NORMAL"}] ${t.title} ${timeStr ? `(${timeStr} Local Time)` : ""}`;
+            }).join("\n")
+            : "No pending tasks or schedules for the rest of today.";
+
+        workloadContext = `Daily Stats:\n- Total Today: ${dashboard.todayTasksTotal}\n- Completed: ${dashboard.completedTasksCount}\n- Pending: ${dashboard.todayTasksCount}\n- Current Streak: ${dashboard.currentStreak} days\n\n${scheduleContext}\n\nNote: All times listed above are already converted to the user's local timezone (${timeZone}).\n\n⚠️ CRITICAL INSTRUCTION FOR AI: The tasks listed above are ONLY for TODAY. Do NOT assume they "carry over" or "spill over" to tomorrow or next week! If the user asks about any date other than today, YOU MUST IGNORE THE ABOVE TASKS AND INSTEAD CALL THE \`list_schedules\` TOOL.`;
+    }
 
     // 3. Format Summary Section
     let summarySection = "";
@@ -61,17 +71,15 @@ USER LIVE CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━
 Name: ${user?.name || "User"}
 Timezone: ${user?.timezone || "UTC"}
-Current Date: ${new Date().toISOString().split('T')[0]} 
-Current Time: ${new Date().toLocaleTimeString('en-US', { timeZone: user?.timezone || "UTC", hour: '2-digit', minute: '2-digit' })}
+Current Date: ${userLocalDateString}
+Current Time: ${new Date().toLocaleTimeString('en-US', { timeZone: timeZone, hour: '2-digit', minute: '2-digit' })}
 
 ${behaviorContext}
 
 ━━━━━━━━━━━━━━━━━━━━━━
-CURRENT WORKLOAD (REAL-TIME)
+CURRENT WORKLOAD (TODAY'S DASHBOARD)
 ━━━━━━━━━━━━━━━━━━━━━━
-${taskContext}
-
-${scheduleContext}
+${workloadContext}
 `;
 
     return finalSystemPrompt;
