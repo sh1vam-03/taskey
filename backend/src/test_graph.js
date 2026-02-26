@@ -10,6 +10,8 @@ import { createFinalizeNode } from "./ai/graph/nodes/finalize.node.js";
 
 dotenv.config();
 
+process.env.LANGCHAIN_VERBOSE = "true";
+
 async function test() {
     console.log("Compiling sarvam-m graph...");
     const model = new ChatOpenAI({

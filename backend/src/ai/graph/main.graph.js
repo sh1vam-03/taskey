@@ -267,9 +267,12 @@ export const streamAgentGraph = async function* ({
 
     for await (const event of stream) {
         if (event.event === "on_chat_model_stream" || event.event === "on_llm_stream") {
-            const chunk = event.data?.chunk;
-            const content = chunk?.content || chunk?.message?.content || chunk?.text;
-            if (content) yield content;
+            // Only yield tokens that originated from the main agent intent node
+            if (event.tags && event.tags.includes("agent_llm")) {
+                const chunk = event.data?.chunk;
+                const content = chunk?.content || chunk?.message?.content || chunk?.text;
+                if (content) yield content;
+            }
         }
     }
 };

@@ -21,7 +21,7 @@ export const createIntentNode = (model) => {
         const response = await model.invoke([
             new SystemMessage(systemPrompt),
             ...messages,
-        ]);
+        ], { tags: ["agent_llm"] });
 
         return { messages: [response] };
     };
