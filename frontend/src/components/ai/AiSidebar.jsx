@@ -33,11 +33,9 @@ export default function AiSidebar({ isOpen, onClose }) {
     // Determine if user has voice models (Pro Plus)
     const hasVoice = settings.availableVoiceModels?.length > 0;
 
-    const handleNewChat = async () => {
-        try {
-            await createNewConversation();
-            if (window.innerWidth < 768) onClose?.();
-        } catch { /* handled in context */ }
+    const handleNewChat = () => {
+        openConversation(null); // Clear active chat, let first message create it
+        if (window.innerWidth < 768) onClose?.();
     };
 
     const handleSelectChat = (conv) => {
@@ -229,24 +227,30 @@ export default function AiSidebar({ isOpen, onClose }) {
                 {/* Footer: Model Badges + Credits + User */}
                 <div className="border-t border-white/[0.06] p-3 space-y-3">
                     {/* Model Quick-Info Area */}
-                    <div className="space-y-2 px-1">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5 space-y-3">
+                        {/* Section Label */}
+                        <div className="px-1 text-[9px] font-mono text-gray-500 uppercase tracking-widest flex items-center justify-between">
+                            <span>Active Engines</span>
+                            <div className="h-px w-12 bg-gradient-to-r from-gray-500/50 to-transparent"></div>
+                        </div>
+
                         {/* Text Chat Row */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider flex items-center gap-1.5 border border-white/5 bg-white/5 px-2 py-1 rounded">
-                                <MessageSquare className="w-3 h-3" /> Text Chat
+                        <div className="flex items-center justify-between px-1">
+                            <span className="text-[11px] text-gray-300 font-medium flex items-center gap-2">
+                                <MessageSquare className="w-3.5 h-3.5 text-cyan-400" /> Text Chat
                             </span>
                             <ModelBadge model={settings.chatModel} onClick={openSettings} />
                         </div>
 
                         {/* Voice Mode Collapsible (Only for Pro+) */}
                         {hasVoice && (
-                            <div className="border border-white/5 rounded-lg overflow-hidden bg-black/40">
+                            <div className="bg-black/40 rounded-lg border border-white/5 overflow-hidden transition-all duration-300">
                                 <button
                                     onClick={() => setIsVoiceOpen(!isVoiceOpen)}
-                                    className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/4 transition-colors"
+                                    className="w-full flex items-center justify-between px-2.5 py-2 hover:bg-white/5 transition-colors"
                                 >
-                                    <span className="text-[10px] text-cyan-500/80 font-medium uppercase tracking-wider flex items-center gap-1.5">
-                                        <Zap className="w-3 h-3" /> Voice Mode
+                                    <span className="text-[11px] text-gray-300 font-medium flex items-center gap-2">
+                                        <Zap className="w-3.5 h-3.5 text-orange-400" /> Voice Pipeline
                                     </span>
                                     {isVoiceOpen ? (
                                         <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
@@ -255,22 +259,23 @@ export default function AiSidebar({ isOpen, onClose }) {
                                     )}
                                 </button>
 
-                                {isVoiceOpen && (
-                                    <div className="p-2 pt-1 border-t border-white/5 space-y-1.5 bg-black/60">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[9px] text-gray-600 uppercase tracking-wider pl-1">Reasoning</span>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isVoiceOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    <div className="p-2 pt-0 pb-2 space-y-2.5">
+                                        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-1"></div>
+                                        <div className="flex items-center justify-between px-1 border-l-2 border-transparent hover:border-white/10 pl-2 ml-1 transition-all">
+                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Reasoning</span>
                                             <ModelBadge model={settings.voiceModel} onClick={openSettings} />
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[9px] text-gray-600 uppercase tracking-wider pl-1">Voice (TTS)</span>
+                                        <div className="flex items-center justify-between px-1 border-l-2 border-transparent hover:border-white/10 pl-2 ml-1 transition-all">
+                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Vocalizer</span>
                                             <ModelBadge model={settings.ttsModel} onClick={openSettings} />
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[9px] text-gray-600 uppercase tracking-wider pl-1">Ears (STT)</span>
+                                        <div className="flex items-center justify-between px-1 border-l-2 border-transparent hover:border-white/10 pl-2 ml-1 transition-all">
+                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Listener</span>
                                             <ModelBadge model={settings.sttModel} onClick={openSettings} />
                                         </div>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         )}
                     </div>

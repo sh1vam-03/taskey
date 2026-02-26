@@ -1,6 +1,9 @@
 import api from "@/services/api";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Always use direct backend connection in development to bypass Next.js rewrite buffering bugs
+const BASE_URL = process.env.NODE_ENV === 'production'
+    ? (process.env.NEXT_PUBLIC_API_URL || '/api')
+    : 'http://localhost:5000/api';
 
 const aiService = {
     // ─── Settings ───────────────────────────────────────────────
@@ -98,25 +101,32 @@ const aiService = {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = "";
+                let buffer = "";
 
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split(/\r?\n\r?\n/);
+                    buffer = lines.pop(); // Keep incomplete chunk in buffer
 
-                    // Parse SSE format: lines starting with "data: "
-                    const lines = chunk.split("\n");
-                    for (const line of lines) {
+                    for (let line of lines) {
+                        line = line.trim();
                         if (line.startsWith("data: ")) {
-                            const data = line.slice(6);
-                            if (data === "[DONE]") continue;
-                            fullText += data;
-                            onToken(data);
-                        } else if (line.trim() && !line.startsWith(":")) {
-                            // Raw text chunk (non-SSE format)
-                            fullText += line;
-                            onToken(line);
+                            const dataStr = line.substring(6).trim();
+                            if (dataStr === "[DONE]") continue;
+
+                            try {
+                                const parsed = JSON.parse(dataStr);
+                                if (parsed.token) {
+                                    console.log("STREAM TOKEN:", parsed.token);
+                                    fullText += parsed.token;
+                                    onToken(parsed.token);
+                                }
+                            } catch (e) {
+                                console.warn("Stream parse error on chunk:", dataStr);
+                            }
                         }
                     }
                 }

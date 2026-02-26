@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
 import aiService from '@/features/ai/ai.services';
 
 const AiContext = createContext(null);
@@ -65,6 +65,9 @@ const reducer = (state, action) => {
             return { ...state, conversations: action.payload, isLoadingConversations: false };
 
         case 'SET_ACTIVE_CONVERSATION':
+            if (state.activeConversationId === action.payload) {
+                return state;
+            }
             return { ...state, activeConversationId: action.payload, messages: [], streamingContent: '' };
 
         case 'SET_MESSAGES':
@@ -140,6 +143,7 @@ const reducer = (state, action) => {
 
 export function AiProvider({ children }) {
     const [state, dispatch] = useReducer(reducer, initialState);
+    const hasInitializedRef = useRef(false);
 
     // Load settings on mount
     const loadSettings = useCallback(async () => {
@@ -168,18 +172,10 @@ export function AiProvider({ children }) {
         }
     }, []);
 
-    const loadConversations = useCallback(async () => {
-        dispatch({ type: 'SET_LOADING', key: 'isLoadingConversations', value: true });
-        try {
-            const data = await aiService.getConversations();
-            dispatch({ type: 'SET_CONVERSATIONS', payload: data || [] });
-        } catch {
-            dispatch({ type: 'SET_ERROR', payload: 'Failed to load conversations' });
-        }
-    }, []);
-
     const openConversation = useCallback(async (id) => {
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: id });
+        if (!id) return; // Allow opening "null" for New Chats
+
         dispatch({ type: 'SET_LOADING', key: 'isLoadingMessages', value: true });
         try {
             const data = await aiService.getMessages(id);
@@ -188,6 +184,24 @@ export function AiProvider({ children }) {
             dispatch({ type: 'SET_ERROR', payload: 'Failed to load messages' });
         }
     }, []);
+
+    const loadConversations = useCallback(async () => {
+        dispatch({ type: 'SET_LOADING', key: 'isLoadingConversations', value: true });
+        try {
+            const data = await aiService.getConversations();
+            dispatch({ type: 'SET_CONVERSATIONS', payload: data || [] });
+
+            // Auto-load most recent conversation on init if none is active
+            if (!hasInitializedRef.current) {
+                hasInitializedRef.current = true;
+                if (data?.length > 0) {
+                    openConversation(data[0].id);
+                }
+            }
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to load conversations' });
+        }
+    }, [openConversation]);
 
     const createNewConversation = useCallback(async () => {
         try {
@@ -251,6 +265,7 @@ export function AiProvider({ children }) {
             (token) => dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token }),
             (fullText) => {
                 dispatch({ type: 'STREAM_DONE', payload: fullText });
+
                 loadConversations();
                 loadSettings(); // refresh credit balance
             },

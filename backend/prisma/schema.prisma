@@ -492,6 +492,7 @@ model AiMessage {
 
   role    AiMessageRole
   content String
+  model   String?
 
   creditsUsed Int @default(0)
 

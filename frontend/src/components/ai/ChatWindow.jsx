@@ -55,7 +55,7 @@ export default function ChatWindow() {
     }
 
     return (
-        <div className="flex-1 flex flex-col relative overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
             {/* Study Mode Banner for Sarvam-M */}
             {settings?.chatModel === 'sarvam-m' && (
                 <div className="bg-cyan-500/10 border-b border-cyan-500/20 px-4 py-2.5 flex items-center justify-center gap-2 shrink-0">
@@ -142,7 +142,7 @@ function EmptyState() {
     ];
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-8">
+        <div className="flex-1 flex flex-col min-h-0 items-center justify-center px-6 -mt-8 overflow-y-auto">
             <div className="relative mb-6">
                 <AiEnergySphere
                     size={400}

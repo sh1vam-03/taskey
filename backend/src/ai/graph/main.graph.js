@@ -51,7 +51,7 @@ const graphCache = new Map();
  */
 const buildGeminiModel = (streaming = false) =>
     new ChatGoogleGenerativeAI({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         apiKey: process.env.GEMINI_API_KEY,
         temperature: 0,
         streaming,
@@ -126,7 +126,8 @@ const buildOpenAIModel = (streaming = false) =>
  */
 const buildModel = (modelId, streaming = false) => {
     switch (modelId) {
-        case "gemini-1.5-flash": return buildGeminiModel(streaming);
+        case "gemini-2.0-flash": return buildGeminiModel(streaming);
+        case "gemini-1.5-flash": return buildGeminiModel(streaming); // Fallback
         case "sarvam-30b": return buildSarvamModel(streaming);
         case "sarvam-m": return buildSarvamMModel(streaming);
         case "gpt-4o-mini": return buildOpenAIModel(streaming);
@@ -265,9 +266,10 @@ export const streamAgentGraph = async function* ({
     );
 
     for await (const event of stream) {
-        if (event.event === "on_chat_model_stream") {
+        if (event.event === "on_chat_model_stream" || event.event === "on_llm_stream") {
             const chunk = event.data?.chunk;
-            if (chunk?.content) yield chunk.content;
+            const content = chunk?.content || chunk?.message?.content || chunk?.text;
+            if (content) yield content;
         }
     }
 };

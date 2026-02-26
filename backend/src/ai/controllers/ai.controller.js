@@ -85,6 +85,7 @@ const formatMessage = (msg) => ({
     id: msg.id,
     role: msg.role === "USER" ? "user" : "assistant",
     content: msg.content,
+    model: msg.model,
     createdAt: msg.createdAt
 });
 
@@ -402,6 +403,11 @@ export const sendMessage = asyncHandler(async (req, res) => {
         res.setHeader("Connection", "keep-alive");
         res.setHeader("X-Accel-Buffering", "no");
 
+        res.flushHeaders();
+
+        // Pad the stream with 2KB of SSE comments to force proxies to flush immediately
+        res.write(":" + " ".repeat(2048) + "\n\n");
+
         try {
             for await (const chunk of processAiRequestStream({
                 userId,
@@ -409,7 +415,12 @@ export const sendMessage = asyncHandler(async (req, res) => {
                 message,
                 mode: "TEXT"
             })) {
-                res.write(chunk);
+                // Formatting as Server-Sent Event (SSE)
+                res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+                // Force socket flush if available to bypass Next.js API proxy buffering
+                if (res.flush) {
+                    res.flush();
+                }
             }
             res.end();
         } catch (error) {

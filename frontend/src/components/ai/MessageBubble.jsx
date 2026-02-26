@@ -56,7 +56,7 @@ function AssistantBubble({ message, audioUrl }) {
             <div className="max-w-[90%] md:max-w-[80%] relative">
                 {/* Model badge */}
                 <div className="mb-1.5">
-                    <ModelBadge model={settings.chatModel} className="text-[9px] py-0.5 px-2 cursor-default" />
+                    <ModelBadge model={message.model || settings.chatModel} className="text-[9px] py-0.5 px-2 cursor-default" />
                 </div>
 
                 <div className="prose prose-invert prose-sm max-w-none text-[14px] leading-7 text-gray-200
@@ -104,7 +104,7 @@ function AssistantBubble({ message, audioUrl }) {
 
                 {/* Timestamp */}
                 {showTime && message.createdAt && (
-                    <div className="mt-1 text-[10px] text-gray-600">
+                    <div className="absolute -bottom-5 left-0 text-[10px] text-gray-600 whitespace-nowrap">
                         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                 )}

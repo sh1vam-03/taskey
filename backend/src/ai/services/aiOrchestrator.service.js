@@ -177,11 +177,34 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
         take: 20
     });
 
-    const lcMessages = history.map(msg =>
-        msg.role === "USER"
-            ? new HumanMessage(msg.content)
-            : new AIMessage(msg.content)
-    );
+    const lcMessages = [];
+    let expectedRole = "USER";
+
+    for (const msg of history) {
+        if (msg.role !== "USER" && msg.role !== "ASSISTANT") continue; // Ignore SYSTEM and memory markers
+
+        if (lcMessages.length === 0) {
+            if (msg.role !== "USER") continue; // Must start with USER
+            lcMessages.push(new HumanMessage(msg.content));
+            expectedRole = "ASSISTANT";
+        } else {
+            if (msg.role === "USER") {
+                if (expectedRole === "USER") {
+                    lcMessages.push(new HumanMessage(msg.content));
+                    expectedRole = "ASSISTANT";
+                } else {
+                    lcMessages[lcMessages.length - 1].content += `\n\n${msg.content}`;
+                }
+            } else if (msg.role === "ASSISTANT") {
+                if (expectedRole === "ASSISTANT") {
+                    lcMessages.push(new AIMessage(msg.content));
+                    expectedRole = "USER";
+                } else {
+                    lcMessages[lcMessages.length - 1].content += `\n\n${msg.content}`;
+                }
+            }
+        }
+    }
 
     // ── 4. Run graph ──────────────────────────────────────────
     const aiResponse = await runAgentGraph({
@@ -199,7 +222,7 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
 
     // ── 5. Save AI response ───────────────────────────────────
     const savedAiMsg = await prisma.aiMessage.create({
-        data: { conversationId, userId, role: "ASSISTANT", content: aiContentString }
+        data: { conversationId, userId, role: "ASSISTANT", content: aiContentString, model: chatModel }
     });
 
     // ── 6. Bill exact credits based on actual tokens ──────────
@@ -284,11 +307,34 @@ export const processAiRequestStream = async function* ({
         take: 20
     });
 
-    const lcMessages = history.map(msg =>
-        msg.role === "USER"
-            ? new HumanMessage(msg.content)
-            : new AIMessage(msg.content)
-    );
+    const lcMessages = [];
+    let expectedRole = "USER";
+
+    for (const msg of history) {
+        if (msg.role !== "USER" && msg.role !== "ASSISTANT") continue; // Ignore SYSTEM and memory markers
+
+        if (lcMessages.length === 0) {
+            if (msg.role !== "USER") continue; // Must start with USER
+            lcMessages.push(new HumanMessage(msg.content));
+            expectedRole = "ASSISTANT";
+        } else {
+            if (msg.role === "USER") {
+                if (expectedRole === "USER") {
+                    lcMessages.push(new HumanMessage(msg.content));
+                    expectedRole = "ASSISTANT";
+                } else {
+                    lcMessages[lcMessages.length - 1].content += `\n\n${msg.content}`;
+                }
+            } else if (msg.role === "ASSISTANT") {
+                if (expectedRole === "ASSISTANT") {
+                    lcMessages.push(new AIMessage(msg.content));
+                    expectedRole = "USER";
+                } else {
+                    lcMessages[lcMessages.length - 1].content += `\n\n${msg.content}`;
+                }
+            }
+        }
+    }
 
     // ── 4. Stream ─────────────────────────────────────────────
     let fullAiResponse = "";
@@ -307,14 +353,14 @@ export const processAiRequestStream = async function* ({
             yield tokenStr;
         }
     } catch (error) {
-        console.error("[Orchestrator Stream] Error:", error.message);
-        yield "\n[Error generating response]";
+        console.error("[Orchestrator Stream] Error:", error.stack || error.message);
+        yield `\n[Error generating response: ${error.message}]`;
     }
 
     // ── 5. Post-stream: save + bill ───────────────────────────
     if (fullAiResponse) {
         await prisma.aiMessage.create({
-            data: { conversationId, userId, role: "ASSISTANT", content: fullAiResponse }
+            data: { conversationId, userId, role: "ASSISTANT", content: fullAiResponse, model: chatModel }
         });
 
         const promptTexts = [...history.map(m => m.content), message];
