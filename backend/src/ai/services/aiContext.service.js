@@ -47,7 +47,7 @@ export const buildSystemContext = async (userId, user, conversationId = null) =>
             }).join("\n")
             : "No pending tasks or schedules for the rest of today.";
 
-        workloadContext = `Daily Stats:\n- Total Today: ${dashboard.todayTasksTotal}\n- Completed: ${dashboard.completedTasksCount}\n- Pending: ${dashboard.todayTasksCount}\n- Current Streak: ${dashboard.currentStreak} days\n\n${scheduleContext}\n\nNote: All times listed above are already converted to the user's local timezone (${timeZone}).`;
+        workloadContext = `Daily Stats:\n- Total Today: ${dashboard.todayTasksTotal}\n- Completed: ${dashboard.completedTasksCount}\n- Pending: ${dashboard.todayTasksCount}\n- Current Streak: ${dashboard.currentStreak} days\n\n${scheduleContext}\n\nNote: All times listed above are already converted to the user's local timezone (${timeZone}).\n\n⚠️ CRITICAL INSTRUCTION FOR AI: The tasks listed above are ONLY for TODAY. Do NOT assume they "carry over" or "spill over" to tomorrow or next week! If the user asks about any date other than today, YOU MUST IGNORE THE ABOVE TASKS AND INSTEAD CALL THE \`list_schedules\` TOOL.`;
     }
 
     // 3. Format Summary Section

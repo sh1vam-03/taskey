@@ -26,20 +26,19 @@ export const createPlannerNode = (model) => {
 
         let intentHint = "";
 
-        // 1. Info / Research Intent
+        const isReadQuery = content.match(/\b(what|show|tell|list|fetch|get|existing)\b/i);
+        const hasTimeWord = content.match(/\b(today|tomorrow|yesterday|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+
+        // 1. Calendar & Schedule Reading (Highest priority if it asks for user's own data)
         if (
-            content.includes("search") ||
-            content.includes("what is") ||
-            content.includes("find") ||
-            content.includes("holiday") ||
-            content.includes("festival") ||
-            content.includes("diwali") ||
-            content.includes("date")
+            isReadQuery &&
+            (content.includes("schedule") || content.includes("task") || content.includes("plan") || content.includes("routine")) &&
+            (hasTimeWord || content.includes("my"))
         ) {
-            intentHint = "User Intent: RESEARCH/INFO. Use 'web_search' to verify facts/dates before planning.";
+            intentHint = "User Intent: CALENDAR QUERY. Use 'list_schedules' tool to mathematically calculate the date boundaries and fetch the user's real schedule from the database. DO NOT CREATE OR HALLUCINATE A NEW ROUTINE.";
         }
 
-        // 2. Planning / Scheduling Intent
+        // 2. Planning / Scheduling Creation Intent
         else if (
             content.includes("schedule") ||
             content.includes("plan") ||
@@ -49,13 +48,29 @@ export const createPlannerNode = (model) => {
             intentHint = "User Intent: PLANNING. Create a structured schedule. Ensure breaks and meals are included.";
         }
 
-        // 3. Task Management Intent
+        // 3. Task Management Creation/Update Intent
         else if (
             content.includes("task") ||
             content.includes("todo") ||
             content.includes("remind")
         ) {
-            intentHint = "User Intent: TASK MANAGEMENT. Use CRM tools (create_task, update_task) to manage list.";
+            if (isReadQuery) {
+                intentHint = "User Intent: TASK LISTING. Use 'list_tasks' to fetch existing tasks from the database.";
+            } else {
+                intentHint = "User Intent: TASK MANAGEMENT. Use CRM tools (create_task, update_task) to manage list.";
+            }
+        }
+
+        // 4. Info / External Research Intent (e.g. holidays)
+        else if (
+            content.includes("search") ||
+            content.includes("find") ||
+            content.includes("holiday") ||
+            content.includes("festival") ||
+            content.includes("diwali") ||
+            content.match(/\bwhat is \b(?!my)/i) // match "what is" but not "what is my"
+        ) {
+            intentHint = "User Intent: RESEARCH/INFO. Use 'web_search' to verify facts/dates on the internet.";
         }
 
         // 4. Analysis / Reflection

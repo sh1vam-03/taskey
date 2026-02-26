@@ -16,11 +16,22 @@ export const createIntentNode = (model) => {
         const { user, conversationId } = config.configurable;
 
         // Build context-rich system prompt (tasks, schedule, behavior logs, summary)
-        const systemPrompt = await buildSystemContext(user.id, user, conversationId);
+        let systemPrompt = await buildSystemContext(user.id, user, conversationId);
+
+        // Collapse any stray SystemMessages (e.g. from Planner node) into the root prompt.
+        // LLM APIs (Gemini, Sarvam) strictly require only ONE SystemMessage at index 0.
+        const filteredMessages = [];
+        for (const msg of messages) {
+            if (msg._getType() === "system") {
+                systemPrompt += `\n\n${msg.content}`;
+            } else {
+                filteredMessages.push(msg);
+            }
+        }
 
         const outMessages = [
             new SystemMessage(systemPrompt),
-            ...messages
+            ...filteredMessages
         ];
 
         console.log(`[IntentNode] Sending ${outMessages.length} messages. Payload Sizes:`);

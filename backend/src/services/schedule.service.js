@@ -55,7 +55,10 @@ export const createSchedule = async (data) => {
 
     // Check conflicts — must check ALL schedules that expand onto this date
     const allUserSchedules = await prisma.schedule.findMany({
-        where: { userId },
+        where: {
+            userId,
+            task: { is: { deletedAt: null } }
+        },
         include: { task: { select: { id: true, title: true, dueDate: true } } }
     });
 
@@ -330,7 +333,8 @@ export const updateSchedule = async (userId, scheduleId, data) => {
     const allUserSchedules = await prisma.schedule.findMany({
         where: {
             userId,
-            NOT: { id: scheduleId }
+            NOT: { id: scheduleId },
+            task: { is: { deletedAt: null } }
         },
         include: {
             task: {

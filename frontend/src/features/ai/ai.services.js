@@ -75,7 +75,9 @@ const aiService = {
 
         (async () => {
             try {
-                const response = await api.post(
+                let response;
+
+                const makeRequest = () => api.post(
                     `/ai/conversations/${conversationId}/message?stream=true`,
                     { message, stream: true },
                     {
@@ -85,8 +87,25 @@ const aiService = {
                     }
                 );
 
-                // Axios handles 401 token refresh transparently, so no need for custom retry logic here.
-                // If the request ultimately fails (e.g., after refresh attempts), Axios will throw an error.
+                try {
+                    response = await makeRequest();
+                } catch (err) {
+                    // Fallback intercept: Axios fetch adapter sometimes obscures error.response in streams.
+                    // If it's a 401 Unauthorized, we manually trigger the rotation and retry.
+                    const isUnauthorized = err.response?.status === 401 || err.message?.includes('401');
+
+                    if (isUnauthorized) {
+                        try {
+                            await api.post('/auth/refresh');
+                            response = await makeRequest(); // Retry successfully after new cookie
+                        } catch (refreshErr) {
+                            if (typeof window !== 'undefined') window.location.href = '/login';
+                            throw new Error("Session expired. Please log in again.");
+                        }
+                    } else {
+                        throw err; // Re-throw if not a token issue
+                    }
+                }
 
                 // The response.data is now a ReadableStream thanks to responseType: 'stream' and adapter: 'fetch'
                 const reader = response.data.getReader();
