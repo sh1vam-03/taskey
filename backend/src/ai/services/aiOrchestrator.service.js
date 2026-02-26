@@ -152,7 +152,7 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
     const chatModel = mode === "VOICE" ? resolveVoiceModel(user) : resolveChatModel(user);
 
     // ── 0.2 Pre-flight credit check ───────────────────────────
-    await checkCreditBalance(userId, estimateMaxChatCost(chatModel));
+    await checkCreditBalance(userId, 1); // Only require 1 credit to start the stream
 
     // ── 0.3 Safety check ─────────────────────────────────────
     if (!validateInputSafety(message)) {
@@ -282,7 +282,7 @@ export const processAiRequestStream = async function* ({
     const chatModel = mode === "VOICE" ? resolveVoiceModel(user) : resolveChatModel(user);
 
     // ── 0.1 Pre-check ────────────────────────────────────────
-    await checkCreditBalance(userId, estimateMaxChatCost(chatModel));
+    await checkCreditBalance(userId, 1); // Only require 1 credit to start the stream
 
     // ── 0.2 Safety check ─────────────────────────────────────
     if (!validateInputSafety(message)) {
