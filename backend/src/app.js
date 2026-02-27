@@ -15,7 +15,7 @@ app.use(cors({
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://tasktime.in",
-        "https://tasktime-cqta.onrender.com"
+        "https://tasktime-sh1vam-03.vercel.app"
     ],
     credentials: true
 }));
