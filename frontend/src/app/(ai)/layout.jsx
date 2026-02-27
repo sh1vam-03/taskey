@@ -86,7 +86,7 @@ export default function AiLayout({ children }) {
             <div className="flex h-screen w-full items-center justify-center bg-[#0d0d0d] text-white">
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-                    <span className="font-mono text-xs tracking-widest text-gray-500">INITIALIZING_AI...</span>
+                    <span className="font-mono text-xs tracking-widest text-gray-500">LOADING TASKTIME AI...</span>
                 </div>
             </div>
         );

@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }) {
             <div className="flex h-screen w-full items-center justify-center bg-black text-white">
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    <span className="font-mono text-xs tracking-widest text-gray-500">INITIALIZING_SYSTEM...</span>
+                    <span className="font-mono text-xs tracking-widest text-gray-500">LOADING TASKTIME DASHBOARD...</span>
                 </div>
             </div>
         );
