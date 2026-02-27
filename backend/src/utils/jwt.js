@@ -10,7 +10,7 @@ export const generateJti = () => crypto.randomUUID();
 // ACCESS TOKEN
 // =======================
 export const signAccessToken = ({ userId, tokenVersion, jti }) => {
-    if (!userId || !jti || !tokenVersion) {
+    if (!userId || !jti || tokenVersion === undefined || tokenVersion === null) {
         throw new Error("userId, tokenVersion, and jti are required to sign access token");
     }
 
