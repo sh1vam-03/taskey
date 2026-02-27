@@ -8,8 +8,14 @@ import ApiError from "../utils/ApiError.js";
 const ACCESS_COOKIE_MAX_AGE = Number(process.env.ACCESS_COOKIE_MAX_AGE) || 15 * 60 * 1000; // 15m default
 const REFRESH_COOKIE_PERSISTENT_MAX_AGE = Number(process.env.REFRESH_COOKIE_PERSISTENT_MAX_AGE) || 21 * 24 * 60 * 60 * 1000; // 21d default
 
-const COOKIE_SECURE = process.env.NODE_ENV === "production"; // Default strict rule
-const COOKIE_SAMESITE = process.env.COOKIE_SAMESITE || "lax"; // Default lax rule for easier dev/redirects
+const isProduction = process.env.NODE_ENV === "production";
+
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+};
 
 /* =========================
    SIGNUP
@@ -71,38 +77,22 @@ export const login = asyncHandler(async (req, res) => {
     );
 
     // 1. Access Token Cookie
-    const accessCookieOptions = {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAMESITE,
-        path: "/",
-    };
-
-    // Only set maxAge if persistent (Remember Me) -> NO, Access Token should ALWAYS expire
-    accessCookieOptions.maxAge = ACCESS_COOKIE_MAX_AGE;
-
-    res.cookie("accessToken", result.accessToken, accessCookieOptions);
+    res.cookie("accessToken", result.accessToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: ACCESS_COOKIE_MAX_AGE,
+    });
 
     // 2. Refresh Token Cookie (Controls Persistence)
     // Fix: Only set refresh token if remember is true (Strict security)
     if (remember) {
-        const refreshTokenOptions = {
-            httpOnly: true,
-            secure: COOKIE_SECURE,
-            sameSite: COOKIE_SAMESITE,
-            path: "/",
+        res.cookie("refreshToken", result.refreshToken, {
+            ...COOKIE_OPTIONS,
             maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
-        };
-        res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
+        });
     } else {
         // Fix: Explicitly clear old refresh cookie if remember is false
         // This prevents legacy persistent sessions from surviving a non-persistent login
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: COOKIE_SECURE,
-            sameSite: COOKIE_SAMESITE,
-            path: "/",
-        });
+        res.clearCookie("refreshToken", COOKIE_OPTIONS);
     }
 
     res.status(200).json({
@@ -122,17 +112,8 @@ export const logout = asyncHandler(async (req, res) => {
         await authService.logout(req.sessionId);
     }
 
-    const cookieOptions = {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAMESITE,
-        path: "/",
-    };
-
-    res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", { ...cookieOptions, path: "/" });
-    // Also clear root path just in case
-    res.clearCookie("refreshToken", cookieOptions);
+    res.clearCookie("accessToken", COOKIE_OPTIONS);
+    res.clearCookie("refreshToken", COOKIE_OPTIONS);
 
     res.status(200).json({
         success: true,
@@ -220,37 +201,23 @@ export const refreshToken = asyncHandler(async (req, res) => {
     const result = await authService.refreshToken(refreshToken);
 
     // 1. Set Access Token Cookie
-    const accessCookieOptions = {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAMESITE,
-        path: "/",
-        maxAge: ACCESS_COOKIE_MAX_AGE, // Always set maxAge
-    };
-
-    res.cookie("accessToken", result.accessToken, accessCookieOptions);
+    res.cookie("accessToken", result.accessToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: ACCESS_COOKIE_MAX_AGE,
+    });
 
     // 2. Set New Refresh Token Cookie
     // If not persistent, we do NOT set a refresh token, but since we are in refresh flow, 
     // it implies it was persistent. We respect the session state.
     if (result.isPersistent) {
-        const refreshTokenOptions = {
-            httpOnly: true,
-            secure: COOKIE_SECURE,
-            sameSite: COOKIE_SAMESITE,
-            path: "/",
+        res.cookie("refreshToken", result.refreshToken, {
+            ...COOKIE_OPTIONS,
             maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
-        };
-        res.cookie("refreshToken", result.refreshToken, refreshTokenOptions);
+        });
     } else {
         // Fix: Explicitly clear old refresh cookie if session is not persistent
         // This handles edge cases where a session might have been persistent but logic changed
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: COOKIE_SECURE,
-            sameSite: COOKIE_SAMESITE,
-            path: "/",
-        });
+        res.clearCookie("refreshToken", COOKIE_OPTIONS);
     }
 
     res.status(200).json({
@@ -266,16 +233,8 @@ export const refreshToken = asyncHandler(async (req, res) => {
 export const logoutAll = asyncHandler(async (req, res) => {
     await authService.logoutAll(req.user.id);
 
-    const cookieOptions = {
-        httpOnly: true,
-        secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAMESITE,
-    };
-
-    res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", { ...cookieOptions, path: "/" });
-    // Also clear root path just in case
-    res.clearCookie("refreshToken", cookieOptions);
+    res.clearCookie("accessToken", COOKIE_OPTIONS);
+    res.clearCookie("refreshToken", COOKIE_OPTIONS);
 
     res.status(200).json({
         success: true,
