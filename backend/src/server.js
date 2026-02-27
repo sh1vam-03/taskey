@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
-dotenv.config(); // Load env before other imports
+if (process.env.NODE_ENV !== "production") {
+    const dotenv = await import("dotenv");
+    dotenv.config();
+} // Load env before other imports
 
 // Server restart trigger for env update
 import app from "./app.js";
