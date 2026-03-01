@@ -53,7 +53,7 @@ const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "sarvam-m", "gpt-4o
 const resolveChatModel = (user) => {
     if (user?.plan === "FREE") return "sarvam-m";
     const m = user?.aiChatModel;
-    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-1.5-flash";
+    return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-m";
 };
 
 /**
@@ -63,7 +63,7 @@ const resolveChatModel = (user) => {
 const resolveVoiceModel = (user) => {
     if (user?.plan !== "PRO_PLUS") return "sarvam-m";
     const m = user?.aiVoiceModel;
-    return VALID_CHAT_MODELS.includes(m) ? m : "gemini-1.5-flash";
+    return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-m";
 };
 
 // ─────────────────────────────────────────────────────────────

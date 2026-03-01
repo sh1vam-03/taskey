@@ -39,6 +39,7 @@ export const ActionTypeSchema = z.enum([
     "LOG_BEHAVIOR",
     "GET_DASHBOARD_SUMMARY",
     "CREATE_MULTIPLE_TASKS",
+    "CREATE_MULTIPLE_SCHEDULES",
     "UNKNOWN"
 ]);
 
@@ -69,7 +70,8 @@ export const ListTasksSchema = z.object({
 });
 
 export const CreateScheduleSchema = z.object({
-    taskId: z.string(),
+    taskId: z.string().optional(),
+    taskTitle: z.string().optional().describe("Fallback if taskId is unknown"),
     scheduleDate: z.string().describe("YYYY-MM-DD"),
     startTime: z.string().describe("HH:mm"),
     endTime: z.string().describe("HH:mm"),
@@ -101,6 +103,16 @@ export const LogBehaviorSchema = z.object({
 
 export const GetDashboardSummarySchema = z.object({
     date: z.string().optional()
+});
+
+export const CreateMultipleSchedulesSchema = z.object({
+    schedules: z.array(z.object({
+        taskId: z.string().optional(),
+        taskTitle: z.string().optional(),
+        scheduleDate: z.string().describe("YYYY-MM-DD"),
+        startTime: z.string().describe("HH:mm"),
+        endTime: z.string().describe("HH:mm"),
+    }))
 });
 
 export const CreateMultipleTasksSchema = z.object({

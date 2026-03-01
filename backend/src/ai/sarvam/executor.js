@@ -121,12 +121,115 @@ export const executeAction = async (action, data, config) => {
             }
 
             case "CREATE_SCHEDULE": {
-                if (!data.taskId || !data.scheduleDate || !data.startTime || !data.endTime) {
-                    throw new Error("taskId, scheduleDate, startTime, and endTime are required for CREATE_SCHEDULE");
+                const { taskId, taskTitle, scheduleDate, startTime, endTime } = data;
+                if (!scheduleDate || !startTime || !endTime) {
+                    throw new Error("scheduleDate, startTime, and endTime are required for CREATE_SCHEDULE");
                 }
-                const schedule = await scheduleService.createSchedule({ userId, ...data });
+
+                let finalTaskId = taskId;
+
+                // Lookup taskId by title if not provided
+                if (!finalTaskId && taskTitle) {
+                    console.log(`[Executor] Robustly searching for task: "${taskTitle}"`);
+                    const searchTitle = taskTitle.trim();
+
+                    // 1. Precise Match (Case-insensitive)
+                    let foundTask = await prisma.task.findFirst({
+                        where: { userId, title: { equals: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                        orderBy: { createdAt: 'desc' }
+                    });
+
+                    // 2. Contains Match
+                    if (!foundTask) {
+                        foundTask = await prisma.task.findFirst({
+                            where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                    }
+
+                    // 3. Ultra-Fuzzy Fallback (Strip emojis/special chars and compare in JS)
+                    if (!foundTask) {
+                        const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+                        const allTasks = await prisma.task.findMany({
+                            where: { userId, deletedAt: null },
+                            orderBy: { createdAt: 'desc' },
+                            take: 50
+                        });
+                        const cleanedSearch = clean(searchTitle);
+                        foundTask = allTasks.find(t => clean(t.title) === cleanedSearch || clean(t.title).includes(cleanedSearch) || cleanedSearch.includes(clean(t.title)));
+                    }
+
+                    if (foundTask) {
+                        console.log(`[Executor] Found task: "${foundTask.title}" (ID: ${foundTask.id})`);
+                        finalTaskId = foundTask.id;
+                    } else {
+                        console.log(`[Executor] Failed to find task after fuzzy search: "${searchTitle}"`);
+                    }
+                }
+
+                if (!finalTaskId) {
+                    throw new Error(`Could not find task "${taskTitle || 'unknown'}" to schedule. Please make sure the task is already created.`);
+                }
+
+                const schedule = await scheduleService.createSchedule({ userId, taskId: finalTaskId, scheduleDate, startTime, endTime });
                 await incrementUsage(userId, 'schedule');
                 return schedule;
+            }
+            case "CREATE_MULTIPLE_SCHEDULES": {
+                if (!data.schedules || !Array.isArray(data.schedules)) {
+                    throw new Error("Schedules array is required for CREATE_MULTIPLE_SCHEDULES");
+                }
+
+                const createdSchedules = [];
+                const errors = [];
+
+                for (const item of data.schedules) {
+                    const { taskId, taskTitle, scheduleDate, startTime, endTime } = item;
+                    if (!scheduleDate || !startTime || !endTime) continue;
+
+                    let finalTaskId = taskId;
+                    if (!finalTaskId && taskTitle) {
+                        const searchTitle = taskTitle.trim();
+                        let foundTask = await prisma.task.findFirst({
+                            where: { userId, title: { equals: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                            orderBy: { createdAt: 'desc' }
+                        });
+
+                        if (!foundTask) {
+                            foundTask = await prisma.task.findFirst({
+                                where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                                orderBy: { createdAt: 'desc' }
+                            });
+                        }
+
+                        // Fuzzy fallback in loop
+                        if (!foundTask) {
+                            const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+                            const cleanedSearch = clean(searchTitle);
+                            const allTasks = await prisma.task.findMany({
+                                where: { userId, deletedAt: null },
+                                orderBy: { createdAt: 'desc' },
+                                take: 20
+                            });
+                            foundTask = allTasks.find(t => clean(t.title) === cleanedSearch || clean(t.title).includes(cleanedSearch) || cleanedSearch.includes(clean(t.title)));
+                        }
+
+                        if (foundTask) finalTaskId = foundTask.id;
+                    }
+
+                    if (finalTaskId) {
+                        const schedule = await scheduleService.createSchedule({ userId, taskId: finalTaskId, scheduleDate, startTime, endTime });
+                        await incrementUsage(userId, 'schedule');
+                        createdSchedules.push(schedule);
+                    } else {
+                        errors.push(`"${taskTitle || 'unknown'}"`);
+                    }
+                }
+
+                return {
+                    message: `Successfully scheduled ${createdSchedules.length} tasks.${errors.length > 0 ? ` Errors locating: ${errors.join(', ')}` : ''}`,
+                    schedules: createdSchedules
+                };
             }
             case "UPDATE_SCHEDULE": {
                 if (!data.scheduleId) throw new Error("scheduleId is required for UPDATE_SCHEDULE");
