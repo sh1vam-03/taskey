@@ -74,7 +74,7 @@ const buildSarvamModel = (streaming = false) =>
         apiKey: process.env.SARVAM_API_KEY,
         timeout: 30000,
         maxRetries: 2,
-        maxTokens: 2048,
+        maxTokens: 8192,
         streaming,
         configuration: {
             baseURL: `${process.env.SARVAM_API_BASE || "https://api.sarvam.ai"}/v1`,
@@ -95,7 +95,7 @@ const buildSarvamMModel = (streaming = false) =>
         apiKey: process.env.SARVAM_API_KEY,
         timeout: 30000,
         maxRetries: 2,
-        maxTokens: 2048,
+        maxTokens: 8192,
         streaming,
         configuration: {
             baseURL: `${process.env.SARVAM_API_BASE || "https://api.sarvam.ai"}/v1`,

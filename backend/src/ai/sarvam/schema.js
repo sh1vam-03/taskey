@@ -104,6 +104,7 @@ export const GetDashboardSummarySchema = z.object({
 
 // The wrapper schema that Sarvam MUST return
 export const SarvamIntentSchema = z.object({
+    thought: z.string().describe("A brief explanation of why this action was chosen based on the user's message."),
     action: ActionTypeSchema,
     data: z.record(z.unknown()).optional().describe("The payload matching the action type. Empty if UNKNOWN.")
 });
