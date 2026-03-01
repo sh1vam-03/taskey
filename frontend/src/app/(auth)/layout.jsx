@@ -3,10 +3,22 @@ import React, { useState, useEffect } from "react";
 import AiEnergySphere from "@/components/ui/AiEnergySphere";
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function AuthLayout({
     children,
 }) {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        // Redirect if already logged in
+        if (!loading && user) {
+            router.replace('/dashboard');
+        }
+    }, [user, loading, router]);
+
     // 🔹 RESPONSIVE ORB SIZING
     const [orbSize, setOrbSize] = useState(1000);
 
@@ -14,10 +26,7 @@ export default function AuthLayout({
         const updateSize = () => {
             const width = window.innerWidth;
             const height = window.innerHeight;
-            // Base size on width, but cap it for smaller screens
             let newSize = Math.min(1000, Math.max(600, width * 0.6));
-
-            // Height Constraint for Laptops (1366x768) and smaller
             if (height < 800) {
                 newSize = Math.min(newSize, 700);
             }
@@ -27,6 +36,20 @@ export default function AuthLayout({
         window.addEventListener("resize", updateSize);
         return () => window.removeEventListener("resize", updateSize);
     }, []);
+
+    // Gate: Show loading spinner while auth state is being determined
+    if (loading) {
+        return (
+            <div className="min-h-screen w-full flex items-center justify-center bg-black">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            </div>
+        );
+    }
+
+    // If user is already logged in, don't render auth pages at all
+    if (user) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen w-full flex bg-black font-mono text-white overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500">

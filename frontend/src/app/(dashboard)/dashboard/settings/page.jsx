@@ -239,8 +239,14 @@ export default function SettingsPage() {
                                         ))}
                                     </select>
                                 ) : (
-                                    <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono">
+                                    <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 font-mono flex justify-between items-center group">
                                         {selectedTimezone}
+                                        <button
+                                            onClick={() => setIsEditingProfile(true)}
+                                            className="text-xs text-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
+                                        >
+                                            Edit
+                                        </button>
                                     </div>
                                 )}
                             </div>

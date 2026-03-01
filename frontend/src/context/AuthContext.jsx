@@ -15,16 +15,28 @@ export const AuthProvider = ({ children }) => {
         checkSession();
     }, []);
 
+    // Auto-detect and save timezone if user doesn't have one set
+    const autoSyncTimezone = async (userData) => {
+        if (userData && !userData.timezone) {
+            try {
+                const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (detectedTz) {
+                    await authService.updateProfile({ timezone: detectedTz });
+                    // Sync the local state as well
+                    userData.timezone = detectedTz;
+                }
+            } catch (e) {
+                console.warn("[AuthContext] Failed to auto-sync timezone:", e.message);
+            }
+        }
+    };
+
     const checkSession = async () => {
         try {
-            // getMe uses api.get('/auth/me'); which sends cookies automatically
             const data = await authService.getMe();
-            // Expected response: { success: true, user: {...} } or similar?
-            // backend/src/controllers/auth.controller.js: getMyProfile -> res.json({ success: true, data: profile })
-            // frontend/src/services/auth.service.js: getMe -> return response.data
-            // So data here is { success: true, data: profile }
             if (data.success) {
                 setUser(data.data);
+                await autoSyncTimezone(data.data);
             } else {
                 setUser(null);
             }
@@ -37,7 +49,9 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password, remember) => {
         const data = await authService.login(email, password, remember);
-        setUser(data.data.user);
+        const userData = data.data.user;
+        setUser(userData);
+        await autoSyncTimezone(userData);
         return data;
     };
 
@@ -56,7 +70,7 @@ export const AuthProvider = ({ children }) => {
             if (typeof window !== 'undefined') {
                 const PUBLIC_ROUTES = ['/', '/login', '/signup', '/careers', '/privacy', '/about', '/contact', '/terms', '/security'];
                 if (!PUBLIC_ROUTES.includes(window.location.pathname)) {
-                    router.push('/login');
+                    router.replace('/login');
                 }
             }
         } catch (error) {
