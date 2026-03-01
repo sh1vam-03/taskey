@@ -5,23 +5,23 @@ export default function HowItWorks() {
     const steps = [
         {
             id: "01",
-            title: "Tell TASKTIME what you need",
-            subtitle: "Add tasks naturally",
-            desc: "Type or speak what you need to do. TASKTIME understands everyday language.",
+            title: "Start a Chat",
+            subtitle: "Natural Language Input",
+            desc: "Tell TASKTIME what you want to do today. It understands you just like a friend.",
             icon: <FaMicrophone />
         },
         {
             id: "02",
-            title: "AI plans it for you",
-            subtitle: "Smart scheduling",
-            desc: "TASKTIME analyzes your time, priorities, and deadlines to build the best schedule.",
+            title: "AI Plans for You",
+            subtitle: "Smart Suggestions",
+            desc: "The AI suggests the best schedule based on what you told it.",
             icon: <FaBrain />
         },
         {
             id: "03",
-            title: "Stay on track",
-            subtitle: "Execute with clarity",
-            desc: "Follow your optimized schedule, get reminders, and adapt when plans change.",
+            title: "Get Things Done",
+            subtitle: "Reach Your Goals",
+            desc: "Follow your plan, stay on track, and reach your goals every day.",
             icon: <FaCheckCircle />
         }
     ];

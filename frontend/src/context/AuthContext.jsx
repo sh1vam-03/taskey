@@ -53,7 +53,12 @@ export const AuthProvider = ({ children }) => {
         try {
             await authService.logout();
             setUser(null);
-            router.push('/login');
+            if (typeof window !== 'undefined') {
+                const PUBLIC_ROUTES = ['/', '/login', '/signup', '/careers', '/privacy', '/about', '/contact', '/terms', '/security'];
+                if (!PUBLIC_ROUTES.includes(window.location.pathname)) {
+                    router.push('/login');
+                }
+            }
         } catch (error) {
             console.error("Logout failed", error);
         }

@@ -5,24 +5,24 @@ export default function DetailedFeatures() {
     const features = [
         {
             id: "AI",
-            title: "Smart AI Scheduling",
-            desc: "Automatically plans your day based on priorities, deadlines, and available time.",
+            title: "Talk to Your Tasks",
+            desc: "Simply type or speak to manage your day. Our AI understands exactly what you mean—whether you're adding a new goal, changing a deadline, or setting priorities from Low to High. No buttons needed.",
             icon: <FaMagic />,
             stat: "", // 98% OPTIMAL
             className: "md:col-span-2 md:row-span-2"
         },
         {
             id: "VOICE",
-            title: "Voice & Natural Input",
-            desc: "Create tasks and schedules using simple text or voice commands.",
+            title: "Human-like Voice",
+            desc: "Choose from many voices powered by OpenAI Whisper/TTS and Sarvam Saaras/Bulbul.",
             icon: <FaMicrophoneLines />,
             stat: "", // LATENCY < 50ms
             className: "md:col-span-1"
         },
         {
-            id: "PRIORITY",
-            title: "Automatic Prioritization",
-            desc: "Tasks are ranked intelligently so you always know what to focus on next.",
+            id: "STATS",
+            title: "Personal Scores",
+            desc: "Get a simple score that shows how well you followed your plan.",
             icon: <FaCheckDouble />,
             stat: "", // AUTO-RANK
             className: "md:col-span-1"
@@ -37,24 +37,24 @@ export default function DetailedFeatures() {
         },
         {
             id: "FOCUS",
-            title: "Time Blocking",
-            desc: "Plan focused work sessions to reduce distractions and stay productive.",
+            title: "Daily Goals",
+            desc: "Try to complete everything you planned and build a winning streak.",
             icon: <FaClock />,
             stat: "", // FOCUS MODE
             className: "md:col-span-1"
         },
         {
             id: "SMART",
-            title: "Adaptive Planning",
-            desc: "If your day changes, TASKTIME adjusts your schedule automatically.",
+            title: "Smart Suggestions",
+            desc: "If your day changes, just ask the AI to suggests a new schedule in seconds.",
             icon: <FaBell />,
             stat: "", // ADAPTIVE
             className: "md:col-span-2"
         },
         {
             id: "FLOW",
-            title: "Auto Rescheduling",
-            desc: "Missed something? Your tasks are reorganized instantly.",
+            title: "Quick Plan Updates",
+            desc: "If things change, just ask the AI to reorganize your day in seconds.",
             icon: <FaLayerGroup />,
             stat: "", // INSTANT
             className: "md:col-span-1"
