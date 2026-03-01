@@ -35,12 +35,14 @@ import {
 import { validateInputSafety } from "../validators/safety.validator.js";
 import { geminiChat } from "./gemini.service.js";
 import { sarvamChat } from "./sarvam.service.js";
+import ApiError from "../../utils/ApiError.js";
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
 const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "sarvam-m", "gpt-4o-mini"];
+const UNAVAILABLE_MODELS = ["sarvam-30b"];
 
 // ─────────────────────────────────────────────────────────────
 // MODEL RESOLVERS
@@ -53,6 +55,9 @@ const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "sarvam-m", "gpt-4o
 const resolveChatModel = (user) => {
     if (user?.plan === "FREE") return "sarvam-m";
     const m = user?.aiChatModel;
+    if (m && UNAVAILABLE_MODELS.includes(m)) {
+        throw new ApiError(503, "This model is currently not available. Please use a different model.");
+    }
     return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-m";
 };
 
@@ -63,6 +68,9 @@ const resolveChatModel = (user) => {
 const resolveVoiceModel = (user) => {
     if (user?.plan !== "PRO_PLUS") return "sarvam-m";
     const m = user?.aiVoiceModel;
+    if (m && UNAVAILABLE_MODELS.includes(m)) {
+        throw new ApiError(503, "This model is currently not available. Please use a different model.");
+    }
     return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-m";
 };
 
@@ -207,13 +215,21 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
     }
 
     // ── 4. Run graph ──────────────────────────────────────────
-    const aiResponse = await runAgentGraph({
-        userId,
-        messages: lcMessages,
-        user,
-        conversationId,
-        chatModel
-    });
+    let aiResponse;
+    try {
+        aiResponse = await runAgentGraph({
+            userId,
+            messages: lcMessages,
+            user,
+            conversationId,
+            chatModel
+        });
+    } catch (graphErr) {
+        // Re-throw credit and availability errors as-is
+        if (graphErr.statusCode === 402 || graphErr.statusCode === 503) throw graphErr;
+        console.error("[Orchestrator] Graph execution error:", graphErr.message);
+        throw new ApiError(500, "Internal server error. Please try again or use a different AI model.");
+    }
 
     // Normalize: Gemini returns Array<{type,text}>, other models return string.
     // finalize.node.js should already have converted to string, but double-check here
@@ -362,7 +378,10 @@ export const processAiRequestStream = async function* ({
         }
     } catch (error) {
         console.error("[Orchestrator Stream] Error:", error.stack || error.message);
-        yield `\n[Error generating response: ${error.message}]`;
+        // Re-throw classified errors as-is (402 credits, 503 model unavailable)
+        if (error.statusCode === 402 || error.statusCode === 503) throw error;
+        // Sanitize all other errors into a generic 500
+        throw new ApiError(500, "Internal server error. Please try again or use a different AI model.");
     }
 
     // ── 5. Post-stream: save + bill ───────────────────────────

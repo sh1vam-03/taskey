@@ -273,27 +273,24 @@ export function AiProvider({ children }) {
                 dispatch({ type: 'SET_STREAMING', payload: false });
                 dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
 
-                const errMsg = typeof err === 'string' ? err : err?.message || 'Failed to get AI response';
-                const status = err?.response?.status || err?.status;
-
+                const status = err?.status || err?.response?.status || 500;
+                let displayMsg;
                 if (status === 402) {
-                    dispatch({
-                        type: 'APPEND_MESSAGE', payload: {
-                            id: `err-${Date.now()}`, role: 'assistant',
-                            content: '⚠️ **Insufficient credits.** Please upgrade your plan to continue.',
-                            createdAt: new Date().toISOString(),
-                        }
-                    });
+                    displayMsg = '⚠️ **Your AI credits are finished.** Please top-up credits now to continue using the AI assistant.';
+                } else if (status === 503) {
+                    displayMsg = '⚠️ **This model is currently not available.** Please use a different AI model from settings.';
                 } else {
-                    dispatch({
-                        type: 'APPEND_MESSAGE', payload: {
-                            id: `err-${Date.now()}`, role: 'assistant',
-                            content: `⚠️ **Error**: ${errMsg}`,
-                            createdAt: new Date().toISOString(),
-                        }
-                    });
+                    displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
                 }
-                dispatch({ type: 'SET_ERROR', payload: errMsg });
+
+                dispatch({
+                    type: 'APPEND_MESSAGE', payload: {
+                        id: `err-${Date.now()}`, role: 'assistant',
+                        content: displayMsg,
+                        createdAt: new Date().toISOString(),
+                    }
+                });
+                dispatch({ type: 'SET_ERROR', payload: displayMsg });
             }
         );
     }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings]);

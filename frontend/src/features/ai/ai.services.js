@@ -129,12 +129,21 @@ const aiService = {
 
                             try {
                                 const parsed = JSON.parse(dataStr);
+
+                                // Check for structured error event from backend
+                                if (parsed.error) {
+                                    const err = new Error(parsed.error);
+                                    err.status = parsed.code || 500;
+                                    throw err;
+                                }
+
                                 if (parsed.token) {
-                                    console.log("STREAM TOKEN:", parsed.token);
                                     fullText += parsed.token;
                                     onToken(parsed.token);
                                 }
                             } catch (e) {
+                                // If it's our structured error, re-throw
+                                if (e.status) throw e;
                                 console.warn("Stream parse error on chunk:", dataStr);
                             }
                         }
