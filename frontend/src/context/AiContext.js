@@ -274,7 +274,7 @@ export function AiProvider({ children }) {
                 dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
 
                 const errMsg = typeof err === 'string' ? err : err?.message || 'Failed to get AI response';
-                const status = err?.status;
+                const status = err?.response?.status || err?.status;
 
                 if (status === 402) {
                     dispatch({

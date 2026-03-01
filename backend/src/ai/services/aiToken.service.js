@@ -218,31 +218,33 @@ export const deductCredits = async ({
 
         if (!user) throw new ApiError(404, "User not found");
 
-        // 2. Priority deduction: subscription first, then topup
+        // 2. Hard Check: Ensure total balance can cover the request
+        const totalBalance = user.subscriptionCredits + user.topupCredits;
+        if (totalBalance < amount) {
+            throw new ApiError(
+                402,
+                `Insufficient balance for this request. Required: ${amount}, Available: ${totalBalance}`
+            );
+        }
+
+        // 3. Priority deduction: subscription first (they expire), then topup
         let fromSubscription = 0;
         let fromTopup = 0;
 
         if (user.subscriptionCredits >= amount) {
-            // Subscription covers the full cost
             fromSubscription = amount;
         } else {
-            // Subscription covers partial, topup covers the rest
             fromSubscription = user.subscriptionCredits;
             fromTopup = amount - fromSubscription;
         }
 
-        // 3. Apply deductions
-        const updateData = {};
-        if (fromSubscription > 0) {
-            updateData.subscriptionCredits = { decrement: fromSubscription };
-        }
-        if (fromTopup > 0) {
-            updateData.topupCredits = { decrement: fromTopup };
-        }
-
+        // 4. Update user balances
         await tx.user.update({
             where: { id: userId },
-            data: updateData
+            data: {
+                subscriptionCredits: { decrement: fromSubscription },
+                topupCredits: { decrement: fromTopup }
+            }
         });
 
         // 4. Granular usage log
