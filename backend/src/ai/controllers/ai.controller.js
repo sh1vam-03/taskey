@@ -498,7 +498,10 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         const { text: userText, durationMinutes: sttDuration } = await transcribeAudio(
             req.file.path,
             sttModel,
-            { languageCode: user.aiSarvamLang || "unknown" }
+            {
+                languageCode: user.aiSarvamLang || "unknown",
+                mimetype: req.file.mimetype
+            }
         );
 
         const sttCredits = calcVoiceCost(sttModel, sttDuration);
@@ -597,7 +600,10 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
         const { text, durationMinutes } = await transcribeAudio(
             req.file.path,
             sttModel,
-            { languageCode: user.aiSarvamLang || "unknown" }
+            {
+                languageCode: user.aiSarvamLang || "unknown",
+                mimetype: req.file.mimetype
+            }
         );
 
         const credits = calcVoiceCost(sttModel, durationMinutes);

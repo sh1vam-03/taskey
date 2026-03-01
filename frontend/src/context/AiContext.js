@@ -50,6 +50,9 @@ const initialState = {
     // Settings panel open state
     isSettingsOpen: false,
 
+    // Real-time voice preview
+    liveTranscript: '',
+
     // Error
     error: null,
 };
@@ -84,6 +87,38 @@ const reducer = (state, action) => {
                         ? { ...m, content: action.payload }
                         : m
                 ),
+            };
+
+        case 'SET_LIVE_TRANSCRIPT':
+            return { ...state, liveTranscript: action.payload };
+
+        case 'APPEND_OR_UPDATE_LIVE_MESSAGE':
+            // If the last message is a temporary live message, update it. Otherwise append.
+            const lastMsg = state.messages[state.messages.length - 1];
+            if (lastMsg && lastMsg.id === 'live-session') {
+                return {
+                    ...state,
+                    messages: state.messages.map(m =>
+                        m.id === 'live-session' ? { ...m, content: action.payload } : m
+                    )
+                };
+            }
+            return {
+                ...state,
+                messages: [...state.messages, {
+                    id: 'live-session',
+                    role: 'user',
+                    content: action.payload,
+                    createdAt: new Date().toISOString()
+                }]
+            };
+
+        case 'FINALIZE_LIVE_MESSAGE':
+            return {
+                ...state,
+                messages: state.messages.map(m =>
+                    m.id === 'live-session' ? { ...m, id: `user-${Date.now()}` } : m
+                )
             };
 
         case 'SET_STREAMING':
@@ -172,6 +207,85 @@ export function AiProvider({ children }) {
         }
     }, []);
 
+    // Voice streaming refs
+    const audioQueueRef = useRef([]);
+    const isPlayingAudioRef = useRef(false);
+    const audioAbortControllerRef = useRef(null);
+
+    /**
+     * Splits text into sentences and triggers TTS for each.
+     */
+    const playVoiceStream = useCallback(async (fullText, isFinal = false) => {
+        // Use a persistent ref to keep track of what we've already sent to TTS
+        if (!window.__voiceState) window.__voiceState = { processedIndex: 0, pendingText: '' };
+
+        const newText = fullText.substring(window.__voiceState.processedIndex);
+        window.__voiceState.processedIndex = fullText.length;
+        window.__voiceState.pendingText += newText;
+
+        // Split by sentence boundaries: . ! ? or newline
+        const sentences = window.__voiceState.pendingText.split(/([.!?\n]+)/);
+
+        // The last element might be an incomplete sentence unless isFinal is true
+        let completeSentences = [];
+        for (let i = 0; i < sentences.length - 1; i += 2) {
+            const sentence = (sentences[i] + (sentences[i + 1] || '')).trim();
+            if (sentence) completeSentences.push(sentence);
+        }
+
+        if (isFinal) {
+            const last = sentences[sentences.length - 1]?.trim();
+            if (last) completeSentences.push(last);
+            window.__voiceState.pendingText = '';
+        } else {
+            window.__voiceState.pendingText = sentences[sentences.length - 1] || '';
+        }
+
+        for (const text of completeSentences) {
+            if (text.length < 2) continue; // skip very short fragments
+
+            try {
+                const chunk = await aiService.synthesizeSpeech(text, state.settings.speaker);
+                if (chunk?.audioUrl) {
+                    audioQueueRef.current.push(chunk.audioUrl);
+                    processAudioQueue();
+                }
+            } catch (err) {
+                console.error('[VoiceStream] TTS chunk failed:', err);
+            }
+        }
+    }, [state.settings.speaker]);
+
+    const processAudioQueue = useCallback(() => {
+        if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
+
+        isPlayingAudioRef.current = true;
+        const audioUrl = audioQueueRef.current.shift();
+        const audio = new Audio(audioUrl);
+
+        audio.onended = () => {
+            isPlayingAudioRef.current = false;
+            processAudioQueue();
+        };
+
+        audio.onerror = () => {
+            isPlayingAudioRef.current = false;
+            processAudioQueue();
+        };
+
+        audio.play().catch(e => {
+            console.warn('[VoiceStream] Audio play failed:', e);
+            isPlayingAudioRef.current = false;
+            processAudioQueue();
+        });
+    }, []);
+
+    const stopVoiceAudio = useCallback(() => {
+        audioQueueRef.current = [];
+        isPlayingAudioRef.current = false;
+        // Ideally we'd keep track of the current Audio object to stop it
+    }, []);
+
     const openConversation = useCallback(async (id) => {
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: id });
         if (!id) return; // Allow opening "null" for New Chats
@@ -238,9 +352,14 @@ export function AiProvider({ children }) {
      * Sends a text message with streaming.
      * Optimistically appends user bubble immediately, then streams AI response.
      */
-    const sendMessage = useCallback(async (text) => {
+    const sendMessage = useCallback(async (text, isVoiceMode = false) => {
         let convId = state.activeConversationId;
         if (!text.trim()) return;
+
+        if (isVoiceMode) {
+            window.__voiceState = { processedIndex: 0, pendingText: '' };
+            stopVoiceAudio();
+        }
 
         // Auto-create conversation if none active
         if (!convId) {
@@ -250,7 +369,7 @@ export function AiProvider({ children }) {
 
         // Optimistic user bubble
         const optimisticUserMsg = {
-            id: `temp-${Date.now()}`,
+            id: `user-${Date.now()}`,
             role: 'user',
             content: text,
             createdAt: new Date().toISOString(),
@@ -259,13 +378,16 @@ export function AiProvider({ children }) {
         dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: true });
         dispatch({ type: 'SET_STREAMING', payload: true });
 
+        const abortController = new AbortController();
+        audioAbortControllerRef.current = abortController;
+
         aiService.sendMessageStream(
             convId,
             text,
             (token) => dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token }),
             (fullText) => {
                 dispatch({ type: 'STREAM_DONE', payload: fullText });
-
+                if (isVoiceMode) playVoiceStream(fullText, true);
                 loadConversations();
                 loadSettings(); // refresh credit balance
             },
@@ -283,21 +405,15 @@ export function AiProvider({ children }) {
                     displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
                 }
 
-                dispatch({
-                    type: 'APPEND_MESSAGE', payload: {
-                        id: `err-${Date.now()}`, role: 'assistant',
-                        content: displayMsg,
-                        createdAt: new Date().toISOString(),
-                    }
-                });
                 dispatch({ type: 'SET_ERROR', payload: displayMsg });
-            }
+            },
+            abortController.signal
         );
-    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings]);
+        return () => abortController.abort();
+    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings, playVoiceStream, stopVoiceAudio]);
 
     /**
      * Full voice pipeline.
-     * Optimistically shows "🎤 Processing audio..." then replaces with real transcript.
      */
     const sendVoiceMessage = useCallback(async (audioBlob) => {
         let convId = state.activeConversationId;
@@ -307,50 +423,81 @@ export function AiProvider({ children }) {
             if (!convId) return;
         }
 
-        const placeholderMsg = {
-            id: `voice-temp-${Date.now()}`,
-            role: 'user',
-            content: '🎤 Processing audio...',
-            createdAt: new Date().toISOString(),
-        };
-        dispatch({ type: 'APPEND_MESSAGE', payload: placeholderMsg });
         dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: true });
 
         try {
-            const res = await aiService.sendVoiceMessage(convId, audioBlob);
-            const data = res.data || res;
-            const { userText, reply, audioUrl, billing, models } = data;
+            // 1. Transcribe Only (Saaras v3)
+            const res = await aiService.transcribeAudio(audioBlob);
+            const userText = res.data?.text || res.text;
 
-            // Replace placeholder with real transcript
-            dispatch({ type: 'UPDATE_LAST_USER_MESSAGE', payload: userText || '🎤 Voice message' });
+            if (!userText?.trim()) {
+                throw new Error("Could not understand audio. Please check your microphone and try speaking more clearly.");
+            }
 
-            // Add AI response
-            dispatch({
-                type: 'APPEND_MESSAGE',
-                payload: { id: `ai-${Date.now()}`, role: 'assistant', content: reply, createdAt: new Date().toISOString() },
-            });
-
-            // Store audio + billing info for VoicePlayer
-            dispatch({ type: 'SET_VOICE_RESPONSE', payload: { audioUrl, userText, reply, billing, models } });
-
-            loadConversations();
-            loadSettings();
-        } catch (err) {
-            dispatch({ type: 'UPDATE_LAST_USER_MESSAGE', payload: '🎤 Voice message failed' });
+            // Update chat with real transcript
+            dispatch({ type: 'APPEND_OR_UPDATE_LIVE_MESSAGE', payload: userText });
+            dispatch({ type: 'FINALIZE_LIVE_MESSAGE' });
             dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: false });
-            dispatch({ type: 'SET_ERROR', payload: 'Voice processing failed' });
+
+            // 2. Start Streaming AI Response with Chunked TTS
+            window.__voiceState = { processedIndex: 0, pendingText: '' };
+            stopVoiceAudio();
+
+            dispatch({ type: 'SET_STREAMING', payload: true });
+
+            const abortController = new AbortController();
+            audioAbortControllerRef.current = abortController;
+
+            aiService.sendMessageStream(
+                convId,
+                userText,
+                (token) => {
+                    dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token });
+                },
+                (fullText) => {
+                    dispatch({ type: 'STREAM_DONE', payload: fullText });
+                    playVoiceStream(fullText, true);
+                    loadConversations();
+                    loadSettings();
+                },
+                (err) => {
+                    dispatch({ type: 'SET_STREAMING', payload: false });
+                    dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
+                    dispatch({ type: 'SET_ERROR', payload: err.message || 'Voice processing failed' });
+                },
+                abortController.signal
+            );
+
+        } catch (err) {
+            console.error('Voice message failed:', err);
+            const errorMsg = err.response?.data?.message || err.message || 'Voice processing failed';
+            const isTimeout = errorMsg.includes('timeout') || errorMsg.includes('fetch failed');
+
+            const displayMsg = isTimeout
+                ? '🎤 **Connection Timeout**: The AI service is currently unreachable. Please check your internet or try another model.'
+                : `🎤 Voice message failed: ${errorMsg}`;
+
+            dispatch({ type: 'APPEND_OR_UPDATE_LIVE_MESSAGE', payload: displayMsg });
+            dispatch({ type: 'FINALIZE_LIVE_MESSAGE' });
+            dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: false });
+            dispatch({ type: 'SET_ERROR', payload: displayMsg });
         }
-    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings]);
+    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings, playVoiceStream, stopVoiceAudio]);
 
     const stopStreaming = useCallback(() => {
-        // No abort ref in reducer pattern — just commit what we have
+        if (audioAbortControllerRef.current) {
+            audioAbortControllerRef.current.abort();
+            audioAbortControllerRef.current = null;
+        }
+        stopVoiceAudio();
+
         if (state.streamingContent) {
             dispatch({ type: 'STREAM_DONE', payload: state.streamingContent + '\n\n*[Response stopped]*' });
         } else {
             dispatch({ type: 'SET_STREAMING', payload: false });
             dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
         }
-    }, [state.streamingContent]);
+    }, [state.streamingContent, stopVoiceAudio]);
 
     const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
     const clearVoiceResponse = useCallback(() => dispatch({ type: 'SET_VOICE_RESPONSE', payload: null }), []);
@@ -359,7 +506,21 @@ export function AiProvider({ children }) {
     useEffect(() => {
         loadSettings();
         loadConversations();
-    }, [loadSettings, loadConversations]);
+
+        return () => {
+            stopVoiceAudio();
+            if (audioAbortControllerRef.current) {
+                audioAbortControllerRef.current.abort();
+            }
+        };
+    }, [loadSettings, loadConversations, stopVoiceAudio]);
+
+    // Use a reference to latest tokens for the voice stream playback
+    useEffect(() => {
+        if (state.isStreaming && window.__voiceState) {
+            playVoiceStream(state.streamingContent);
+        }
+    }, [state.streamingContent, state.isStreaming, playVoiceStream]);
 
     const value = {
         ...state,
@@ -376,7 +537,17 @@ export function AiProvider({ children }) {
         clearError,
         clearVoiceResponse,
         setIsSettingsOpen: (v) => dispatch({ type: 'SET_LOADING', key: 'isSettingsOpen', value: v }),
-        setIsRecording: (v) => dispatch({ type: 'SET_LOADING', key: 'isRecording', value: v }),
+        setIsRecording: (v) => {
+            if (v) dispatch({ type: 'APPEND_OR_UPDATE_LIVE_MESSAGE', payload: '🎤 Listening...' });
+            else dispatch({ type: 'SET_LIVE_TRANSCRIPT', payload: '' });
+            dispatch({ type: 'SET_LOADING', key: 'isRecording', value: v });
+        },
+        updateLiveTranscript: (text) => {
+            dispatch({ type: 'SET_LIVE_TRANSCRIPT', payload: text });
+            if (text.trim()) {
+                dispatch({ type: 'APPEND_OR_UPDATE_LIVE_MESSAGE', payload: `🎤 ${text}` });
+            }
+        },
     };
 
     return <AiContext.Provider value={value}>{children}</AiContext.Provider>;

@@ -70,8 +70,9 @@ const aiService = {
      * @param {(error: Error) => void} onError - called on error
      * @returns {() => void} abort function
      */
-    sendMessageStream(conversationId, message, onToken, onDone, onError) {
+    sendMessageStream(conversationId, message, onToken, onDone, onError, signal = null) {
         const controller = new AbortController();
+        const effectiveSignal = signal || controller.signal;
 
         (async () => {
             try {
@@ -83,7 +84,7 @@ const aiService = {
                     {
                         responseType: 'stream',
                         adapter: 'fetch', // Forces Axios to use the Fetch API natively, exposing a ReadableStream
-                        signal: controller.signal
+                        signal: effectiveSignal
                     }
                 );
 
@@ -166,7 +167,8 @@ const aiService = {
 
     async sendVoiceMessage(conversationId, audioBlob) {
         const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.webm");
+        const ext = audioBlob.type?.includes('wav') ? 'wav' : 'webm';
+        formData.append("audio", audioBlob, `recording.${ext}`);
 
         const response = await api.post(
             `/ai/conversations/${conversationId}/voice`,
@@ -178,7 +180,8 @@ const aiService = {
 
     async transcribeAudio(audioBlob) {
         const formData = new FormData();
-        formData.append("audio", audioBlob, "voice.webm");
+        const ext = audioBlob.type?.includes('wav') ? 'wav' : 'webm';
+        formData.append("audio", audioBlob, `voice.${ext}`);
 
         const response = await api.post("/ai/voice/transcribe", formData, {
             headers: { "Content-Type": "multipart/form-data" },
