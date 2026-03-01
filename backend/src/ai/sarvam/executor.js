@@ -74,9 +74,37 @@ export const executeAction = async (action, data, config) => {
                 return task;
             }
             case "DELETE_TASK": {
-                if (!data.taskId) throw new Error("taskId is required for DELETE_TASK");
-                await taskService.deleteTask(userId, data.taskId);
-                return { message: "Task deleted successfully" };
+                let targetTaskId = data.taskId;
+
+                // Title-based fallback
+                if (!targetTaskId && data.taskTitle) {
+                    const searchTitle = data.taskTitle.trim();
+                    let foundTask = await prisma.task.findFirst({
+                        where: { userId, title: { equals: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                        orderBy: { createdAt: 'desc' }
+                    });
+                    if (!foundTask) {
+                        foundTask = await prisma.task.findFirst({
+                            where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                    }
+                    if (!foundTask) {
+                        const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, take: 50 });
+                        foundTask = allTasks.find(t => clean(t.title) === clean(searchTitle) || clean(t.title).includes(clean(searchTitle)));
+                    }
+                    if (foundTask) targetTaskId = foundTask.id;
+                }
+
+                if (!targetTaskId) {
+                    throw new Error(`Could not find task "${data.taskTitle || 'unknown'}" to delete.`);
+                }
+
+                // Also delete associated schedules
+                await prisma.schedule.deleteMany({ where: { userId, taskId: targetTaskId } });
+                await taskService.deleteTask(userId, targetTaskId);
+                return { message: `Task "${data.taskTitle || ''}" and its schedules deleted successfully.` };
             }
             case "LIST_TASKS": {
                 if (data.date) {
@@ -238,9 +266,95 @@ export const executeAction = async (action, data, config) => {
                 return schedule;
             }
             case "DELETE_SCHEDULE": {
-                if (!data.scheduleId && !data.taskId) throw new Error("scheduleId or taskId is required for DELETE_SCHEDULE");
-                await scheduleService.deleteSchedule(userId, data.taskId || data.scheduleId); // Fallback for bad LLM
-                return { message: "Schedule deleted successfully" };
+                if (data.scheduleId) {
+                    await scheduleService.deleteSchedule(userId, data.scheduleId);
+                    return { message: "Schedule deleted successfully." };
+                }
+
+                // Title-based fallback: delete all schedules for a task by title
+                if (data.taskTitle) {
+                    const searchTitle = data.taskTitle.trim();
+                    let foundTask = await prisma.task.findFirst({
+                        where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                        orderBy: { createdAt: 'desc' }
+                    });
+                    if (!foundTask) {
+                        const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, take: 50 });
+                        foundTask = allTasks.find(t => clean(t.title).includes(clean(searchTitle)));
+                    }
+                    if (!foundTask) throw new Error(`Could not find task "${searchTitle}" to delete schedules for.`);
+
+                    const deleted = await prisma.schedule.deleteMany({ where: { userId, taskId: foundTask.id } });
+                    return { message: `Deleted ${deleted.count} schedule(s) for "${foundTask.title}".` };
+                }
+
+                throw new Error("scheduleId or taskTitle is required for DELETE_SCHEDULE");
+            }
+            case "DELETE_MULTIPLE_TASKS": {
+                if (data.deleteAll) {
+                    // Delete ALL schedules first, then soft-delete ALL tasks
+                    const deletedSchedules = await prisma.schedule.deleteMany({ where: { userId } });
+                    const deletedTasks = await prisma.task.updateMany({
+                        where: { userId, deletedAt: null },
+                        data: { deletedAt: new Date(), isArchived: true }
+                    });
+                    return { message: `Deleted ${deletedTasks.count} tasks and ${deletedSchedules.count} schedules.` };
+                }
+
+                if (data.taskTitles && Array.isArray(data.taskTitles)) {
+                    let deletedCount = 0;
+                    const errors = [];
+                    for (const title of data.taskTitles) {
+                        const searchTitle = title.trim();
+                        let foundTask = await prisma.task.findFirst({
+                            where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                        if (!foundTask) {
+                            const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+                            const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, take: 50 });
+                            foundTask = allTasks.find(t => clean(t.title).includes(clean(searchTitle)));
+                        }
+                        if (foundTask) {
+                            await prisma.schedule.deleteMany({ where: { userId, taskId: foundTask.id } });
+                            await taskService.deleteTask(userId, foundTask.id);
+                            deletedCount++;
+                        } else {
+                            errors.push(`"${title}"`);
+                        }
+                    }
+                    return { message: `Deleted ${deletedCount} tasks.${errors.length > 0 ? ` Could not find: ${errors.join(', ')}` : ''}` };
+                }
+
+                throw new Error("deleteAll or taskTitles is required for DELETE_MULTIPLE_TASKS");
+            }
+            case "DELETE_MULTIPLE_SCHEDULES": {
+                if (data.deleteAll) {
+                    const deleted = await prisma.schedule.deleteMany({ where: { userId } });
+                    return { message: `Deleted all ${deleted.count} schedules.` };
+                }
+
+                if (data.taskTitles && Array.isArray(data.taskTitles)) {
+                    let totalDeleted = 0;
+                    const errors = [];
+                    for (const title of data.taskTitles) {
+                        const searchTitle = title.trim();
+                        let foundTask = await prisma.task.findFirst({
+                            where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                        if (foundTask) {
+                            const deleted = await prisma.schedule.deleteMany({ where: { userId, taskId: foundTask.id } });
+                            totalDeleted += deleted.count;
+                        } else {
+                            errors.push(`"${title}"`);
+                        }
+                    }
+                    return { message: `Deleted ${totalDeleted} schedules.${errors.length > 0 ? ` Could not find tasks: ${errors.join(', ')}` : ''}` };
+                }
+
+                throw new Error("deleteAll or taskTitles is required for DELETE_MULTIPLE_SCHEDULES");
             }
             case "LIST_SCHEDULES": {
                 if (!data.from || !data.to) throw new Error("from and to dates are required for LIST_SCHEDULES");

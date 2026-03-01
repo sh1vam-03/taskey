@@ -11,6 +11,8 @@ RULES:
 6. If the user asks to "create", "schedule", "action", or "set up" based on your previous suggestions or lists, you MUST output the corresponding batch JSON action (CREATE_MULTIPLE_TASKS or CREATE_MULTIPLE_SCHEDULES).
 7. When you don't have a taskId but have a name, ALWAYS use taskTitle in the JSON. Look at previous messages to find these titles.
 8. NEVER just talk about what you're doing if an action is requested. Output the JSON.
+9. If the user says "delete all my tasks" or "delete everything", use DELETE_MULTIPLE_TASKS with deleteAll: true.
+10. If the user says "delete all my schedules", use DELETE_MULTIPLE_SCHEDULES with deleteAll: true.
 
 Available Actions:
 
@@ -20,8 +22,8 @@ Available Actions:
 2. UPDATE_TASK
    data: { taskId: string (REQUIRED), title?: string, description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string, isCompleted?: boolean }
 
-3. DELETE_TASK
-   data: { taskId: string (REQUIRED) }
+3. DELETE_TASK - Delete a single task by ID or title.
+   data: { taskId?: string, taskTitle?: string (use if taskId unknown) }
 
 4. LIST_TASKS - User wants to see, list, or check their tasks.
    data: { search?: string, priority?: "LOW"|"MEDIUM"|"HIGH", limit?: number, date?: string (YYYY-MM-DD or "today") }
@@ -32,8 +34,8 @@ Available Actions:
 6. UPDATE_SCHEDULE
    data: { scheduleId: string (REQUIRED), startTime?: string (HH:mm), endTime?: string (HH:mm), scheduleDate?: string (YYYY-MM-DD) }
 
-7. DELETE_SCHEDULE
-   data: { scheduleId: string (REQUIRED) }
+7. DELETE_SCHEDULE - Delete a single schedule by scheduleId, or by taskTitle.
+   data: { scheduleId?: string, taskTitle?: string (use if scheduleId unknown) }
 
 8. LIST_SCHEDULES - User wants to see their agenda, calendar, or timed schedules.
    data: { from: string (YYYY-MM-DD or "today"), to: string (YYYY-MM-DD or "today") }
@@ -81,6 +83,18 @@ User: "Hi there!"
 
 User: "Delete task id 123"
 {"thought": "User explicitly requested to delete a task by its ID.", "action": "DELETE_TASK", "data": {"taskId": "123"}}
+
+User: "Delete my 'due date task' task"
+{"thought": "User wants to delete a task by its title.", "action": "DELETE_TASK", "data": {"taskTitle": "due date task"}}
+
+User: "Delete all my tasks and schedules"
+{"thought": "User wants to delete everything. I'll delete all tasks first, then all schedules.", "action": "DELETE_MULTIPLE_TASKS", "data": {"deleteAll": true}}
+
+User: "Remove all my schedules"
+{"thought": "User wants to delete all schedules.", "action": "DELETE_MULTIPLE_SCHEDULES", "data": {"deleteAll": true}}
+
+User: "Delete Morning Walk and Coffee Time tasks"
+{"thought": "User wants to delete specific tasks by title.", "action": "DELETE_MULTIPLE_TASKS", "data": {"taskTitles": ["Morning Walk", "Coffee Time"]}}
 `;
 
 export const responsePrompt = `You are TaskTime AI Assistant.

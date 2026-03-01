@@ -40,6 +40,8 @@ export const ActionTypeSchema = z.enum([
     "GET_DASHBOARD_SUMMARY",
     "CREATE_MULTIPLE_TASKS",
     "CREATE_MULTIPLE_SCHEDULES",
+    "DELETE_MULTIPLE_TASKS",
+    "DELETE_MULTIPLE_SCHEDULES",
     "UNKNOWN"
 ]);
 
@@ -60,7 +62,8 @@ export const UpdateTaskSchema = z.object({
 });
 
 export const DeleteTaskSchema = z.object({
-    taskId: z.string()
+    taskId: z.string().optional(),
+    taskTitle: z.string().optional().describe("Fallback if taskId is unknown")
 });
 
 export const ListTasksSchema = z.object({
@@ -85,7 +88,8 @@ export const UpdateScheduleSchema = z.object({
 });
 
 export const DeleteScheduleSchema = z.object({
-    scheduleId: z.string()
+    scheduleId: z.string().optional(),
+    taskTitle: z.string().optional().describe("Delete schedule(s) belonging to this task title")
 });
 
 // Used heavily to answer "what is on my schedule today?"
@@ -113,6 +117,16 @@ export const CreateMultipleSchedulesSchema = z.object({
         startTime: z.string().describe("HH:mm"),
         endTime: z.string().describe("HH:mm"),
     }))
+});
+
+export const DeleteMultipleTasksSchema = z.object({
+    taskTitles: z.array(z.string()).optional().describe("List of task titles to delete"),
+    deleteAll: z.boolean().optional().describe("If true, delete ALL user tasks")
+});
+
+export const DeleteMultipleSchedulesSchema = z.object({
+    taskTitles: z.array(z.string()).optional().describe("List of task titles whose schedules to delete"),
+    deleteAll: z.boolean().optional().describe("If true, delete ALL user schedules")
 });
 
 export const CreateMultipleTasksSchema = z.object({
