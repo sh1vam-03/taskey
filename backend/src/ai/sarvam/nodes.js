@@ -66,7 +66,7 @@ export const validateIntentNode = async (state) => {
         const validActions = [
             "CREATE_TASK", "UPDATE_TASK", "DELETE_TASK", "LIST_TASKS",
             "CREATE_SCHEDULE", "UPDATE_SCHEDULE", "DELETE_SCHEDULE", "LIST_SCHEDULES",
-            "LOG_BEHAVIOR", "GET_DASHBOARD_SUMMARY", "UNKNOWN"
+            "LOG_BEHAVIOR", "GET_DASHBOARD_SUMMARY", "CREATE_MULTIPLE_TASKS", "UNKNOWN"
         ];
 
         if (!validActions.includes(parsedJson.action)) {

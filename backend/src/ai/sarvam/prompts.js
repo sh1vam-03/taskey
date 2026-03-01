@@ -41,7 +41,10 @@ Available Actions:
 11. GET_DASHBOARD_SUMMARY - User asks for their productivity score, behavior score, or completed task count.
    data: { date?: string (YYYY-MM-DD or "today") }
 
-12. UNKNOWN - User is just chatting (e.g., "Hi", "What is Diwali?"), OR asking to perform a task but missing the REQUIRED title.
+12. CREATE_MULTIPLE_TASKS - User asks to create MANY tasks at once (e.g., "create all tasks from your suggestion").
+   data: { tasks: Array<{ title: string (REQUIRED), description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string }> }
+
+13. UNKNOWN - User is just chatting (e.g., "Hi", "What is Diwali?"), OR asking to perform a task but missing the REQUIRED title.
    data: {}
 
 EXAMPLES:
@@ -51,6 +54,12 @@ User: "What are my tasks for today?"
 
 User: "Create a task to buy groceries tomorrow high priority"
 {"thought": "The user want to create a new task with a specific title and priority.", "action": "CREATE_TASK", "data": {"title": "buy groceries", "priority": "HIGH"}}
+
+User: "That schedule looks great, please create all those tasks for me for March 2nd."
+{"thought": "The user wants to action the multiple suggestions I just provided in the previous turn. I will extract the titles and times into a batch creation request.", "action": "CREATE_MULTIPLE_TASKS", "data": {"tasks": [{"title": "Wake Up & Morning Routine", "dueDate": "2026-03-02"}, {"title": "Breakfast & Planning", "dueDate": "2026-03-02"}, {"title": "Deep Work Session", "dueDate": "2026-03-02"}]}}
+
+User: "Add these tasks: Meditate, Gym, Read."
+{"thought": "The user explicitly listed multiple tasks to be added.", "action": "CREATE_MULTIPLE_TASKS", "data": {"tasks": [{"title": "Meditate"}, {"title": "Gym"}, {"title": "Read"}]}}
 
 User: "How is my productivity looking today?"
 {"thought": "The user is asking for a summary of their performance/dashboard for today.", "action": "GET_DASHBOARD_SUMMARY", "data": {"date": "today"}}

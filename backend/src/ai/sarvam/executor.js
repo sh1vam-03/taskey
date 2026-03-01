@@ -34,6 +34,39 @@ export const executeAction = async (action, data, config) => {
                 await incrementUsage(userId, 'task');
                 return task;
             }
+            case "CREATE_MULTIPLE_TASKS": {
+                if (!data.tasks || !Array.isArray(data.tasks)) {
+                    throw new Error("Tasks array is required for CREATE_MULTIPLE_TASKS");
+                }
+
+                const timezone = config.configurable?.user?.timezone || "UTC";
+                const localDateStr = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+                const defaultTaskDate = toUTCDateOnly(localDateStr);
+
+                const createdTasks = [];
+                for (const taskData of data.tasks) {
+                    if (!taskData.title) continue;
+
+                    // If task has its own dueDate, use it to calculate taskDate, else use today
+                    let taskDate = defaultTaskDate;
+                    if (taskData.dueDate) {
+                        try {
+                            taskDate = toUTCDateOnly(taskData.dueDate.slice(0, 10));
+                        } catch (e) {
+                            taskDate = defaultTaskDate;
+                        }
+                    }
+
+                    const task = await taskService.createTask(userId, { ...taskData, taskDate });
+                    await incrementUsage(userId, 'task');
+                    createdTasks.push(task);
+                }
+
+                return {
+                    message: `Successfully created ${createdTasks.length} tasks.`,
+                    tasks: createdTasks.map(t => ({ title: t.title, id: t.id }))
+                };
+            }
             case "UPDATE_TASK": {
                 if (!data.taskId) throw new Error("taskId is required for UPDATE_TASK");
                 const { taskId, ...updates } = data;

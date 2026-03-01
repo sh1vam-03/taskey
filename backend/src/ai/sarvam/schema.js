@@ -38,6 +38,7 @@ export const ActionTypeSchema = z.enum([
     "LIST_SCHEDULES",
     "LOG_BEHAVIOR",
     "GET_DASHBOARD_SUMMARY",
+    "CREATE_MULTIPLE_TASKS",
     "UNKNOWN"
 ]);
 
@@ -100,6 +101,15 @@ export const LogBehaviorSchema = z.object({
 
 export const GetDashboardSummarySchema = z.object({
     date: z.string().optional()
+});
+
+export const CreateMultipleTasksSchema = z.object({
+    tasks: z.array(z.object({
+        title: z.string(),
+        description: z.string().optional(),
+        priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
+        dueDate: z.string().optional().describe("YYYY-MM-DD or ISO string"),
+    }))
 });
 
 // The wrapper schema that Sarvam MUST return
