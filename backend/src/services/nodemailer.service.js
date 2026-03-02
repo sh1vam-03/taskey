@@ -256,7 +256,7 @@ export const sendPasswordResetEmail = async ({ to, resetLink }) => {
         const mailOptions = {
             from: emailFrom,
             to,
-            subject: `${BRAND.name} password reset request`,
+            subject: `Account Password Reset Request`,
             html,
         };
 
