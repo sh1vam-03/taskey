@@ -30,7 +30,7 @@ export default function ForgotPasswordForm() {
 
     return (
         <div className="flex justify-center items-center w-full bg-(--bg) text-(--text)">
-            <div className="flex flex-col gap-6 p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md">
+            <div className="flex flex-col gap-6 p-5 sm:p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md">
                 <h1 className="text-2xl font-bold text-center text-(--heading)">
                     Forgot your password?
                 </h1>
@@ -66,9 +66,9 @@ export default function ForgotPasswordForm() {
                     </Button>
                 </form>
 
-                <p className="text-sm text-center opacity-80">
+                <p className="text-xs text-center text-gray-500 font-mono mt-4">
                     Remember your password?
-                    <Link href="/login" className="ml-2 underline font-medium hover:text-cyan-400 decoration-cyan-500/50">
+                    <Link href="/login" className="ml-2 text-cyan-500 hover:text-white transition-colors uppercase tracking-widest font-medium">
                         Log In
                     </Link>
                 </p>

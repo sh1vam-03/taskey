@@ -9,7 +9,7 @@ const BentoGridSection = () => {
 
     return (
         <section className={`py-[var(--section-spacing)] ${CONTAINER_CLASS}`}>
-            <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
+            <div className="mb-10 md:mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                 <div>
                     <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-tighter mb-4 text-white">
                         Everything You Need to Stay Organized

@@ -48,7 +48,7 @@ function ResetPasswordContent() {
     if (!token) {
         return (
             <div className="flex justify-center items-center w-full bg-(--bg) text-(--text)">
-                <div className="flex flex-col gap-6 p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md text-center">
+                <div className="flex flex-col gap-6 p-5 sm:p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md text-center">
                     <h1 className="text-xl font-bold text-red-500">Invalid or expired link</h1>
                     <p>This password reset link is no longer valid.</p>
                     <Link href="/forgot-password" className="text-cyan-500 hover:underline">Request a new reset link</Link>
@@ -59,7 +59,7 @@ function ResetPasswordContent() {
 
     return (
         <div className="flex justify-center items-center w-full bg-(--bg) text-(--text)">
-            <div className="flex flex-col gap-6 p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md">
+            <div className="flex flex-col gap-6 p-5 sm:p-8 border border-(--border) bg-(--card) w-full max-w-md rounded-md shadow-md">
                 <h1 className="text-2xl font-bold text-center text-(--heading)">
                     Create a new password
                 </h1>

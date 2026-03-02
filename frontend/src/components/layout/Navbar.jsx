@@ -48,7 +48,7 @@ const Navbar = () => {
             {/* Bottom Gradient Line (Active on Scroll) */}
             <div className={`absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-500/50 to-transparent transition-opacity duration-500 ${scrolled ? "opacity-100" : "opacity-0"}`} />
 
-            <div className="w-full max-w-7xl px-6 h-20 flex items-center justify-between relative z-10">
+            <div className="w-full max-w-7xl px-4 md:px-6 h-16 md:h-20 flex items-center justify-between relative z-10">
 
                 {/* Left: Logo & Status */}
                 <div className="flex items-center gap-8">
@@ -145,7 +145,7 @@ const Navbar = () => {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="absolute top-20 left-0 right-0 bg-black border-b border-white/10 overflow-hidden md:hidden shadow-2xl"
+                        className="absolute top-16 md:top-20 left-0 right-0 bg-black border-b border-white/10 overflow-hidden md:hidden shadow-2xl"
                     >
                         {/* Scanline overlay */}
                         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_2px,rgba(0,0,0,0.5)_2px)] bg-[size:100%_4px] pointer-events-none opacity-50" />

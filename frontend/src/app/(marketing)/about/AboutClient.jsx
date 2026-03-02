@@ -1,32 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { FaFingerprint, FaBolt, FaBrain, FaCodeBranch } from "react-icons/fa";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
 export default function AboutClient() {
-    // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1000);
-
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            // Base size on width, but cap it for smaller screens
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
-
-            // Height Constraint for Laptops (1366x768) and smaller
-            if (height < 800) {
-                newSize = Math.min(newSize, 700);
-            }
-            setOrbSize(newSize);
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
-
     return (
         <div className="min-h-[100dvh] bg-black text-white -mt-20 pt-[calc(var(--section-spacing)*1.5)] pb-[var(--section-spacing)] px-[var(--container-padding)] overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500 flex flex-col justify-center">
             {/* GLOBAL BACKGROUND (Shared with Landing) */}
@@ -42,9 +21,9 @@ export default function AboutClient() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="mb-12 lg:mb-24 text-center"
+                    className="mb-8 md:mb-12 lg:mb-24 text-center"
                 >
-                    <h1 className="text-5xl md:text-8xl font-bold tracking-tighter mb-6 lg:mb-8 leading-[0.9]">
+                    <h1 className="text-3xl sm:text-5xl md:text-8xl font-bold tracking-tighter mb-4 sm:mb-6 lg:mb-8 leading-[0.9]">
                         Work Smarter. <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">Live Lighter.</span>
                     </h1>
@@ -54,7 +33,7 @@ export default function AboutClient() {
                 </motion.div>
 
                 {/* THE STORY / MANIFESTO */}
-                <section className="mb-32 grid grid-cols-1 md:grid-cols-12 gap-12 items-start border-l border-white/10 pl-8 md:pl-12">
+                <section className="mb-16 md:mb-32 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-12 items-start border-l border-white/10 pl-4 md:pl-12">
                     <div className="md:col-span-8 space-y-8">
                         <h2 className="text-3xl font-bold text-white tracking-tight">
                             Why We Built TASKTIME
@@ -77,9 +56,9 @@ export default function AboutClient() {
                 </section>
 
                 {/* CORE AXIOMS (Grid) */}
-                <div className="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
+                <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-8">
                     <div>
-                        <h2 className="text-4xl font-bold tracking-tighter mb-2 text-white">
+                        <h2 className="text-2xl md:text-4xl font-bold tracking-tighter mb-2 text-white">
                             What We Believe
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
@@ -88,7 +67,7 @@ export default function AboutClient() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-32">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-16 md:mb-32">
                     {[
                         {
                             title: "Clarity Over Complexity",
@@ -106,7 +85,7 @@ export default function AboutClient() {
                             icon: <FaBrain />
                         }
                     ].map((item, i) => (
-                        <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
+                        <div key={i} className="bg-black p-5 md:p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
                             <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
                             <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>

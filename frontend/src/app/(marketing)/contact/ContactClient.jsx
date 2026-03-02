@@ -1,32 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { useContactForm } from "@/features/contact-form/useContactForm";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 
 export default function ContactClient() {
-    // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1000);
-
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            // Base size on width, but cap it for smaller screens
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
-
-            // Height Constraint for Laptops (1366x768) and smaller
-            if (height < 800) {
-                newSize = Math.min(newSize, 700);
-            }
-            setOrbSize(newSize);
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
-
     const {
         values,
         errors,
@@ -48,7 +27,7 @@ export default function ContactClient() {
             <div className="w-full max-w-2xl mx-auto relative z-10">
                 {/* HERO HEADER */}
                 <div className="text-center mb-12 lg:mb-16">
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
+                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
                         Get in Touch
                     </h1>
                     <p className="text-lg lg:text-xl text-gray-400 max-w-xl mx-auto leading-relaxed px-4">
@@ -63,7 +42,7 @@ export default function ContactClient() {
                     transition={{ duration: 0.5 }}
                     className="flex justify-center items-center w-full"
                 >
-                    <div className="flex flex-col gap-6 p-8 border border-white/10 w-full max-w-md rounded-md shadow-2xl bg-black/80 backdrop-blur-md relative overflow-hidden">
+                    <div className="flex flex-col gap-6 p-5 sm:p-8 border border-white/10 w-full max-w-md rounded-md shadow-2xl bg-black/80 backdrop-blur-md relative overflow-hidden">
 
                         {/* Tech Decorators */}
                         <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>

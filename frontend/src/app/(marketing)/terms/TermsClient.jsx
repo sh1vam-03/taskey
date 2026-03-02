@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Button from "@/components/ui/Button";
 
 // ─── Section Components ───────────────────────────────────────────────────────
@@ -42,20 +42,6 @@ function Divider() {
 
 export default function TermsClient() {
     const lastUpdated = "February 22, 2026";
-    const [orbSize, setOrbSize] = useState(1000);
-
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
-            if (height < 800) newSize = Math.min(newSize, 700);
-            setOrbSize(newSize);
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
 
     return (
         <div className="min-h-[100dvh] bg-black text-gray-300 -mt-20 pt-[calc(var(--section-spacing)*1.5)] pb-[var(--section-spacing)] px-[var(--container-padding)] overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500">
@@ -69,14 +55,14 @@ export default function TermsClient() {
             <div className="w-full max-w-3xl mx-auto relative z-10">
 
                 {/* Header */}
-                <div className="mb-16 border-b border-white/10 pb-8">
+                <div className="mb-8 md:mb-16 border-b border-white/10 pb-8">
                     <p className="text-sm font-mono text-cyan-500 mb-2 tracking-widest">TASKTIME · Maharashtra, India</p>
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tighter">Terms of Service</h1>
+                    <h1 className="text-3xl md:text-6xl font-bold text-white mb-4 tracking-tighter">Terms of Service</h1>
                     <p className="text-sm font-mono text-gray-500">Last updated: {lastUpdated} </p>
                 </div>
 
                 {/* Terms Card */}
-                <div className="bg-white/5 border border-white/10 p-8 md:p-12 rounded-sm relative overflow-hidden">
+                <div className="bg-white/5 border border-white/10 p-4 sm:p-6 md:p-12 rounded-sm relative overflow-hidden">
 
                     {/* Corner decorators */}
                     <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>

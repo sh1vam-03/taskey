@@ -20,11 +20,11 @@ export default function CallToAction() {
                     </span>
                 </div>
 
-                <h2 className="text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/20 pb-4">
+                <h2 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/20 pb-4">
                     Take control of your time with <span className="text-cyan-400">AI.</span>
                 </h2>
 
-                <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-base md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
                     TASKTIME helps you plan, prioritize, and execute effortlessly.
                     Let AI handle the complexity so you can focus on what truly matters.
                 </p>
