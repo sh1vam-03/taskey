@@ -22,8 +22,8 @@ const BentoGridSection = () => {
 
             <BentoGrid>
                 <BentoGridItem
-                    title="Smart AI Planning"
-                    description="TASKTIME learns how you work and suggests better ways to organize your tasks and schedules."
+                    title="Your Personal Planning Partner"
+                    description="TASKTIME looks at your sleep, mood, and exercise to understand when you're most productive. It uses this data to suggest the best times for your work, giving you a clear score on how well you're doing."
                     header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                     icon={<FaBrain />}
                     className="md:col-span-2"
@@ -36,15 +36,15 @@ const BentoGridSection = () => {
                     className="md:col-span-1"
                 />
                 <BentoGridItem
-                    title="Secure & Private"
-                    description="Your data is encrypted and protected. We never sell or share your information."
+                    title="Progress Tracking"
+                    description="See exactly how you're doing with simple scores for productivity and behavior."
                     header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                     icon={<FaShieldAlt />}
                     className="md:col-span-1"
                 />
                 <BentoGridItem
-                    title="Less Stress, More Focus"
-                    description="Let AI handle scheduling and reminders so you can focus on what truly matters."
+                    title="Switchable Multi-Model AI"
+                    description="Use Gemini for rapid dashboard sync, GPT-4o-mini for complex goal decomposition, and Sarvam for native Indic support with OpenAI Whisper and TTS-1."
                     header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800" />}
                     icon={<MdSmartToy />}
                     className="md:col-span-2"

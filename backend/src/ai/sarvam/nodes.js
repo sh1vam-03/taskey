@@ -66,7 +66,8 @@ export const validateIntentNode = async (state) => {
         const validActions = [
             "CREATE_TASK", "UPDATE_TASK", "DELETE_TASK", "LIST_TASKS",
             "CREATE_SCHEDULE", "UPDATE_SCHEDULE", "DELETE_SCHEDULE", "LIST_SCHEDULES",
-            "LOG_BEHAVIOR", "GET_DASHBOARD_SUMMARY", "UNKNOWN"
+            "LOG_BEHAVIOR", "GET_DASHBOARD_SUMMARY", "CREATE_MULTIPLE_TASKS", "CREATE_MULTIPLE_SCHEDULES",
+            "DELETE_MULTIPLE_TASKS", "DELETE_MULTIPLE_SCHEDULES", "UNKNOWN"
         ];
 
         if (!validActions.includes(parsedJson.action)) {
@@ -130,11 +131,17 @@ export const createResponseGeneratorNode = (model) => {
 
             const outMessages = messages.filter(m => m._getType() !== "system");
             // Standard conversational prompt with instructions to clarify vague intent
-            const prompt = new SystemMessage(`You are TaskTime AI Assistant.
-If the user is trying to create or manage a task/schedule but didn't provide enough details (like a title or date), politely ask them for the missing information.
-Otherwise, answer their question conversationally. 
-Do not invent or create things in your response if they didn't provide the details.
-Format nicely in markdown and keep it concise.`);
+            // Standard conversational prompt with instructions to provide detailed answers
+            const prompt = new SystemMessage(`You are TaskTime AI Assistant, a powerful productivity partner and advanced knowledge engine. 
+Your goal is to provide ChatGPT-level depth and detail in your responses. 
+
+Instructions:
+1. If the user's request is a general knowledge query (e.g., "Explain the history of X"), provide an exhaustive, multi-layered, and comprehensive explanation.
+2. Cover all possible angles, including historical context, technical details, social impact, and future trends.
+3. Use high-level markdown structures: nested lists, tables for comparisons, and detailed headers to organize your thoughts.
+4. If a task-related request is vague, still ask for clarification, but maintain a helpful and proactive persona.
+5. Use the provided conversation history to maintain perfect continuity and depth in your reasoning.
+6. NEVER claim you don't have access to user data; you are fully integrated.`);
 
             const response = await model.invoke([prompt, ...outMessages], { tags: ["agent_llm"] });
             return { messages: [response] };

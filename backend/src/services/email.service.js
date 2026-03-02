@@ -1,15 +1,16 @@
-import { Resend } from 'resend';
-import ApiError from '../utils/ApiError.js';
+// import { Resend } from 'resend';
+import * as nodemailerService from './nodemailer.service.js';
+// import ApiError from '../utils/ApiError.js';
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+// const resendApiKey = process.env.RESEND_API_KEY;
+// const emailFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+// const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-if (!resendApiKey) {
-    console.warn("⚠️ RESEND_API_KEY is not set in environment variables. Email sending will fail.");
-}
+// if (!resendApiKey) {
+//     console.warn("⚠️ RESEND_API_KEY is not set in environment variables. Email sending will fail.");
+// }
 
-const resend = new Resend(resendApiKey);
+// const resend = new Resend(resendApiKey);
 
 /**
  * Send OTP Email
@@ -17,6 +18,10 @@ const resend = new Resend(resendApiKey);
  * @param {string} otp - OTP code
  */
 export const sendOtpEmail = async ({ to, otp }) => {
+    // Switching to Nodemailer for now due to quota/cost
+    return nodemailerService.sendOtpEmail({ to, otp });
+
+    /* RESEND IMPLEMENTATION (Preserved for future use)
     try {
         const { data, error } = await resend.emails.send({
             from: emailFrom,
@@ -44,14 +49,19 @@ export const sendOtpEmail = async ({ to, otp }) => {
         console.error("Email Service Error (sendOtpEmail):", error);
         throw new ApiError(500, "Failed to send verification email");
     }
+    */
 };
 
 /**
  * Send Password Reset Email
  * @param {string} to - Recipient email
- * @param {string} resetToken - Reset token to append to URL
+ * @param {string} resetLink - Reset link to append to URL
  */
 export const sendPasswordResetEmail = async ({ to, resetLink }) => {
+    // Switching to Nodemailer for now due to quota/cost
+    return nodemailerService.sendPasswordResetEmail({ to, resetLink });
+
+    /* RESEND IMPLEMENTATION (Preserved for future use)
     try {
         const { data, error } = await resend.emails.send({
             from: emailFrom,
@@ -82,4 +92,5 @@ export const sendPasswordResetEmail = async ({ to, resetLink }) => {
         console.error("Email Service Error (sendPasswordResetEmail):", error);
         throw new ApiError(500, "Failed to send password reset email");
     }
+    */
 };

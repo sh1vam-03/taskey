@@ -34,7 +34,6 @@ export default function Sidebar() {
                 {/* Logo */}
                 <div className="h-20 flex items-center px-8 border-b border-white/5">
                     <Link href="/dashboard" className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600 animate-pulse" />
                         <span className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-white/60">
                             TASKTIME
                         </span>
@@ -89,7 +88,7 @@ export default function Sidebar() {
                         <div className="flex flex-col overflow-hidden">
                             <span className="text-sm font-medium text-white truncate">{user?.name}</span>
                             <span className="text-[10px] text-cyan-500 font-mono uppercase tracking-wider">
-                                {user?.plan === 'PRO_PLUS' ? 'PRO_PLUS_ACCESS' : user?.plan === 'PRO' ? 'PRO_ACCESS' : 'FREE_TIER'}
+                                {user?.plan === 'PRO_PLUS' ? 'PRO PLUS' : user?.plan === 'PRO' ? 'PRO' : 'FREE'}
                             </span>
                         </div>
                     </div>
@@ -99,7 +98,7 @@ export default function Sidebar() {
                         className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
                     >
                         <LogOut className="h-3.5 w-3.5" />
-                        Disconnect
+                        LOGOUT
                     </button>
                 </div>
             </aside>
