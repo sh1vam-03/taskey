@@ -12,12 +12,19 @@ const app = express();
 app.use(morgan("dev"));
 app.set("trust proxy", 1);
 app.use(cors({
-    origin: [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://tasktime.in",
-        "https://tasktime-sh1vam-03.vercel.app"
-    ],
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+
+        if (
+            origin.includes("localhost") ||
+            origin.includes("vercel.app") ||
+            origin.includes("tasktime.in")
+        ) {
+            return callback(null, true);
+        }
+
+        callback(new Error("Not allowed by CORS"));
+    },
     credentials: true
 }));
 app.use(express.json());

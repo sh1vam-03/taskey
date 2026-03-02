@@ -42,7 +42,8 @@ export const transcribeAudio = async (filePath, sttModel = "saaras:v3", opts = {
     if (sttModel === "saaras:v3") {
         text = await sarvamTranscribe(filePath, {
             mode: opts.mode || "transcribe",
-            languageCode: opts.languageCode || "unknown"
+            languageCode: opts.languageCode || "unknown",
+            mimetype: opts.mimetype
         });
     } else {
         // whisper-1

@@ -97,21 +97,23 @@ export default function AiSidebar({ isOpen, onClose }) {
     return (
         <>
             <aside className={`
-                fixed inset-y-0 left-0 z-40 w-72 bg-[#0a0a0a] border-r border-white/[0.06] flex flex-col
+                fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-white/10 flex flex-col
                 transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-screen
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 {/* Header */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-white/[0.06]">
+                <div className="h-20 flex items-center px-6 border-b border-white/5">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                            <MessageSquare className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <span className="text-sm font-semibold text-white tracking-tight">Taskey AI</span>
+                        <span className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-white/60">
+                            TASKTIME
+                        </span>
+                        <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                            AI
+                        </span>
                     </div>
                     <button
                         onClick={onClose}
-                        className="md:hidden p-1.5 hover:bg-white/5 rounded-lg text-gray-500 hover:text-white transition-colors"
+                        className="md:hidden ml-auto p-1.5 hover:bg-white/5 rounded-lg text-gray-500 hover:text-white transition-colors"
                     >
                         <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -225,13 +227,13 @@ export default function AiSidebar({ isOpen, onClose }) {
                 </div>
 
                 {/* Footer: Model Badges + Credits + User */}
-                <div className="border-t border-white/[0.06] p-3 space-y-3">
+                <div className="border-t border-white/10 pt-4">
                     {/* Model Quick-Info Area */}
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5 space-y-3">
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 space-y-3 mx-4 mb-4">
                         {/* Section Label */}
                         <div className="px-1 text-[9px] font-mono text-gray-500 uppercase tracking-widest flex items-center justify-between">
                             <span>Active Engines</span>
-                            <div className="h-px w-12 bg-gradient-to-r from-gray-500/50 to-transparent"></div>
+                            <div className="h-px w-12 bg-linear-to-r from-gray-500/50 to-transparent"></div>
                         </div>
 
                         {/* Text Chat Row */}
@@ -280,19 +282,17 @@ export default function AiSidebar({ isOpen, onClose }) {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-center px-1">
-                        <CreditBadge balance={settings.creditBalance} plan={settings.plan} />
-                    </div>
 
-                    <div className="border-t border-white/5 p-4 bg-white/5 rounded-xl">
+
+                    <div className="border-t border-white/5 p-4 m-4 bg-white/5 rounded-xl">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-xs font-mono text-white shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-linear-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center text-xs font-mono text-white shrink-0">
                                 {user?.name?.[0] || 'U'}
                             </div>
                             <div className="flex flex-col overflow-hidden min-w-0">
                                 <span className="text-sm font-medium text-white truncate">{user?.name}</span>
                                 <span className="text-[10px] text-cyan-500 font-mono uppercase tracking-wider">
-                                    {settings.plan === 'PRO_PLUS' ? 'PRO_PLUS_ACCESS' : settings.plan === 'PRO' ? 'PRO_ACCESS' : 'FREE_TIER'}
+                                    {user?.plan === 'PRO_PLUS' ? 'PRO PLUS' : user?.plan === 'PRO' ? 'PRO' : 'FREE'}
                                 </span>
                             </div>
                         </div>
@@ -302,7 +302,7 @@ export default function AiSidebar({ isOpen, onClose }) {
                             className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
                         >
                             <LogOut className="h-3.5 w-3.5" />
-                            Disconnect
+                            LOGOUT
                         </button>
                     </div>
                 </div>

@@ -74,7 +74,6 @@ export const getDayCalendar = async (dateString, userId) => {
     const schedules = await prisma.schedule.findMany({
         where: {
             userId,
-            // test for ai
             task: { is: { deletedAt: null } },
             OR: [
                 { recurrence: "NONE", scheduleDate: date },
@@ -118,9 +117,7 @@ export const getDayCalendar = async (dateString, userId) => {
             deletedAt: null,
             schedules: { none: {} },
             OR: [
-                // Created on this day
                 { taskDate: date },
-                // Has dueDate that covers this day
                 {
                     dueDate: { gte: date },
                     taskDate: { lte: date }
@@ -134,6 +131,53 @@ export const getDayCalendar = async (dateString, userId) => {
     });
 
     const dailyCompletedSet = new Set(dailyCompletions.map(c => c.taskId));
+
+    // Find earliest completions
+    const earliestCompletionMap = new Map();
+    const allTaskCompletions = await prisma.taskDailyCompletion.findMany({
+        where: {
+            userId,
+            taskId: { in: tasks.map(t => t.id) },
+            completedDate: { lte: date }
+        },
+        select: { taskId: true, completedDate: true },
+        orderBy: { completedDate: "asc" }
+    });
+
+    for (const c of allTaskCompletions) {
+        if (!earliestCompletionMap.has(c.taskId)) {
+            earliestCompletionMap.set(c.taskId, c.completedDate.getTime());
+        }
+    }
+
+    const dateTime = date.getTime();
+    const validUnscheduledTasks = [];
+
+    for (const t of tasks) {
+        const isCompletedToday = dailyCompletedSet.has(t.id);
+        const earliestTime = earliestCompletionMap.get(t.id);
+
+        // One-time Deadline Logic
+        if (earliestTime && earliestTime < dateTime && !isCompletedToday) {
+            continue; // Already done on a previous day
+        }
+
+        validUnscheduledTasks.push({
+            id: t.id,
+            type: "UNSCHEDULED",
+            taskId: t.id,
+            title: t.title,
+            priority: t.priority,
+            dueDate: t.dueDate,
+            startTime: null,
+            endTime: null,
+            status: isCompletedToday
+                ? "COMPLETED"
+                : date < today
+                    ? "MISSED"
+                    : "PENDING"
+        });
+    }
 
     return {
         days: {
@@ -162,21 +206,7 @@ export const getDayCalendar = async (dateString, userId) => {
                                 : "PENDING"
                     })),
 
-                ...tasks.map(t => ({
-                    id: t.id,
-                    type: "UNSCHEDULED",
-                    taskId: t.id,
-                    title: t.title,
-                    priority: t.priority,
-                    dueDate: t.dueDate,
-                    startTime: null,
-                    endTime: null,
-                    status: dailyCompletedSet.has(t.id)
-                        ? "COMPLETED"
-                        : date < today
-                            ? "MISSED"
-                            : "PENDING"
-                }))
+                ...validUnscheduledTasks
             ]
         }
     };
@@ -316,23 +346,50 @@ export const getWeekCalendar = async (dateString, userId) => {
         dailyCompletedMap.get(key).add(c.taskId);
     }
 
-    const today = toUTCDateOnly(dateString); // Deterministic today based on request
+    const today = startOfUTCDate();
+
+    // Find earliest completions for Week View
+    const earliestWeekCompletionMap = new Map();
+    const allWeekTaskCompletions = await prisma.taskDailyCompletion.findMany({
+        where: {
+            userId,
+            taskId: { in: unscheduledTasks.map(t => t.id) }
+        },
+        select: { taskId: true, completedDate: true },
+        orderBy: { completedDate: "asc" }
+    });
+
+    for (const c of allWeekTaskCompletions) {
+        if (!earliestWeekCompletionMap.has(c.taskId)) {
+            earliestWeekCompletionMap.set(c.taskId, c.completedDate.getTime());
+        }
+    }
 
     for (const task of unscheduledTasks) {
         // Correctly bucket by taskDate
         const taskStart = startOfUTCDate(task.taskDate);
 
         const taskEnd = task.dueDate ? startOfUTCDate(task.dueDate) : taskStart;
+        const earliestCompletionTime = earliestWeekCompletionMap.get(task.id);
 
         for (const dk of Object.keys(days)) {
             const dayDate = toUTCDateOnly(dk);
             if (dayDate < taskStart || dayDate > taskEnd) continue;
 
+            // One-time Deadline Logic
+            if (earliestCompletionTime && earliestCompletionTime < dayDate.getTime()) {
+                continue;
+            }
+
             let status = "PENDING";
             if (dailyCompletedMap.get(dk)?.has(task.id)) {
                 status = "COMPLETED";
             } else if (dayDate < today) {
-                status = "MISSED";
+                // If this is a past date and it was NEVER done, then it is MISSED on this day.
+                // Wait, if it wasn't done on THIS day but was done later? It was missed on THIS day.
+                if (!earliestCompletionTime) {
+                    status = "MISSED";
+                }
             }
 
             days[dk].push({
@@ -616,21 +673,45 @@ export const getMonthCalendar = async (year, month, userId) => {
 
     const today = startOfUTCDate();
 
+    // Find earliest completions for Month View
+    const earliestMonthCompletionMap = new Map();
+    const allMonthTaskCompletions = await prisma.taskDailyCompletion.findMany({
+        where: {
+            userId,
+            taskId: { in: unscheduledTasks.map(t => t.id) }
+        },
+        select: { taskId: true, completedDate: true },
+        orderBy: { completedDate: "asc" }
+    });
+
+    for (const c of allMonthTaskCompletions) {
+        if (!earliestMonthCompletionMap.has(c.taskId)) {
+            earliestMonthCompletionMap.set(c.taskId, c.completedDate.getTime());
+        }
+    }
+
     for (const task of unscheduledTasks) {
         // Correctly bucket by taskDate
         const taskStart = startOfUTCDate(task.taskDate);
-
         const taskEnd = task.dueDate ? startOfUTCDate(task.dueDate) : taskStart;
+        const earliestCompletionTime = earliestMonthCompletionMap.get(task.id);
 
         for (const dayKey of Object.keys(days)) {
             const dayDate = toUTCDateOnly(dayKey);
             if (dayDate < taskStart || dayDate > taskEnd) continue;
 
+            // One-time Deadline Logic
+            if (earliestCompletionTime && earliestCompletionTime < dayDate.getTime()) {
+                continue;
+            }
+
             let status = "PENDING";
             if (dailyCompletedMap.get(dayKey)?.has(task.id)) {
                 status = "COMPLETED";
             } else if (dayDate < today) {
-                status = "MISSED";
+                if (!earliestCompletionTime) {
+                    status = "MISSED";
+                }
             }
 
             days[dayKey].push({

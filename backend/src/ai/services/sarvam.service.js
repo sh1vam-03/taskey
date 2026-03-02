@@ -42,6 +42,40 @@ const getSarvamKey = () => {
     return key;
 };
 
+/**
+ * Robust fetch wrapper for Sarvam AI with timeout and retry logic.
+ * Helps diagnose and mitigate ConnectTimeoutErrors.
+ */
+const sarvamFetch = async (url, options = {}, retries = 3) => {
+    const timeout = 12000; // 12 seconds
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+        });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+
+        const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout');
+        const isNetworkError = err.message?.includes('fetch failed') || err.code === 'ECONNREFUSED';
+
+        if ((isTimeout || isNetworkError) && retries > 0) {
+            console.warn(`[Sarvam Connectivity] ${err.message}. Retrying... (${retries} left) Target: ${url}`);
+            // Wait 1s before retry
+            await new Promise(r => setTimeout(r, 1000));
+            return sarvamFetch(url, options, retries - 1);
+        }
+
+        console.error(`[Sarvam Error] Connectivity issue for ${url}:`, err.message);
+        throw err;
+    }
+};
+
 // ─────────────────────────────────────────────
 // 1. CHAT — sarvam-m (simple, no tools)
 // Used for title generation and health checks only.
@@ -67,7 +101,7 @@ export const sarvamChat = async (messages, opts = {}) => {
         wiki_grounding: opts.wikiGrounding ?? false,
     };
 
-    const res = await fetch(`${SARVAM_BASE}/v1/chat/completions`, {
+    const res = await sarvamFetch(`${SARVAM_BASE}/v1/chat/completions`, {
         method: "POST",
         headers: {
             "api-subscription-key": key,
@@ -99,7 +133,7 @@ export const sarvamChat = async (messages, opts = {}) => {
 export const sarvamChatStream = async function* (messages, opts = {}) {
     const key = getSarvamKey();
 
-    const res = await fetch(`${SARVAM_BASE}/v1/chat/completions`, {
+    const res = await sarvamFetch(`${SARVAM_BASE}/v1/chat/completions`, {
         method: "POST",
         headers: {
             "api-subscription-key": key,
@@ -182,13 +216,33 @@ export const sarvamTranscribe = async (filePath, opts = {}) => {
         ".aac": "audio/aac",
         ".webm": "audio/webm",
     };
-    const mimeType = mimeMap[ext] || "audio/wav";
+    // If extension is missing (common in multer dest), fall back to provided mimetype or audio/webm
+    const mimeType = mimeMap[ext] || opts.mimetype || "audio/webm";
 
     const fileBuffer = fs.readFileSync(filePath);
+    const stats = fs.statSync(filePath);
+
+    // ⚠️ CRITICAL: Sarvam often needs the filename extension hint even if Blob type is set.
+    // Multer files in tmp/ usually lack extensions, so we append one based on mimeType.
+    const reverseMimeMap = {
+        "audio/mpeg": ".mp3",
+        "audio/wav": ".wav",
+        "audio/mp4": ".m4a",
+        "audio/ogg": ".ogg",
+        "audio/flac": ".flac",
+        "audio/aac": ".aac",
+        "audio/webm": ".webm",
+    };
+    const extension = reverseMimeMap[mimeType] || ".webm";
+    const fileName = path.basename(filePath).includes('.')
+        ? path.basename(filePath)
+        : `${path.basename(filePath)}${extension}`;
+
+    // Use Blob + Filename for better compatibility across fetch implementations
     const blob = new Blob([fileBuffer], { type: mimeType });
 
     const formData = new FormData();
-    formData.append("file", blob, path.basename(filePath));
+    formData.append("file", blob, fileName);
     formData.append("model", opts.model || "saaras:v3");
     formData.append("mode", opts.mode || "transcribe");
 
@@ -200,7 +254,7 @@ export const sarvamTranscribe = async (filePath, opts = {}) => {
         formData.append("language_code", opts.languageCode);
     }
 
-    const res = await fetch(`${SARVAM_BASE}/speech-to-text`, {
+    const res = await sarvamFetch(`${SARVAM_BASE}/speech-to-text`, {
         method: "POST",
         headers: {
             "api-subscription-key": key,
@@ -211,13 +265,18 @@ export const sarvamTranscribe = async (filePath, opts = {}) => {
 
     if (!res.ok) {
         const errBody = await res.text();
+        console.error(`[Sarvam STT Diagnostic] FAILED: ${res.status} | URL: ${SARVAM_BASE}/speech-to-text | Size: ${stats.size} | Mime: ${mimeType} | Filename: ${fileName}`);
         throw new Error(`Sarvam STT API error [${res.status}]: ${errBody}`);
     }
 
     const data = await res.json();
-    const transcript = data?.transcript;
-    if (!transcript) throw new Error("Sarvam STT: No transcript in API response");
-    return transcript.trim();
+
+    // Allow empty string if no speech detected, but throw if the field is missing entirely
+    if (data?.transcript === undefined) {
+        console.error("[Sarvam STT Diagnostic] SUCCESS BUT MISSING TRANSCRIPT FIELD. Response Body:", JSON.stringify(data));
+        throw new Error("Sarvam STT: No transcript field in API response");
+    }
+    return (data.transcript || "").trim();
 };
 
 // ─────────────────────────────────────────────
@@ -271,7 +330,7 @@ export const sarvamSynthesize = async (text, opts = {}) => {
         audio_format: "wav",
     };
 
-    const res = await fetch(`${SARVAM_BASE}/text-to-speech`, {
+    const res = await sarvamFetch(`${SARVAM_BASE}/text-to-speech`, {
         method: "POST",
         headers: {
             "api-subscription-key": key,

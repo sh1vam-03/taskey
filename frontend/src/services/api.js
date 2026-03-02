@@ -8,7 +8,8 @@ const api = axios.create({
     },
 });
 
-// Response Interceptor for 401 Auto-Refresh
+// List of routes that should NOT redirect to login on 401
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/careers', '/privacy', '/about', '/contact', '/terms', '/security'];
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -76,9 +77,13 @@ api.interceptors.response.use(
                 processQueue(refreshError, null);
                 isRefreshing = false;
 
-                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                    // Optionally trigger a global logout event or redirect
-                    window.location.href = '/login';
+                if (typeof window !== 'undefined') {
+                    const currentPath = window.location.pathname;
+                    const isPublicRoute = PUBLIC_ROUTES.includes(currentPath);
+
+                    if (!isPublicRoute && currentPath !== '/login') {
+                        window.location.href = '/login';
+                    }
                 }
                 return Promise.reject(refreshError);
             }

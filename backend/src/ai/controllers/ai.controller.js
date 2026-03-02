@@ -425,7 +425,17 @@ export const sendMessage = asyncHandler(async (req, res) => {
             res.end();
         } catch (error) {
             console.error("[Controller] Streaming error:", error);
-            res.write(`\n[ERROR: ${error.message}]`);
+            // Send structured SSE error event instead of raw error text
+            const statusCode = error.statusCode || error.status || 500;
+            let userMessage;
+            if (statusCode === 402) {
+                userMessage = "Your AI credits are finished. Please top-up credits now.";
+            } else if (statusCode === 503) {
+                userMessage = "This model is currently not available. Please use a different model.";
+            } else {
+                userMessage = "Internal server error. Please try again or use a different AI model.";
+            }
+            res.write(`data: ${JSON.stringify({ error: userMessage, code: statusCode })}\n\n`);
             res.end();
         }
         return;
@@ -488,7 +498,10 @@ export const processVoiceMessage = asyncHandler(async (req, res) => {
         const { text: userText, durationMinutes: sttDuration } = await transcribeAudio(
             req.file.path,
             sttModel,
-            { languageCode: user.aiSarvamLang || "unknown" }
+            {
+                languageCode: user.aiSarvamLang || "unknown",
+                mimetype: req.file.mimetype
+            }
         );
 
         const sttCredits = calcVoiceCost(sttModel, sttDuration);
@@ -587,7 +600,10 @@ export const transcribeVoice = asyncHandler(async (req, res) => {
         const { text, durationMinutes } = await transcribeAudio(
             req.file.path,
             sttModel,
-            { languageCode: user.aiSarvamLang || "unknown" }
+            {
+                languageCode: user.aiSarvamLang || "unknown",
+                mimetype: req.file.mimetype
+            }
         );
 
         const credits = calcVoiceCost(sttModel, durationMinutes);

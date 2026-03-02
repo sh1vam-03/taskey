@@ -16,14 +16,14 @@ function AiLayoutInner({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-[#0d0d0d] text-white overflow-hidden">
+        <div className="flex h-screen bg-black text-white overflow-hidden">
             {/* Sidebar */}
             <AiSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
             {/* Main Area */}
             <div className="flex-1 flex flex-col min-w-0 h-full relative">
                 {/* Top Header Bar */}
-                <header className="h-14 flex items-center justify-between px-4 border-b border-white/[0.06] bg-[#0d0d0d]/80 backdrop-blur-xl shrink-0 z-10">
+                <header className="h-14 flex items-center justify-between px-4 border-b border-white/10 bg-black/80 backdrop-blur-xl shrink-0 z-10">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setSidebarOpen(true)}
@@ -40,7 +40,7 @@ function AiLayoutInner({ children }) {
                             <ArrowLeft className="w-4 h-4" />
                         </button>
                         <span className="text-sm font-semibold text-white tracking-tight hidden sm:block">
-                            Taskey AI
+                            Dashboard
                         </span>
                     </div>
 
@@ -77,16 +77,16 @@ export default function AiLayout({ children }) {
 
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/login');
+            router.replace('/login');
         }
     }, [user, loading, router]);
 
     if (loading) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-[#0d0d0d] text-white">
+            <div className="flex h-screen w-full items-center justify-center bg-black text-white">
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-                    <span className="font-mono text-xs tracking-widest text-gray-500">INITIALIZING_AI...</span>
+                    <span className="font-mono text-xs tracking-widest text-gray-500">LOADING TASKTIME AI...</span>
                 </div>
             </div>
         );
