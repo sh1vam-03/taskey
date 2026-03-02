@@ -34,21 +34,34 @@ export default function AiEnergySphere({
     const rafRef = useRef(null);
     const frameToggle = useRef(false); // used for 30fps throttle on mobile
 
-    /* ── Mouse (skip on touch-only devices) ────────────────────────────────── */
+    /* ── Mouse + Touch interaction ──────────────────────────────────────── */
     useEffect(() => {
-        if (isTouchOnly) return; // no hover on phones — skip entirely
-        const onMove = (e) => {
+        const getPos = (clientX, clientY) => {
             const rect = canvasRef.current?.getBoundingClientRect();
             if (!rect) return;
-            mouseRef.current.x = e.clientX - rect.left - rect.width / 2;
-            mouseRef.current.y = e.clientY - rect.top - rect.height / 2;
+            mouseRef.current.x = clientX - rect.left - rect.width / 2;
+            mouseRef.current.y = clientY - rect.top - rect.height / 2;
         };
-        const onLeave = () => { mouseRef.current.x = mouseRef.current.y = 9999; };
-        window.addEventListener("mousemove", onMove, { passive: true });
-        window.addEventListener("mouseleave", onLeave);
+        const resetPos = () => { mouseRef.current.x = mouseRef.current.y = 9999; };
+
+        // Mouse events (desktop)
+        const onMouseMove = (e) => getPos(e.clientX, e.clientY);
+        window.addEventListener("mousemove", onMouseMove, { passive: true });
+        window.addEventListener("mouseleave", resetPos);
+
+        // Touch events (mobile)
+        const onTouchMove = (e) => {
+            const t = e.touches[0];
+            if (t) getPos(t.clientX, t.clientY);
+        };
+        window.addEventListener("touchmove", onTouchMove, { passive: true });
+        window.addEventListener("touchend", resetPos);
+
         return () => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseleave", onLeave);
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseleave", resetPos);
+            window.removeEventListener("touchmove", onTouchMove);
+            window.removeEventListener("touchend", resetPos);
         };
     }, []);
 
