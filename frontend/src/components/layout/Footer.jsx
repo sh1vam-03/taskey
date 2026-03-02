@@ -59,7 +59,7 @@ const Footer = () => {
             <div className="max-w-7xl mx-auto px-6 relative z-10">
 
                 {/* ── Main grid ─────────────────────────────────────────── */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 mb-16">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16">
 
                     {/* Brand */}
                     <div className="md:col-span-1">
