@@ -108,7 +108,7 @@ export default function SignupForm() {
 
     return (
         <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
-            <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
+            <div className="flex flex-col gap-6 p-5 sm:p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
                 <h1 className="text-2xl font-bold text-center text-[var(--heading)]">
                     {step === "form" ? "Create Your Account" : "Verify your email"}
                 </h1>
@@ -235,9 +235,9 @@ export default function SignupForm() {
                     </form>
                 )}
 
-                <p className="text-sm text-center opacity-80">
+                <p className="text-xs text-center text-gray-500 font-mono mt-4">
                     Already have an account?
-                    <Link href="/login" className="ml-2 underline font-medium">
+                    <Link href="/login" className="ml-2 text-cyan-500 hover:text-white transition-colors uppercase tracking-widest font-medium">
                         Log In
                     </Link>
                 </p>

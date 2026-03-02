@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import AiEnergySphere from "@/components/ui/AiEnergySphere";
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
@@ -19,23 +19,7 @@ export default function AuthLayout({
         }
     }, [user, loading, router]);
 
-    // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1000);
 
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
-            if (height < 800) {
-                newSize = Math.min(newSize, 700);
-            }
-            setOrbSize(newSize);
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
 
     // Gate: Show loading spinner while auth state is being determined
     if (loading) {
@@ -61,12 +45,12 @@ export default function AuthLayout({
 
                 {/* ONE CENTRAL SPHERE (Scaling larger to cover both sides) */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-60">
-                    <AiEnergySphere size={orbSize} speed={0.2} particleCount={800} baseRadius={orbSize * 0.35} waveStrength={150} />
+                    <AiEnergySphere size={800} speed={0.2} particleCount={600} baseRadius={280} waveStrength={150} />
                 </div>
             </div>
 
             {/* LEFT PANEL: CONTENT (Desktop Only) */}
-            <div className="hidden lg:flex w-1/2 relative flex-col items-center justify-center border-r border-white/10 bg-black/40 backdrop-blur-sm z-10">
+            <div className="hidden lg:flex w-1/2 relative flex-col items-center justify-center bg-black/20 z-10">
                 {/* Content Overlay */}
                 <div className="relative z-10 text-center space-y-8 max-w-lg px-8">
                     {/* Logo/Identity */}
@@ -82,11 +66,16 @@ export default function AuthLayout({
                 </div>
             </div>
 
+            {/* HUD DIVIDER (Desktop Only) */}
+            <div className="hidden lg:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none" aria-hidden="true">
+                <div className="absolute top-0 bottom-0 left-0 w-px bg-gradient-to-b from-black via-cyan-500 to-black" />
+            </div>
+
             {/* RIGHT PANEL: AUTH FORM */}
-            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-[var(--container-padding)] relative z-10 bg-black/80 backdrop-blur-md">
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center px-4 py-16 md:p-[var(--container-padding)] relative z-10 bg-black/60 backdrop-blur-sm min-h-screen">
 
                 {/* Back Link */}
-                <div className="absolute top-8 left-8 z-20">
+                <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
                     <Link
                         href="/"
                         className="flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-cyan-400 transition-colors uppercase tracking-widest group"

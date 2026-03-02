@@ -48,7 +48,7 @@ export default function LoginForm() {
 
     return (
         <div className="flex justify-center items-center w-full bg-[var(--bg)] text-[var(--text)]">
-            <div className="flex flex-col gap-6 p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
+            <div className="flex flex-col gap-6 p-5 sm:p-8 border border-[var(--border)] bg-[var(--card)] w-full max-w-md rounded-md shadow-md">
                 <h1 className="text-2xl font-bold text-center mb-2 text-[var(--heading)]">
                     Welcome Back
                 </h1>
@@ -137,7 +137,7 @@ export default function LoginForm() {
                     {/* Switch */}
                     <p className="text-xs text-center text-gray-500 font-mono mt-4">
                         Don't have an account?
-                        <Link href="/signup" className="ml-2 text-cyan-500 hover:text-white transition-colors uppercase tracking-widest">
+                        <Link href="/signup" className="ml-2 text-cyan-500 hover:text-white transition-colors uppercase tracking-widest font-medium">
                             Create account
                         </Link>
                     </p>
