@@ -48,7 +48,7 @@ export default function CareersClient() {
                             icon: <FaLightbulb />
                         }
                     ].map((item, i) => (
-                        <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
+                        <div key={i} className="bg-black p-5 md:p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
                             <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
                             <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
@@ -69,9 +69,9 @@ export default function CareersClient() {
                 </div>
 
                 {/* OPEN ROLES */}
-                <div className="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
+                <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-8">
                     <div>
-                        <h2 className="text-4xl font-bold tracking-tighter mb-2 text-white">
+                        <h2 className="text-2xl md:text-4xl font-bold tracking-tighter mb-2 text-white">
                             Open Roles
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
@@ -92,11 +92,11 @@ export default function CareersClient() {
                             initial={{ opacity: 0, x: -20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.1 }}
-                            className="bg-black border border-white/10 p-6 flex flex-col md:flex-row items-center justify-between hover:bg-neutral-900/30 group cursor-pointer"
+                            className="bg-black border border-white/10 p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between hover:bg-neutral-900/30 group cursor-pointer gap-3 md:gap-0"
                         >
                             <div className="flex-1 mb-4 md:mb-0">
-                                <div className="flex items-center gap-3 mb-1">
-                                    <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">{job.role}</h3>
+                                <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
+                                    <h3 className="text-base md:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">{job.role}</h3>
                                     <span className="border border-white/10 text-[10px] px-2 py-0.5 rounded text-gray-500 font-mono">
                                         {job.id}
                                     </span>
@@ -107,7 +107,7 @@ export default function CareersClient() {
                                     <span>{job.type}</span>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="sm" className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-cyan-500">
+                            <Button variant="ghost" size="sm" className="self-end md:self-auto md:opacity-0 md:group-hover:opacity-100 transition-opacity text-cyan-500">
                                 Apply Now
                             </Button>
                         </motion.div>

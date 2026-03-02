@@ -56,9 +56,9 @@ export default function AboutClient() {
                 </section>
 
                 {/* CORE AXIOMS (Grid) */}
-                <div className="mb-12 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
+                <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-8">
                     <div>
-                        <h2 className="text-4xl font-bold tracking-tighter mb-2 text-white">
+                        <h2 className="text-2xl md:text-4xl font-bold tracking-tighter mb-2 text-white">
                             What We Believe
                         </h2>
                         <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
@@ -85,7 +85,7 @@ export default function AboutClient() {
                             icon: <FaBrain />
                         }
                     ].map((item, i) => (
-                        <div key={i} className="bg-black p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
+                        <div key={i} className="bg-black p-5 md:p-8 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
                             <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
                             <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>
