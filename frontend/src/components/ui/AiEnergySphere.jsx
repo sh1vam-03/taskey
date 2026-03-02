@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 
 // Particle buffer stride (floats per particle)
 // [ baseX, baseY, baseZ, x, y, z, phase, speed, pSize ]
 const S = 9;
 
+// ─── Mobile detection helpers (run once at module level) ──────────────────────
+const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+const isTouchOnly =
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
 export default function AiEnergySphere({
     size = 600,
-    particleCount = 1200,
+    particleCount: _particleCount = 1200,
     baseRadius = 200,
     waveStrength = 10,
     rotationSpeed = 0.01,
@@ -16,25 +22,46 @@ export default function AiEnergySphere({
     repelStrength = 14,
     springStrength = 0.08,
 }) {
+    // On mobile / touch → fewer particles for smooth 30fps
+    const particleCount = useMemo(
+        () => (isMobile ? Math.min(_particleCount, 400) : _particleCount),
+        [_particleCount]
+    );
+
     const canvasRef = useRef(null);
     const mouseRef = useRef({ x: 9999, y: 9999 });
     const bufRef = useRef(null);
     const rafRef = useRef(null);
+    const frameToggle = useRef(false); // used for 30fps throttle on mobile
 
-    /* ── Mouse ──────────────────────────────────────────────────────────────── */
+    /* ── Mouse + Touch interaction ──────────────────────────────────────── */
     useEffect(() => {
-        const onMove = (e) => {
+        const getPos = (clientX, clientY) => {
             const rect = canvasRef.current?.getBoundingClientRect();
             if (!rect) return;
-            mouseRef.current.x = e.clientX - rect.left - rect.width / 2;
-            mouseRef.current.y = e.clientY - rect.top - rect.height / 2;
+            mouseRef.current.x = clientX - rect.left - rect.width / 2;
+            mouseRef.current.y = clientY - rect.top - rect.height / 2;
         };
-        const onLeave = () => { mouseRef.current.x = mouseRef.current.y = 9999; };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseleave", onLeave);
+        const resetPos = () => { mouseRef.current.x = mouseRef.current.y = 9999; };
+
+        // Mouse events (desktop)
+        const onMouseMove = (e) => getPos(e.clientX, e.clientY);
+        window.addEventListener("mousemove", onMouseMove, { passive: true });
+        window.addEventListener("mouseleave", resetPos);
+
+        // Touch events (mobile)
+        const onTouchMove = (e) => {
+            const t = e.touches[0];
+            if (t) getPos(t.clientX, t.clientY);
+        };
+        window.addEventListener("touchmove", onTouchMove, { passive: true });
+        window.addEventListener("touchend", resetPos);
+
         return () => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseleave", onLeave);
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseleave", resetPos);
+            window.removeEventListener("touchmove", onTouchMove);
+            window.removeEventListener("touchend", resetPos);
         };
     }, []);
 
@@ -87,9 +114,15 @@ export default function AiEnergySphere({
         let t = 0;
 
         const frame = () => {
+            rafRef.current = requestAnimationFrame(frame);
+
+            // ── 30fps throttle (all devices for calmer feel) ────────────────
+            frameToggle.current = !frameToggle.current;
+            if (frameToggle.current) return;
+
             t += 1;
             const buf = bufRef.current;
-            if (!buf) { rafRef.current = requestAnimationFrame(frame); return; }
+            if (!buf) return;
 
             ctx.clearRect(0, 0, size, size);
 
@@ -186,8 +219,6 @@ export default function AiEnergySphere({
             rim.addColorStop(1, "hsla(0,0%,0%,0)");
             ctx.fillStyle = rim;
             ctx.fillRect(0, 0, size, size);
-
-            rafRef.current = requestAnimationFrame(frame);
         };
 
         frame();

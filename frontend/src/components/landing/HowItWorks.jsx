@@ -31,7 +31,7 @@ export default function HowItWorks() {
     return (
         <section className="py-[var(--section-spacing)] px-[var(--container-padding)] bg-black border-t border-white/5" id="how-it-works">
             <div className="w-full max-w-[var(--container-width)] mx-auto">
-                <div className="mb-20 border-b border-white/10 pb-6">
+                <div className="mb-10 md:mb-20 border-b border-white/10 pb-6">
                     <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">
                         How TASKTIME Works
                     </h2>
