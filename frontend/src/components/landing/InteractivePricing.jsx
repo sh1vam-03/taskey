@@ -98,16 +98,16 @@ export default function InteractivePricing() {
     const yearlyDiscount = (mo, yr) => Math.round(((mo * 12 - yr) / (mo * 12)) * 100);
 
     return (
-        <section className="py-24 px-4 md:px-8 bg-black" id="pricing">
+        <section className="py-12 md:py-24 px-4 md:px-8 bg-black" id="pricing">
             <div className="max-w-6xl mx-auto">
 
                 {/* ── Header ──────────────────────────────────────────────── */}
-                <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8 border-b border-white/10 pb-8">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-10 md:mb-20 gap-8 border-b border-white/10 pb-8">
                     <div>
                         <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-600 mb-3">
                             [PRICING_MODULE]
                         </p>
-                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-white leading-none">
+                        <h2 className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tighter text-white leading-none">
                             Simple Pricing.
                             <br />
                             <span className="text-cyan-400">Real Value.</span>
@@ -283,7 +283,7 @@ export default function InteractivePricing() {
                         [FEATURE_COMPARISON]
                     </p>
                     <Card variant="default" noPadding>
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                             <table className="w-full border-collapse text-xs font-mono">
                                 <thead>
                                     <tr className="border-b border-white/[0.07]">

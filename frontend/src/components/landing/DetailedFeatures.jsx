@@ -73,7 +73,7 @@ export default function DetailedFeatures() {
     return (
         <section className={`py-[var(--section-spacing)] ${CONTAINER_CLASS}`} id="features">
             <div className="w-full max-w-[var(--container-width)] mx-auto">
-                <div className="mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
+                <div className="mb-10 md:mb-20 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-8">
                     <div>
                         <h2 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 text-white">
                             Powerful Features That Work For You
@@ -84,7 +84,7 @@ export default function DetailedFeatures() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 auto-rows-[minmax(200px,auto)] bg-white/5 border border-white/10 gap-px rounded-sm overflow-hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 auto-rows-[minmax(200px,auto)] bg-white/5 border border-white/10 gap-px rounded-sm overflow-hidden">
                     {features.map((feat, i) => (
                         <div key={i} className={`p-8 bg-black hover:bg-neutral-900/30 transition-colors duration-300 flex flex-col justify-between group relative ${feat.className || ""}`}>
 

@@ -1,31 +1,10 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { FaLock, FaShieldAlt, FaServer, FaUserSecret } from "react-icons/fa";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
 export default function SecurityClient() {
-    // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1000);
-
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            // Base size on width, but cap it for smaller screens
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
-
-            // Height Constraint for Laptops (1366x768) and smaller
-            if (height < 800) {
-                newSize = Math.min(newSize, 700);
-            }
-            setOrbSize(newSize);
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
-
     return (
         <div className="min-h-[100dvh] bg-black text-white -mt-20 pt-[calc(var(--section-spacing)*1.5)] pb-[var(--section-spacing)] px-[var(--container-padding)] overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500">
             {/* GLOBAL BACKGROUND */}
@@ -37,18 +16,17 @@ export default function SecurityClient() {
 
             <div className="w-full max-w-[var(--container-width)] mx-auto relative z-10">
                 {/* HERO */}
-                <div className="text-center mb-24">
+                <div className="text-center mb-12 md:mb-24">
                     <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white">
                         Security First
                     </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                        We take security seriously. <br />
-                        Your data is encrypted, isolated, and protected using modern industry standards. TASKTIME is designed with a security-first architecture to safeguard your information.
+                    <p className="text-base md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                        We take security seriously. Your data is encrypted, isolated, and protected using modern industry standards. TASKTIME is designed with a security-first architecture to safeguard your information.
                     </p>
                 </div>
 
                 {/* DEFENSE MATRIX */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/10 rounded-sm overflow-hidden mb-32 border border-white/10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/10 rounded-sm overflow-hidden mb-16 md:mb-32 border border-white/10">
                     {[
                         {
                             title: "Data Encryption",
@@ -71,7 +49,7 @@ export default function SecurityClient() {
                             icon: <FaUserSecret />
                         }
                     ].map((item, i) => (
-                        <div key={i} className="bg-black p-10 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
+                        <div key={i} className="bg-black p-6 md:p-10 group hover:bg-neutral-900/30 transition-colors relative flex flex-col justify-between h-full">
                             {/* Tech Decorators */}
                             <div className="absolute top-2 left-2 text-[8px] text-white/20 font-mono">+</div>
                             <div className="absolute top-2 right-2 text-[8px] text-white/20 font-mono">+</div>

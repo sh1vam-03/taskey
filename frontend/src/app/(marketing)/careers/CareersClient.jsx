@@ -1,31 +1,10 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { FaRocket, FaBolt, FaLightbulb } from "react-icons/fa";
 
 export default function CareersClient() {
-    // 🔹 RESPONSIVE ORB SIZING
-    const [orbSize, setOrbSize] = useState(1000);
-
-    useEffect(() => {
-        const updateSize = () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            // Base size on width, but cap it for smaller screens
-            let newSize = Math.min(1000, Math.max(600, width * 0.6));
-
-            // Height Constraint for Laptops (1366x768) and smaller
-            if (height < 800) {
-                newSize = Math.min(newSize, 700);
-            }
-            setOrbSize(newSize);
-        };
-        updateSize();
-        window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
-    }, []);
-
     return (
         <div className="min-h-[100dvh] bg-black text-white -mt-20 pt-[calc(var(--section-spacing)*1.5)] pb-[var(--section-spacing)] px-[var(--container-padding)] overflow-hidden relative selection:bg-cyan-500/30 selection:text-cyan-500 flex flex-col justify-center">
             {/* GLOBAL BACKGROUND */}
@@ -38,7 +17,7 @@ export default function CareersClient() {
             <div className="w-full max-w-[var(--container-width)] mx-auto relative z-10">
                 {/* HERO */}
                 <div className="text-center mb-12 lg:mb-24">
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
+                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tighter mb-6 text-white leading-[0.9]">
                         Build the Future <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">Intelligent Work.</span>
                     </h1>
@@ -51,7 +30,7 @@ export default function CareersClient() {
                 </div>
 
                 {/* CULTURE GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-32">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-sm overflow-hidden mb-16 md:mb-32">
                     {[
                         {
                             title: "Ownership Mindset",
@@ -128,7 +107,7 @@ export default function CareersClient() {
                                     <span>{job.type}</span>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500">
+                            <Button variant="ghost" size="sm" className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-cyan-500">
                                 Apply Now
                             </Button>
                         </motion.div>

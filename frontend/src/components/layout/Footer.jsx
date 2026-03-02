@@ -43,7 +43,7 @@ const SocialLink = ({ href, icon: Icon }) => (
 // ─── Footer ───────────────────────────────────────────────────────────────────
 const Footer = () => {
     return (
-        <footer className="bg-black border-t border-white/[0.07] pt-16 pb-8 font-mono relative overflow-hidden">
+        <footer className="bg-black border-t border-white/[0.07] pt-10 md:pt-16 pb-8 font-mono relative overflow-hidden">
 
             {/* Background grid */}
             <div className="absolute inset-0 pointer-events-none
@@ -59,7 +59,7 @@ const Footer = () => {
             <div className="max-w-7xl mx-auto px-6 relative z-10">
 
                 {/* ── Main grid ─────────────────────────────────────────── */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 mb-16">
 
                     {/* Brand */}
                     <div className="md:col-span-1">
@@ -131,7 +131,7 @@ const Footer = () => {
                                 pt-6 border-t border-white/[0.06]
                                 text-[10px] text-white/20 uppercase tracking-[0.18em]">
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-col items-center gap-3 md:gap-6 text-center md:flex-row md:text-left">
                         <span>
                             Built for focus.{" "}
                             <span className="text-[var(--color-primary,#06b6d4)] opacity-70">

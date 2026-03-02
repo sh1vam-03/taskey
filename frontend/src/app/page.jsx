@@ -50,7 +50,7 @@ export default function Home() {
             </div>
 
             {/* ── HERO ─────────────────────────────────────────────────────────── */}
-            <section className="relative min-h-[100dvh] max-h-[900px] flex flex-col items-center justify-center py-[var(--section-spacing)] border-b border-white/5 overflow-hidden">
+            <section className="relative min-h-[100dvh] md:max-h-[900px] flex flex-col items-center justify-center py-[var(--section-spacing)] border-b border-white/5 overflow-hidden">
 
                 {/* HUD decorators */}
                 <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
@@ -74,7 +74,7 @@ export default function Home() {
                 </div>
 
                 {/* Hero copy */}
-                <div className={`relative z-20 text-center space-y-6 lg:space-y-8 mt-12 lg:mt-0 ${CONTAINER_CLASS}`}>
+                <div className={`relative z-20 text-center space-y-4 sm:space-y-6 lg:space-y-8 mt-16 sm:mt-12 lg:mt-0 ${CONTAINER_CLASS}`}>
                     <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-bold tracking-tighter leading-[0.95] text-transparent bg-clip-text bg-[linear-gradient(to_bottom,white_40%,rgba(255,255,255,0.5)_100%)]">
                         Plan Smarter. Work Faster.
                         <br />
