@@ -103,11 +103,9 @@ export default function AiEnergySphere({
         const frame = () => {
             rafRef.current = requestAnimationFrame(frame);
 
-            // ── 30fps throttle on mobile ─────────────────────────────────────
-            if (isMobile) {
-                frameToggle.current = !frameToggle.current;
-                if (frameToggle.current) return;
-            }
+            // ── 30fps throttle (all devices for calmer feel) ────────────────
+            frameToggle.current = !frameToggle.current;
+            if (frameToggle.current) return;
 
             t += 1;
             const buf = bufRef.current;

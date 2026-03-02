@@ -16,7 +16,7 @@ function computeOrbSize() {
     if (typeof window === "undefined") return 900;
     const w = window.innerWidth;
     const h = window.innerHeight;
-    let s = Math.min(1200, Math.max(600, w * 0.6));
+    let s = Math.min(1800, Math.max(800, w * 0.85));
     if (h < 800) s = Math.min(s, 700);
     return s;
 }
@@ -68,7 +68,7 @@ export default function Home() {
                     <AiEnergySphere
                         size={orbSize}
                         particleCount={1200}
-                        baseRadius={orbSize * 0.25}
+                        baseRadius={orbSize * 0.20}
                         hoverRadius={100}
                     />
                 </div>
