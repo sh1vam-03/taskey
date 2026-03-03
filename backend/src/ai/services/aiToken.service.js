@@ -97,16 +97,18 @@ export const calcToolCost = (toolName) => {
 };
 
 /**
- * Conservative pre-flight estimate for a chat request.
+ * Reasonable pre-flight estimate for a chat request.
  * Used to check balance BEFORE the actual API call.
+ * Uses base cost + small buffer — NOT max_per_call which is far too aggressive
+ * and would block users who have enough credits for typical requests.
  *
  * @param {string} model
- * @returns {number} Worst-case credits for this model (= max_per_call)
+ * @returns {number} Minimum credits needed to attempt this model
  */
 export const estimateMaxChatCost = (model) => {
     const config = AI_COSTS.CHAT?.[model];
-    if (!config) return 10;
-    return Math.max(1, config.max_per_call);
+    if (!config) return 5;
+    return Math.max(1, config.base + 5);
 };
 
 // ─────────────────────────────────────────────────────────────
