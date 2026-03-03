@@ -66,19 +66,19 @@ export default function ChatInput() {
     }, [showVoiceRecorder]);
 
     return (
-        <div className="px-4 pb-6 pt-2 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/95 to-transparent">
+        <div className="px-4 pb-6 pt-2 bg-linear-to-t from-[#0d0d0d] via-[#0d0d0d]/95 to-transparent">
             <div className="max-w-3xl mx-auto">
                 {/* Voice Recorder (replaces input when active) */}
                 {showVoiceRecorder ? (
                     <VoiceRecorder onClose={() => setShowVoiceRecorder(false)} />
                 ) : (
-                    <div className="relative flex items-end gap-2 bg-[#1a1a1a]/80 backdrop-blur-xl rounded-2xl border border-white/[0.08]
+                    <div className="relative flex items-end gap-2 bg-[#1a1a1a]/80 backdrop-blur-xl rounded-2xl border border-white/8
                         shadow-2xl p-2 transition-all duration-200 focus-within:border-cyan-500/20 focus-within:shadow-cyan-900/5">
                         {/* Voice Button */}
                         <button
                             onClick={() => setShowVoiceRecorder(true)}
                             disabled={isDisabled}
-                            className="p-2.5 rounded-xl hover:bg-white/[0.06] text-gray-400 hover:text-cyan-400
+                            className="p-2.5 rounded-xl hover:bg-white/6 text-gray-400 hover:text-cyan-400
                                 transition-all duration-200 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Voice input"
                         >
@@ -116,7 +116,7 @@ export default function ChatInput() {
                                 disabled={!input.trim() || isDisabled}
                                 className={`p-2.5 rounded-xl transition-all duration-200 shrink-0 ${input.trim() && !isDisabled
                                     ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
-                                    : 'bg-white/[0.04] text-gray-600 cursor-not-allowed'
+                                    : 'bg-white/4 text-gray-600 cursor-not-allowed'
                                     }`}
                                 title="Send message"
                             >

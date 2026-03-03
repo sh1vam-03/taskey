@@ -107,10 +107,10 @@ export default function AiSidebar({ isOpen, onClose }) {
                 <div className="h-20 flex items-center px-6 border-b border-white/5">
                     <div className="flex items-center gap-2">
                         <span className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-white/60">
-                            TASKTIME
+                            TASKTIME AI
                         </span>
                         <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                            AI
+                            ALPHA
                         </span>
                     </div>
                     <button
@@ -126,8 +126,8 @@ export default function AiSidebar({ isOpen, onClose }) {
                     <button
                         onClick={handleNewChat}
                         className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium
-                            text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08]
-                            border border-white/[0.06] hover:border-white/[0.12] transition-all duration-200"
+                            text-gray-300 hover:text-white bg-white/4 hover:bg-white/8
+                            border border-white/6 hover:border-white/12 transition-all duration-200"
                     >
                         <Plus className="w-4 h-4 text-cyan-400" />
                         <span>New Chat</span>
@@ -157,8 +157,8 @@ export default function AiSidebar({ isOpen, onClose }) {
                                             relative group flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm cursor-pointer
                                             transition-all duration-150
                                             ${isActive
-                                                ? 'bg-white/[0.08] text-white'
-                                                : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-200'
+                                                ? 'bg-white/8 text-white'
+                                                : 'text-gray-400 hover:bg-white/4 hover:text-gray-200'
                                             }
                                         `}
                                     >
@@ -205,7 +205,7 @@ export default function AiSidebar({ isOpen, onClose }) {
                                                             <div className="absolute right-0 top-8 w-32 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 py-1 overflow-hidden">
                                                                 <button
                                                                     onClick={(e) => startEditing(e, c)}
-                                                                    className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/[0.06] hover:text-white flex items-center gap-2"
+                                                                    className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-white/6 hover:text-white flex items-center gap-2"
                                                                 >
                                                                     <Pencil size={11} /> Rename
                                                                 </button>
@@ -265,7 +265,7 @@ export default function AiSidebar({ isOpen, onClose }) {
 
                                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isVoiceOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                                     <div className="p-2 pt-0 pb-2 space-y-2.5">
-                                        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-1"></div>
+                                        <div className="h-px w-full bg-linear-to-r from-transparent via-white/10 to-transparent mb-1"></div>
                                         <div className="flex items-center justify-between px-1 border-l-2 border-transparent hover:border-white/10 pl-2 ml-1 transition-all">
                                             <span className="text-[10px] text-gray-400 font-medium tracking-wide">Reasoning</span>
                                             <ModelBadge model={settings.voiceModel} onClick={openSettings} />

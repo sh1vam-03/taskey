@@ -55,6 +55,7 @@ const initialState = {
 
     // Error
     error: null,
+    isChatNotFound: false,
 };
 
 // ── Reducer ───────────────────────────────────────────────────
@@ -164,10 +165,10 @@ const reducer = (state, action) => {
             return { ...state, [action.key]: action.value };
 
         case 'SET_ERROR':
-            return { ...state, error: action.payload };
+            return { ...state, error: action.payload, isChatNotFound: action.isNotFound || false };
 
         case 'CLEAR_ERROR':
-            return { ...state, error: null };
+            return { ...state, error: null, isChatNotFound: false };
 
         default:
             return state;
@@ -293,6 +294,7 @@ export function AiProvider({ children }) {
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: id });
         if (!id) {
             dispatch({ type: 'SET_MESSAGES', payload: [] });
+            dispatch({ type: 'CLEAR_ERROR' });
             return;
         }
 
@@ -300,8 +302,14 @@ export function AiProvider({ children }) {
         try {
             const data = await aiService.getMessages(id);
             dispatch({ type: 'SET_MESSAGES', payload: data || [] });
-        } catch {
-            dispatch({ type: 'SET_ERROR', payload: 'Failed to load messages' });
+            dispatch({ type: 'CLEAR_ERROR' });
+        } catch (err) {
+            const isNotFound = err.response?.status === 404;
+            dispatch({
+                type: 'SET_ERROR',
+                payload: isNotFound ? 'Conversation not found' : 'Failed to load messages',
+                isNotFound
+            });
         }
     }, []);
 

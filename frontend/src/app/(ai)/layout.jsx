@@ -9,20 +9,23 @@ import AiSidebar from '@/components/ai/AiSidebar';
 import AiSettingsPanel from '@/components/ai/AiSettingsPanel';
 import CreditBadge from '@/components/ai/CreditBadge';
 import { ArrowLeft, Settings, Menu } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 function AiLayoutInner({ children }) {
     const router = useRouter();
     const params = useParams();
-    const { settings, isSettingsOpen, setIsSettingsOpen, openConversation, activeConversationId } = useAi();
+    const { success, error: toastError } = useToast();
+    const { settings, isSettingsOpen, setIsSettingsOpen, openConversation, activeConversationId, isChatNotFound, clearError } = useAi();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const lastIdRef = useRef(params.id);
+    const lastIdRef = useRef(null); // Initialize to null to trigger sync on mount
 
     // Sync active conversation with URL
     useEffect(() => {
         const urlId = params.id;
 
         // 1. Handle URL changes (Manual navigation or back/forward)
-        if (urlId !== lastIdRef.current) {
+        // Guard: Don't trigger if we are currently in an error state for this ID
+        if (urlId !== lastIdRef.current && !isChatNotFound) {
             openConversation(urlId || null);
             lastIdRef.current = urlId;
             return;
@@ -35,6 +38,17 @@ function AiLayoutInner({ children }) {
             lastIdRef.current = activeConversationId;
         }
     }, [params.id, activeConversationId, openConversation, router]);
+
+    // Handle Chat Not Found redirect + toast
+    useEffect(() => {
+        if (isChatNotFound) {
+            toastError('Conversation not found');
+            // We clear context error and redirect. 
+            // The first effect will sync once the URL actually updates.
+            router.replace('/dashboard/ai');
+            clearError();
+        }
+    }, [isChatNotFound, toastError, clearError, router]);
 
     return (
         <div className="flex h-screen bg-black text-white overflow-hidden">

@@ -6,7 +6,8 @@ import MessageBubble from '@/components/ai/MessageBubble';
 import StreamingMessage from '@/components/ai/StreamingMessage';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 import AiEnergySphere from '@/components/ui/AiEnergySphere';
-import { Bot, Sparkles, BrainCircuit, Calendar as CalendarIcon, MessageSquare, ArrowDown } from 'lucide-react';
+import { Bot, Sparkles, BrainCircuit, Calendar as CalendarIcon, MessageSquare, ArrowDown, SearchX, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function ChatWindow() {
     const {
@@ -17,7 +18,10 @@ export default function ChatWindow() {
         streamingContent,
         isProcessingVoice,
         settings,
+        isChatNotFound,
     } = useAi();
+
+    const router = useRouter();
 
     const messagesEndRef = useRef(null);
     const containerRef = useRef(null);
@@ -48,6 +52,11 @@ export default function ChatWindow() {
         setUserScrolledUp(false);
         scrollToBottom();
     };
+
+    // Chat Not Found State
+    if (isChatNotFound) {
+        return <ChatNotFoundState onNewChat={() => router.push('/dashboard/ai')} />;
+    }
 
     // No active conversation — show empty state
     if (!activeConversationId) {
@@ -195,6 +204,27 @@ function EmptyState() {
                     </button>
                 ))}
             </div>
+        </div>
+    );
+}
+
+function ChatNotFoundState({ onNewChat }) {
+    return (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center mb-6">
+                <SearchX className="w-8 h-8 text-gray-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">Chat Not Available</h2>
+            <p className="text-sm text-gray-500 mb-8 max-w-sm">
+                This conversation doesn't exist or you don't have permission to access it.
+            </p>
+            <button
+                onClick={onNewChat}
+                className="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-xl font-medium transition-all"
+            >
+                <Plus className="w-4 h-4" />
+                Start New Chat
+            </button>
         </div>
     );
 }
