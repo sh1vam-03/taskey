@@ -91,10 +91,10 @@ const resolveVoiceModel = (user) => {
 const generateConversationTitle = async (conversationId, userMessage, aiResponse, chatModel) => {
     try {
         const prompt =
-            `Generate a concise title (max 5 words) for this conversation:\n` +
+            `Generate a concise title (max 5 words) for this conversation. ` +
+            `Reply with ONLY the title, no prefix, no quotes, no formatting.\n` +
             `User: ${userMessage.substring(0, 200)}\n` +
-            `AI: ${aiResponse.substring(0, 200)}\n` +
-            `Title:`;
+            `AI: ${aiResponse.substring(0, 200)}`;
 
         let title = "";
 
@@ -122,12 +122,18 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
             title = normalizeContent(response.content);
         }
 
-        title = title.replace(/"/g, "").replace(/^Title:\s*/i, "").trim();
+        // Clean up: strip markdown bold, quotes, and any "Title:" prefix variations
+        title = title
+            .replace(/\*+/g, "")                    // Remove all asterisks (bold, italic)
+            .replace(/"/g, "")                       // Remove quotes
+            .replace(/^title\s*:\s*/i, "")           // Remove "Title:" or "title :" prefix
+            .replace(/^#+\s*/, "")                   // Remove markdown headings
+            .trim();
 
         if (title) {
             await prisma.aiConversation.update({
                 where: { id: conversationId },
-                data: { title }
+                data: { title: title.substring(0, 100) }  // Cap at 100 chars
             });
         }
     } catch (err) {
