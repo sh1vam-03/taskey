@@ -224,7 +224,7 @@ export default function Button({
             ) : (
                 <>
                     {leftIcon && <span className="relative z-10 flex-shrink-0">{leftIcon}</span>}
-                    <span className="relative z-10">{children}</span>
+                    <span className="relative z-10 flex items-center justify-center gap-2 hidden-group">{children}</span>
                     {rightIcon && <span className="relative z-10 flex-shrink-0">{rightIcon}</span>}
                 </>
             )}

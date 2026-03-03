@@ -156,12 +156,12 @@ export default function BehaviorPage() {
                             ) : (
                                 <div className="relative group">
                                     <div className={`
-                                w-56 h-56 rounded-full border-8 flex items-center justify-center transition-all duration-1000
+                                w-44 h-44 sm:w-56 sm:h-56 rounded-full border-8 flex items-center justify-center transition-all duration-1000
                                 ${getScoreColor(currentScore).replace('text-', 'border-')} 
                                 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-black/50 backdrop-blur-sm
                             `}>
                                         <div className="text-center z-10">
-                                            <span className={`text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
+                                            <span className={`text-6xl sm:text-7xl font-black tracking-tighter shimmer-text ${getScoreColor(currentScore).split(' ')[0]}`}>
                                                 {detailsLoading ? (
                                                     <span className="text-4xl animate-pulse">...</span>
                                                 ) : (
@@ -299,7 +299,7 @@ export default function BehaviorPage() {
 
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         <Card className="border-t-4 border-t-purple-500/50">
                             <div className="flex justify-between items-start mb-2">
                                 <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Sleep Duration</div>

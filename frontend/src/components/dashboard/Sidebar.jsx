@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, Menu, X } from 'lucide-react';
+import { LogOut, Menu, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { dashboardNavigation } from '@/config/dashboard-navigation';
@@ -19,12 +19,14 @@ export default function Sidebar() {
     return (
         <>
             {/* Mobile Toggle */}
-            <button
-                onClick={toggleMobile}
-                className="md:hidden fixed top-4 right-4 z-60 p-2 bg-black border border-white/10 rounded-md text-white"
-            >
-                {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {!isMobileOpen && (
+                <button
+                    onClick={toggleMobile}
+                    className="md:hidden fixed top-4 left-4 z-60 p-2 bg-black border border-white/10 rounded-md text-white"
+                >
+                    <Menu size={20} />
+                </button>
+            )}
 
             <aside className={`
                 fixed inset-y-0 left-0 z-50 w-64 bg-black border-r border-white/10 flex flex-col
@@ -38,6 +40,12 @@ export default function Sidebar() {
                             TASKTIME
                         </span>
                     </Link>
+                    <button
+                        onClick={toggleMobile}
+                        className="md:hidden ml-auto p-1.5 hover:bg-white/5 rounded-lg text-gray-500 hover:text-white transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
                 </div>
 
                 {/* Nav */}

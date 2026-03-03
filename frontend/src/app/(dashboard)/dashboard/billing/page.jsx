@@ -338,7 +338,7 @@ export default function BillingPage() {
             </Card>
 
             {/* ── Usage Cards ──────────────────────────────────────────── */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                 <UsageCard
                     label="Tasks"
                     count={usage?.taskCount}
@@ -439,7 +439,7 @@ export default function BillingPage() {
                 </div>
 
                 {/* Plan Cards */}
-                <div className="grid md:grid-cols-3 gap-5 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
                     {PLANS.map((plan, i) => {
                         const isCurrent = currentPlanId === plan.id;
                         const thisRank = planRank[plan.id];
@@ -669,7 +669,7 @@ export default function BillingPage() {
                     </p>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {TOP_UP_PACKS.map((pack, i) => (
                         <motion.div key={pack.id} whileHover={{ y: -2 }}>
                             <Card variant="default" className="cursor-pointer">

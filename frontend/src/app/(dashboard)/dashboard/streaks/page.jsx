@@ -121,7 +121,7 @@ export default function StreaksPage() {
             <h1 className="text-2xl font-bold text-white mb-6">Streak & Habits</h1>
 
             {/* Top Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                 {loading ? (
                     <>
                         <SkeletonLoader type="card" />
@@ -188,7 +188,7 @@ export default function StreaksPage() {
 
             {/* Milestones & Insights */}
             {!loading && streakData && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {/* Next Milestone */}
                     <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-6">
                         <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-4">Next Goal</h3>
