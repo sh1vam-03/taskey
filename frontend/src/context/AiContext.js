@@ -140,6 +140,15 @@ const reducer = (state, action) => {
                 ],
             };
 
+        case 'ADD_WARNING_MESSAGE':
+            return {
+                ...state,
+                messages: [
+                    ...state.messages,
+                    { id: `warning-${Date.now()}`, role: 'assistant', content: action.payload, createdAt: new Date().toISOString() }
+                ]
+            };
+
         case 'SET_VOICE_RESPONSE':
             return { ...state, voiceResponse: action.payload, isProcessingVoice: false };
 
@@ -421,6 +430,9 @@ export function AiProvider({ children }) {
             (title) => {
                 dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id: convId, title } });
             },
+            (warning) => {
+                dispatch({ type: 'ADD_WARNING_MESSAGE', payload: warning.message });
+            },
             abortController.signal
         );
         return () => abortController.abort();
@@ -491,6 +503,9 @@ export function AiProvider({ children }) {
                 },
                 (title) => {
                     dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id: convId, title } });
+                },
+                (warning) => {
+                    dispatch({ type: 'ADD_WARNING_MESSAGE', payload: warning.message });
                 },
                 abortController.signal
             );

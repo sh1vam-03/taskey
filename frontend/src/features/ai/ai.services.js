@@ -70,7 +70,7 @@ const aiService = {
      * @param {(error: Error) => void} onError - called on error
      * @returns {() => void} abort function
      */
-    sendMessageStream(conversationId, message, onToken, onDone, onError, onTitle, signal = null) {
+    sendMessageStream(conversationId, message, onToken, onDone, onError, onTitle, onWarning, signal = null) {
         const controller = new AbortController();
         const effectiveSignal = signal || controller.signal;
 
@@ -113,6 +113,7 @@ const aiService = {
                 const decoder = new TextDecoder();
                 let fullText = "";
                 let buffer = "";
+                let pendingWarning = null;
 
                 while (true) {
                     const { value, done } = await reader.read();
@@ -146,6 +147,10 @@ const aiService = {
                                 if (parsed.title && onTitle) {
                                     onTitle(parsed.title);
                                 }
+
+                                if (parsed.warning) {
+                                    pendingWarning = parsed.warning;
+                                }
                             } catch (e) {
                                 // If it's our structured error, re-throw
                                 if (e.status) throw e;
@@ -156,6 +161,9 @@ const aiService = {
                 }
 
                 onDone(fullText);
+                if (pendingWarning && onWarning) {
+                    onWarning(pendingWarning);
+                }
             } catch (err) {
                 if (err.name !== "AbortError") {
                     onError(err);

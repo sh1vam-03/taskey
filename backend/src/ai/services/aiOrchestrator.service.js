@@ -407,15 +407,22 @@ export const processAiRequestStream = async function* ({
         );
         const creditsUsed = calcChatCost(chatModel, totalTokens);
 
-        await deductCredits({
-            userId,
-            conversationId,
-            credits: creditsUsed,
-            model: chatModel,
-            type: mode === "VOICE" ? "VOICE" : "CHAT",
-            provider: chatModel,
-            meta: { estimatedTokens: totalTokens }
-        });
+        try {
+            await deductCredits({
+                userId,
+                conversationId,
+                credits: creditsUsed,
+                model: chatModel,
+                type: mode === "VOICE" ? "VOICE" : "CHAT",
+                provider: chatModel,
+                meta: { estimatedTokens: totalTokens }
+            });
+        } catch (billingErr) {
+            console.warn(`[Orchestrator] Post-stream billing failed for user ${userId}:`, billingErr.message);
+            if (billingErr.statusCode === 402) {
+                yield `__warning__:402`;
+            }
+        }
 
         await prisma.aiConversation.update({
             where: { id: conversationId },
