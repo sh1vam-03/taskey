@@ -131,7 +131,7 @@ export default function DashboardOverview() {
     if (loading) {
         return (
             <div className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                     <SkeletonLoader type="card" />
                     <SkeletonLoader type="card" />
                     <SkeletonLoader type="card" />
@@ -162,7 +162,7 @@ export default function DashboardOverview() {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-white mb-1">
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1">
                             {greeting}, <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-blue-500">{user?.name?.split(' ')[0]}</span>.
                         </h1>
                         <p className="text-gray-400 font-mono text-sm max-w-xl">
@@ -198,7 +198,7 @@ export default function DashboardOverview() {
                 )}
 
                 {/* Stats Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                     {/* Today Tasks */}
                     <Card
                         title="Today Tasks"
@@ -270,7 +270,7 @@ export default function DashboardOverview() {
                 </div>
 
                 {/* Overview Section */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+                <div className="grid gap-6 grid-cols-1 lg:grid-cols-7">
                     {/* Today's Timeline */}
                     <div className="lg:col-span-4 lg:relative min-h-[500px] lg:min-h-[500px]">
                         <Card

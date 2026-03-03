@@ -165,7 +165,7 @@ export default function TasksPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                         <Input
@@ -197,7 +197,7 @@ export default function TasksPage() {
 
             <Card className="min-h-[600px] border-white/10 bg-black/50">
                 {/* Filter Bar - Simplified */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10 overflow-x-auto">
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2 text-gray-500">
                             <Filter className="h-4 w-4" />

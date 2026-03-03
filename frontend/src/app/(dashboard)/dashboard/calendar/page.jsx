@@ -148,13 +148,14 @@ export default function CalendarPage() {
         return (
             <div className="bg-zinc-900/30 border border-white/5 rounded-xl overflow-hidden">
                 <div className="grid grid-cols-7 bg-black/40 border-b border-white/5">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            {d}
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                        <div key={i} className="py-2 sm:py-3 text-center text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            <span className="sm:hidden">{d}</span>
+                            <span className="hidden sm:inline">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</span>
                         </div>
                     ))}
                 </div>
-                <div className="grid grid-cols-7 auto-rows-[100px] md:auto-rows-[120px]">
+                <div className="grid grid-cols-7 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px]">
                     {emptySlots.map((_, i) => (
                         <div key={`empty-${i}`} className="bg-black/20 border-r border-b border-white/5 last:border-r-0"></div>
                     ))}
@@ -236,37 +237,39 @@ export default function CalendarPage() {
         });
 
         return (
-            <div className="grid grid-cols-7 gap-2 h-full overflow-x-auto min-h-[500px]">
-                {days.map(dayInfo => {
-                    const dayEvents = events.filter(e => e.date === dayInfo.dateStr);
-                    const isToday = dayInfo.dateStr === formatDateISO(new Date());
+            <div className="overflow-x-auto pb-2">
+                <div className="grid grid-cols-7 gap-2 h-full min-w-[700px] min-h-[500px]">
+                    {days.map(dayInfo => {
+                        const dayEvents = events.filter(e => e.date === dayInfo.dateStr);
+                        const isToday = dayInfo.dateStr === formatDateISO(new Date());
 
-                    return (
-                        <div key={dayInfo.dateStr} className="flex flex-col gap-2 rounded-xl bg-zinc-900/30 border border-white/5 overflow-hidden">
-                            <div className={`p-3 text-center border-b border-white/5 ${isToday ? 'bg-cyan-900/20' : 'bg-black/20'}`}>
-                                <div className="text-xs text-gray-500 uppercase font-bold">{dayInfo.dayName}</div>
-                                <div className={`text-lg font-bold ${isToday ? 'text-cyan-400' : 'text-white'}`}>{dayInfo.dayNum}</div>
+                        return (
+                            <div key={dayInfo.dateStr} className="flex flex-col gap-2 rounded-xl bg-zinc-900/30 border border-white/5 overflow-hidden">
+                                <div className={`p-3 text-center border-b border-white/5 ${isToday ? 'bg-cyan-900/20' : 'bg-black/20'}`}>
+                                    <div className="text-xs text-gray-500 uppercase font-bold">{dayInfo.dayName}</div>
+                                    <div className={`text-lg font-bold ${isToday ? 'text-cyan-400' : 'text-white'}`}>{dayInfo.dayNum}</div>
+                                </div>
+                                <div className="p-2 space-y-2 flex-1 relative">
+                                    {loading && dayEvents.length === 0 ? <SkeletonLoader className="h-full" /> : (
+                                        dayEvents.map(event => (
+                                            <div
+                                                key={event.id}
+                                                className={`p-2 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${event.type === 'SCHEDULE'
+                                                    ? 'bg-cyan-900/20 text-cyan-200 border-cyan-500/20'
+                                                    : 'bg-red-900/20 text-red-200 border-red-500/20'
+                                                    } ${event.status === 'COMPLETED' ? 'opacity-50 line-through' : ''}`}
+                                                onClick={() => handleToggleCompletion(event)}
+                                            >
+                                                <div className="font-bold truncate">{event.title}</div>
+                                                <div className="opacity-70 text-[10px]">{event.startTime}</div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
-                            <div className="p-2 space-y-2 flex-1 relative">
-                                {loading && dayEvents.length === 0 ? <SkeletonLoader className="h-full" /> : (
-                                    dayEvents.map(event => (
-                                        <div
-                                            key={event.id}
-                                            className={`p-2 rounded text-xs border cursor-pointer hover:opacity-80 transition-opacity ${event.type === 'SCHEDULE'
-                                                ? 'bg-cyan-900/20 text-cyan-200 border-cyan-500/20'
-                                                : 'bg-red-900/20 text-red-200 border-red-500/20'
-                                                } ${event.status === 'COMPLETED' ? 'opacity-50 line-through' : ''}`}
-                                            onClick={() => handleToggleCompletion(event)}
-                                        >
-                                            <div className="font-bold truncate">{event.title}</div>
-                                            <div className="opacity-70 text-[10px]">{event.startTime}</div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
         );
     };
@@ -281,7 +284,7 @@ export default function CalendarPage() {
                     {view === 'week' && `Week of ${formatDateISO(getStartOfWeek(currentDate))}`}
                 </h1>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                     {/* View Switcher */}
                     <div className="flex bg-zinc-900 border border-white/10 rounded-lg p-1">
                         <button onClick={() => setView('day')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === 'day' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>Day</button>
