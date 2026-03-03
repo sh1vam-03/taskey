@@ -55,6 +55,7 @@ const initialState = {
 
     // Error
     error: null,
+    isChatNotFound: false,
 };
 
 // ── Reducer ───────────────────────────────────────────────────
@@ -139,6 +140,15 @@ const reducer = (state, action) => {
                 ],
             };
 
+        case 'ADD_WARNING_MESSAGE':
+            return {
+                ...state,
+                messages: [
+                    ...state.messages,
+                    { id: `warning-${Date.now()}`, role: 'assistant', content: action.payload, createdAt: new Date().toISOString() }
+                ]
+            };
+
         case 'SET_VOICE_RESPONSE':
             return { ...state, voiceResponse: action.payload, isProcessingVoice: false };
 
@@ -164,10 +174,10 @@ const reducer = (state, action) => {
             return { ...state, [action.key]: action.value };
 
         case 'SET_ERROR':
-            return { ...state, error: action.payload };
+            return { ...state, error: action.payload, isChatNotFound: action.isNotFound || false };
 
         case 'CLEAR_ERROR':
-            return { ...state, error: null };
+            return { ...state, error: null, isChatNotFound: false };
 
         default:
             return state;
@@ -287,15 +297,28 @@ export function AiProvider({ children }) {
     }, []);
 
     const openConversation = useCallback(async (id) => {
+        // Just set the active ID, the layout/page will trigger message loading if needed
+        // or we can load it here if we want it to be centralized.
+        // Let's keep it here but ensure we clear messages if ID is null.
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: id });
-        if (!id) return; // Allow opening "null" for New Chats
+        if (!id) {
+            dispatch({ type: 'SET_MESSAGES', payload: [] });
+            dispatch({ type: 'CLEAR_ERROR' });
+            return;
+        }
 
         dispatch({ type: 'SET_LOADING', key: 'isLoadingMessages', value: true });
         try {
             const data = await aiService.getMessages(id);
             dispatch({ type: 'SET_MESSAGES', payload: data || [] });
-        } catch {
-            dispatch({ type: 'SET_ERROR', payload: 'Failed to load messages' });
+            dispatch({ type: 'CLEAR_ERROR' });
+        } catch (err) {
+            const isNotFound = err.response?.status === 404;
+            dispatch({
+                type: 'SET_ERROR',
+                payload: isNotFound ? 'Conversation not found' : 'Failed to load messages',
+                isNotFound
+            });
         }
     }, []);
 
@@ -305,12 +328,10 @@ export function AiProvider({ children }) {
             const data = await aiService.getConversations();
             dispatch({ type: 'SET_CONVERSATIONS', payload: data || [] });
 
-            // Auto-load most recent conversation on init if none is active
+            // Remove automatic loading of most recent conversation.
+            // We want /dashboard/ai to be a new chat by default.
             if (!hasInitializedRef.current) {
                 hasInitializedRef.current = true;
-                if (data?.length > 0) {
-                    openConversation(data[0].id);
-                }
             }
         } catch {
             dispatch({ type: 'SET_ERROR', payload: 'Failed to load conversations' });
@@ -388,7 +409,6 @@ export function AiProvider({ children }) {
             (fullText) => {
                 dispatch({ type: 'STREAM_DONE', payload: fullText });
                 if (isVoiceMode) playVoiceStream(fullText, true);
-                loadConversations();
                 loadSettings(); // refresh credit balance
             },
             (err) => {
@@ -405,12 +425,18 @@ export function AiProvider({ children }) {
                     displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
                 }
 
-                dispatch({ type: 'SET_ERROR', payload: displayMsg });
+                dispatch({ type: 'STREAM_DONE', payload: displayMsg });
+            },
+            (title) => {
+                dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id: convId, title } });
+            },
+            (warning) => {
+                dispatch({ type: 'ADD_WARNING_MESSAGE', payload: warning.message });
             },
             abortController.signal
         );
         return () => abortController.abort();
-    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings, playVoiceStream, stopVoiceAudio]);
+    }, [state.activeConversationId, createNewConversation, loadSettings, playVoiceStream, stopVoiceAudio]);
 
     /**
      * Full voice pipeline.
@@ -457,13 +483,29 @@ export function AiProvider({ children }) {
                 (fullText) => {
                     dispatch({ type: 'STREAM_DONE', payload: fullText });
                     playVoiceStream(fullText, true);
-                    loadConversations();
                     loadSettings();
                 },
                 (err) => {
                     dispatch({ type: 'SET_STREAMING', payload: false });
                     dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
-                    dispatch({ type: 'SET_ERROR', payload: err.message || 'Voice processing failed' });
+
+                    const status = err?.status || err?.response?.status || 500;
+                    let displayMsg;
+                    if (status === 402) {
+                        displayMsg = '⚠️ **Your AI credits are finished.** Please top-up credits now to continue using the AI assistant.';
+                    } else if (status === 503) {
+                        displayMsg = '⚠️ **This model is currently not available.** Please use a different AI model from settings.';
+                    } else {
+                        displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
+                    }
+
+                    dispatch({ type: 'STREAM_DONE', payload: displayMsg });
+                },
+                (title) => {
+                    dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id: convId, title } });
+                },
+                (warning) => {
+                    dispatch({ type: 'ADD_WARNING_MESSAGE', payload: warning.message });
                 },
                 abortController.signal
             );
@@ -482,7 +524,7 @@ export function AiProvider({ children }) {
             dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: false });
             dispatch({ type: 'SET_ERROR', payload: displayMsg });
         }
-    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings, playVoiceStream, stopVoiceAudio]);
+    }, [state.activeConversationId, createNewConversation, loadSettings, playVoiceStream, stopVoiceAudio]);
 
     const stopStreaming = useCallback(() => {
         if (audioAbortControllerRef.current) {

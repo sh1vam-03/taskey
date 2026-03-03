@@ -91,10 +91,10 @@ const resolveVoiceModel = (user) => {
 const generateConversationTitle = async (conversationId, userMessage, aiResponse, chatModel) => {
     try {
         const prompt =
-            `Generate a concise title (max 5 words) for this conversation:\n` +
+            `Generate a concise title (max 5 words) for this conversation. ` +
+            `Reply with ONLY the title, no prefix, no quotes, no formatting.\n` +
             `User: ${userMessage.substring(0, 200)}\n` +
-            `AI: ${aiResponse.substring(0, 200)}\n` +
-            `Title:`;
+            `AI: ${aiResponse.substring(0, 200)}`;
 
         let title = "";
 
@@ -122,17 +122,27 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
             title = normalizeContent(response.content);
         }
 
-        title = title.replace(/"/g, "").replace(/^Title:\s*/i, "").trim();
+        // Clean up: strip markdown bold, quotes, and any "Title:" prefix variations
+        title = title
+            .replace(/\*+/g, "")                    // Remove all asterisks (bold, italic)
+            .replace(/"/g, "")                       // Remove quotes
+            .replace(/^title\s*:\s*/i, "")           // Remove "Title:" or "title :" prefix
+            .replace(/^#+\s*/, "")                   // Remove markdown headings
+            .trim();
 
         if (title) {
+            const cleanTitle = title.substring(0, 100);
             await prisma.aiConversation.update({
                 where: { id: conversationId },
-                data: { title }
+                data: { title: cleanTitle }
             });
+            return cleanTitle;
         }
+        return null;
     } catch (err) {
         // Non-fatal — title stays as null, user can rename manually
         console.error("[Orchestrator] Failed to generate title:", err.message);
+        return null;
     }
 };
 
@@ -160,7 +170,7 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
     const chatModel = mode === "VOICE" ? resolveVoiceModel(user) : resolveChatModel(user);
 
     // ── 0.2 Pre-flight credit check ───────────────────────────
-    await checkCreditBalance(userId, 1); // Only require 1 credit to start the stream
+    await checkCreditBalance(userId, estimateMaxChatCost(chatModel));
 
     // ── 0.3 Safety check ─────────────────────────────────────
     if (!validateInputSafety(message)) {
@@ -298,7 +308,7 @@ export const processAiRequestStream = async function* ({
     const chatModel = mode === "VOICE" ? resolveVoiceModel(user) : resolveChatModel(user);
 
     // ── 0.1 Pre-check ────────────────────────────────────────
-    await checkCreditBalance(userId, 1); // Only require 1 credit to start the stream
+    await checkCreditBalance(userId, estimateMaxChatCost(chatModel));
 
     // ── 0.2 Safety check ─────────────────────────────────────
     if (!validateInputSafety(message)) {
@@ -397,15 +407,22 @@ export const processAiRequestStream = async function* ({
         );
         const creditsUsed = calcChatCost(chatModel, totalTokens);
 
-        await deductCredits({
-            userId,
-            conversationId,
-            credits: creditsUsed,
-            model: chatModel,
-            type: mode === "VOICE" ? "VOICE" : "CHAT",
-            provider: chatModel,
-            meta: { estimatedTokens: totalTokens }
-        });
+        try {
+            await deductCredits({
+                userId,
+                conversationId,
+                credits: creditsUsed,
+                model: chatModel,
+                type: mode === "VOICE" ? "VOICE" : "CHAT",
+                provider: chatModel,
+                meta: { estimatedTokens: totalTokens }
+            });
+        } catch (billingErr) {
+            console.warn(`[Orchestrator] Post-stream billing failed for user ${userId}:`, billingErr.message);
+            if (billingErr.statusCode === 402) {
+                yield `__warning__:402`;
+            }
+        }
 
         await prisma.aiConversation.update({
             where: { id: conversationId },
@@ -413,7 +430,8 @@ export const processAiRequestStream = async function* ({
         });
 
         if (history.length === 1) {
-            generateConversationTitle(conversationId, message, fullAiResponse, chatModel);
+            const title = await generateConversationTitle(conversationId, message, fullAiResponse, chatModel);
+            if (title) yield `__title__:${title}`;
         }
     }
 };

@@ -114,11 +114,7 @@ export default function Card({
                 />
             )}
 
-            {/* Corner brackets */}
-            <span aria-hidden className="absolute top-0 left-0   w-3 h-3 border-t border-l border-[var(--color-primary)] opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
-            <span aria-hidden className="absolute top-0 right-0  w-3 h-3 border-t border-r border-[var(--color-primary)] opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
-            <span aria-hidden className="absolute bottom-0 left-0  w-3 h-3 border-b border-l border-[var(--color-primary)] opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
-            <span aria-hidden className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-[var(--color-primary)] opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
+
 
             {/* Header */}
             {(title || Icon || action) && (

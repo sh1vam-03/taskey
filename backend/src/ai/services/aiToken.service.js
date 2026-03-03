@@ -97,16 +97,18 @@ export const calcToolCost = (toolName) => {
 };
 
 /**
- * Conservative pre-flight estimate for a chat request.
+ * Reasonable pre-flight estimate for a chat request.
  * Used to check balance BEFORE the actual API call.
+ * Uses base cost + small buffer — NOT max_per_call which is far too aggressive
+ * and would block users who have enough credits for typical requests.
  *
  * @param {string} model
- * @returns {number} Worst-case credits for this model (= max_per_call)
+ * @returns {number} Minimum credits needed to attempt this model
  */
 export const estimateMaxChatCost = (model) => {
     const config = AI_COSTS.CHAT?.[model];
-    if (!config) return 10;
-    return Math.max(1, config.max_per_call);
+    if (!config) return 5;
+    return Math.max(1, config.base + 1);
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -208,8 +210,9 @@ export const deductCredits = async ({
     meta = {}
 }) => {
     const amount = Math.max(1, Math.ceil(credits));
+    let wasExhausted = false;
 
-    return prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
         // 1. Fetch current balances
         const user = await tx.user.findUnique({
             where: { id: userId },
@@ -218,63 +221,75 @@ export const deductCredits = async ({
 
         if (!user) throw new ApiError(404, "User not found");
 
-        // 2. Hard Check: Ensure total balance can cover the request
+        // 2. Determine actual deduction
         const totalBalance = user.subscriptionCredits + user.topupCredits;
+        let actualDeduction = amount;
+
         if (totalBalance < amount) {
-            throw new ApiError(
-                402,
-                `Insufficient balance for this request. Required: ${amount}, Available: ${totalBalance}`
-            );
+            wasExhausted = true;
+            actualDeduction = totalBalance; // Drain remaining balance
         }
 
-        // 3. Priority deduction: subscription first (they expire), then topup
-        let fromSubscription = 0;
-        let fromTopup = 0;
+        // Only process DB updates if there is something to deduct
+        if (actualDeduction > 0) {
+            // 3. Priority deduction: subscription first (they expire), then topup
+            let fromSubscription = 0;
+            let fromTopup = 0;
 
-        if (user.subscriptionCredits >= amount) {
-            fromSubscription = amount;
-        } else {
-            fromSubscription = user.subscriptionCredits;
-            fromTopup = amount - fromSubscription;
-        }
-
-        // 4. Update user balances
-        await tx.user.update({
-            where: { id: userId },
-            data: {
-                subscriptionCredits: { decrement: fromSubscription },
-                topupCredits: { decrement: fromTopup }
+            if (user.subscriptionCredits >= actualDeduction) {
+                fromSubscription = actualDeduction;
+            } else {
+                fromSubscription = user.subscriptionCredits;
+                fromTopup = actualDeduction - fromSubscription;
             }
-        });
 
-        // 4. Granular usage log
-        await tx.aiUsage.create({
-            data: {
-                userId,
-                conversationId,
-                model: model || "unknown",
-                type: type || "CHAT",
-                creditsUsed: amount
-            }
-        });
-
-        // 5. Financial ledger (immutable)
-        await tx.aiCreditLedger.create({
-            data: {
-                userId,
-                credits: -amount,
-                source,
-                conversationId,
-                reason: `Deducted: ${fromSubscription} subscription + ${fromTopup} topup`
-            }
-        });
-
-        // 6. Conversation aggregate
-        if (conversationId) {
-            await tx.aiConversation.update({
-                where: { id: conversationId },
-                data: { totalCreditsUsed: { increment: amount } }
+            // 4. Update user balances
+            await tx.user.update({
+                where: { id: userId },
+                data: {
+                    subscriptionCredits: { decrement: fromSubscription },
+                    topupCredits: { decrement: fromTopup }
+                }
             });
+
+            // 5. Granular usage log
+            await tx.aiUsage.create({
+                data: {
+                    userId,
+                    conversationId,
+                    model: model || "unknown",
+                    type: type || "CHAT",
+                    creditsUsed: actualDeduction
+                }
+            });
+
+            // 6. Financial ledger (immutable)
+            await tx.aiCreditLedger.create({
+                data: {
+                    userId,
+                    credits: -actualDeduction,
+                    source,
+                    conversationId,
+                    reason: `Deducted: ${fromSubscription} subscription + ${fromTopup} topup`
+                }
+            });
+
+            // 7. Conversation aggregate
+            if (conversationId) {
+                await tx.aiConversation.update({
+                    where: { id: conversationId },
+                    data: { totalCreditsUsed: { increment: actualDeduction } }
+                });
+            }
         }
     });
+
+    // Throw error AFTER the transaction successfully commits 
+    // to trigger the graceful UI warning without rolling back the valid deduction
+    if (wasExhausted) {
+        throw new ApiError(
+            402,
+            `Insufficient balance for full request. Required: ${amount}. Remaining balance was drained.`
+        );
+    }
 };

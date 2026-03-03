@@ -415,8 +415,21 @@ export const sendMessage = asyncHandler(async (req, res) => {
                 message,
                 mode: "TEXT"
             })) {
-                // Formatting as Server-Sent Event (SSE)
-                res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+                // Handle special title event from orchestrator
+                if (typeof chunk === "string" && chunk.startsWith("__title__:")) {
+                    const title = chunk.substring("__title__:".length);
+                    res.write(`data: ${JSON.stringify({ title })}\n\n`);
+                } else if (typeof chunk === "string" && chunk.startsWith("__warning__:402")) {
+                    res.write(`data: ${JSON.stringify({
+                        warning: {
+                            code: 402,
+                            message: "⚠️ **Your AI credits are finished.** Please top-up credits now to continue using the AI assistant."
+                        }
+                    })}\n\n`);
+                } else {
+                    // Normal token
+                    res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+                }
                 // Force socket flush if available to bypass Next.js API proxy buffering
                 if (res.flush) {
                     res.flush();

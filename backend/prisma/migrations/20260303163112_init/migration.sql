@@ -5,7 +5,7 @@ CREATE TYPE "TaskPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH');
 CREATE TYPE "Mood" AS ENUM ('HAPPY', 'NEUTRAL', 'SAD');
 
 -- CreateEnum
-CREATE TYPE "OtpPurpose" AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET');
+CREATE TYPE "OtpPurpose" AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET', 'SECURITY_ACTION');
 
 -- CreateEnum
 CREATE TYPE "RecurrenceType" AS ENUM ('NONE', 'DAILY', 'WEEKLY', 'MONTHLY');
@@ -54,7 +54,15 @@ CREATE TABLE "User" (
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "plan" "PlanType" NOT NULL DEFAULT 'FREE',
     "status" "AccountStatus" NOT NULL DEFAULT 'ACTIVE',
-    "aiCreditBalance" INTEGER NOT NULL DEFAULT 0,
+    "subscriptionCredits" INTEGER NOT NULL DEFAULT 0,
+    "topupCredits" INTEGER NOT NULL DEFAULT 0,
+    "subscriptionCreditsExpiresAt" TIMESTAMP(3),
+    "aiChatModel" TEXT NOT NULL DEFAULT 'sarvam-m',
+    "aiVoiceModel" TEXT NOT NULL DEFAULT 'sarvam-m',
+    "aiTtsModel" TEXT NOT NULL DEFAULT 'bulbul:v3',
+    "aiSttModel" TEXT NOT NULL DEFAULT 'saaras:v3',
+    "aiSarvamLang" TEXT NOT NULL DEFAULT 'unknown',
+    "aiSarvamSpeaker" TEXT NOT NULL DEFAULT 'shubh',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "tokenVersion" INTEGER NOT NULL DEFAULT 1,
@@ -105,6 +113,7 @@ CREATE TABLE "Subscription" (
     "lastBilledAt" TIMESTAMP(3),
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "lastCreditGrantedAt" TIMESTAMP(3),
+    "lastCreditDistributedAt" TIMESTAMP(3),
     "razorpaySubscriptionId" TEXT,
     "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -138,6 +147,7 @@ CREATE TABLE "Task" (
     "categoryId" TEXT,
     "isArchived" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
+    "taskDate" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -255,6 +265,7 @@ CREATE TABLE "AiMessage" (
     "id" TEXT NOT NULL,
     "role" "AiMessageRole" NOT NULL,
     "content" TEXT NOT NULL,
+    "model" TEXT,
     "creditsUsed" INTEGER NOT NULL DEFAULT 0,
     "meta" JSONB,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,

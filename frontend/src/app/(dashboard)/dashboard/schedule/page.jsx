@@ -387,22 +387,19 @@ export default function SchedulePage() {
             {/* Summary Bar */}
             {!loading && schedules.length > 0 && (
                 <Card className="border-white/10 bg-black/30">
-                    <div className="flex items-center justify-around text-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                         <div>
                             <p className="text-2xl font-bold text-white">{schedules.length}</p>
                             <p className="text-xs font-mono text-gray-500 uppercase">Total</p>
                         </div>
-                        <div className="h-8 w-px bg-white/10" />
                         <div>
                             <p className="text-2xl font-bold text-cyan-400">{pendingSchedules.length}</p>
                             <p className="text-xs font-mono text-gray-500 uppercase">Pending</p>
                         </div>
-                        <div className="h-8 w-px bg-white/10" />
                         <div>
                             <p className="text-2xl font-bold text-green-400">{completedSchedules.length}</p>
                             <p className="text-xs font-mono text-gray-500 uppercase">Done</p>
                         </div>
-                        <div className="h-8 w-px bg-white/10" />
                         <div>
                             <p className="text-2xl font-bold text-red-400">{missedSchedules.length}</p>
                             <p className="text-xs font-mono text-gray-500 uppercase">Missed</p>

@@ -187,7 +187,7 @@ export default function SettingsPage() {
                             )}
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
                             {/* Display Name */}
                             <div className="space-y-1">
                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-mono">Display Name</label>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                                         {user?.name}
                                         <button
                                             onClick={() => setIsEditingProfile(true)}
-                                            className="text-xs text-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
+                                            className="text-xs text-cyan-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
                                         >
                                             Edit
                                         </button>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                                         {selectedTimezone}
                                         <button
                                             onClick={() => setIsEditingProfile(true)}
-                                            className="text-xs text-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
+                                            className="text-xs text-cyan-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity uppercase font-bold tracking-wider"
                                         >
                                             Edit
                                         </button>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
                                     <p className="text-xs text-gray-500">Adjust the personality of your AI assistant.</p>
                                 </div>
                                 <select
-                                    className="bg-black/20 border border-white/10 rounded-md text-sm text-gray-300 p-2 w-64"
+                                    className="bg-black/20 border border-white/10 rounded-md text-sm text-gray-300 p-2 w-full sm:w-64"
                                     disabled
                                     value="PROFESSIONAL"
                                 >

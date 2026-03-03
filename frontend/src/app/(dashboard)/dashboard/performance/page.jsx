@@ -113,7 +113,7 @@ export default function PerformancePage() {
             ) : (
                 <>
                     {/* Key Metrics Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {loading ? (
                             <>
                                 <SkeletonLoader type="card" />
@@ -161,13 +161,13 @@ export default function PerformancePage() {
                     </div>
 
                     {/* Chart Area */}
-                    <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-8 min-h-[400px] flex items-center justify-center relative">
+                    <div className="bg-zinc-900/30 border border-white/5 rounded-xl p-4 sm:p-8 min-h-[300px] sm:min-h-[400px] flex items-center justify-center relative">
                         {loading ? (
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
                             </div>
                         ) : (
-                            <div className="w-full h-full min-h-[400px]">
+                            <div className="w-full h-full min-h-[300px] sm:min-h-[400px]">
                                 {view === 'daily' && (
                                     <PerformanceChart
                                         data={data?.hourly || []}
