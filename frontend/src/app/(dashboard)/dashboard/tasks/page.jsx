@@ -190,7 +190,7 @@ export default function TasksPage() {
                         variant="scanline"
                         className="shrink-0"
                     >
-                        <Plus className="h-4 w-4" /> Initialize Task
+                        <Plus className="h-4 w-4" /> add Task
                     </Button>
                 </div>
             </div>
