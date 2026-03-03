@@ -70,7 +70,7 @@ const aiService = {
      * @param {(error: Error) => void} onError - called on error
      * @returns {() => void} abort function
      */
-    sendMessageStream(conversationId, message, onToken, onDone, onError, signal = null) {
+    sendMessageStream(conversationId, message, onToken, onDone, onError, onTitle, signal = null) {
         const controller = new AbortController();
         const effectiveSignal = signal || controller.signal;
 
@@ -141,6 +141,10 @@ const aiService = {
                                 if (parsed.token) {
                                     fullText += parsed.token;
                                     onToken(parsed.token);
+                                }
+
+                                if (parsed.title && onTitle) {
+                                    onTitle(parsed.title);
                                 }
                             } catch (e) {
                                 // If it's our structured error, re-throw

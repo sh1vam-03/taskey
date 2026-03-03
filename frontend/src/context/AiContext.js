@@ -400,7 +400,6 @@ export function AiProvider({ children }) {
             (fullText) => {
                 dispatch({ type: 'STREAM_DONE', payload: fullText });
                 if (isVoiceMode) playVoiceStream(fullText, true);
-                loadConversations();
                 loadSettings(); // refresh credit balance
             },
             (err) => {
@@ -419,10 +418,13 @@ export function AiProvider({ children }) {
 
                 dispatch({ type: 'STREAM_DONE', payload: displayMsg });
             },
+            (title) => {
+                dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id: convId, title } });
+            },
             abortController.signal
         );
         return () => abortController.abort();
-    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings, playVoiceStream, stopVoiceAudio]);
+    }, [state.activeConversationId, createNewConversation, loadSettings, playVoiceStream, stopVoiceAudio]);
 
     /**
      * Full voice pipeline.
@@ -469,7 +471,6 @@ export function AiProvider({ children }) {
                 (fullText) => {
                     dispatch({ type: 'STREAM_DONE', payload: fullText });
                     playVoiceStream(fullText, true);
-                    loadConversations();
                     loadSettings();
                 },
                 (err) => {
@@ -488,6 +489,9 @@ export function AiProvider({ children }) {
 
                     dispatch({ type: 'STREAM_DONE', payload: displayMsg });
                 },
+                (title) => {
+                    dispatch({ type: 'UPDATE_CONVERSATION_IN_LIST', payload: { id: convId, title } });
+                },
                 abortController.signal
             );
 
@@ -505,7 +509,7 @@ export function AiProvider({ children }) {
             dispatch({ type: 'SET_LOADING', key: 'isProcessingVoice', value: false });
             dispatch({ type: 'SET_ERROR', payload: displayMsg });
         }
-    }, [state.activeConversationId, createNewConversation, loadConversations, loadSettings, playVoiceStream, stopVoiceAudio]);
+    }, [state.activeConversationId, createNewConversation, loadSettings, playVoiceStream, stopVoiceAudio]);
 
     const stopStreaming = useCallback(() => {
         if (audioAbortControllerRef.current) {

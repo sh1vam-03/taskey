@@ -131,14 +131,18 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
             .trim();
 
         if (title) {
+            const cleanTitle = title.substring(0, 100);
             await prisma.aiConversation.update({
                 where: { id: conversationId },
-                data: { title: title.substring(0, 100) }  // Cap at 100 chars
+                data: { title: cleanTitle }
             });
+            return cleanTitle;
         }
+        return null;
     } catch (err) {
         // Non-fatal — title stays as null, user can rename manually
         console.error("[Orchestrator] Failed to generate title:", err.message);
+        return null;
     }
 };
 
@@ -419,7 +423,8 @@ export const processAiRequestStream = async function* ({
         });
 
         if (history.length === 1) {
-            generateConversationTitle(conversationId, message, fullAiResponse, chatModel);
+            const title = await generateConversationTitle(conversationId, message, fullAiResponse, chatModel);
+            if (title) yield `__title__:${title}`;
         }
     }
 };
