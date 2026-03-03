@@ -183,10 +183,14 @@ export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, on
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 border-t border-white/10 shrink-0 flex items-center gap-3">
-                    {onDelete && (
-                        <Button variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(item); onClose(); }} className="flex-1">
-                            <Trash2 size={16} /> Delete
+                <div className="p-6 border-t border-white/10 shrink-0 flex flex-wrap items-stretch gap-3">
+                    {onComplete && !isMissed && (
+                        <Button
+                            variant={isCompleted ? "outline" : "scanline"}
+                            onClick={(e) => { e.stopPropagation(); onComplete(item); onClose(); }}
+                            className="w-full order-first"
+                        >
+                            {isCompleted ? <><CheckCircle2 size={16} /> Uncomplete</> : <><Circle size={16} /> Mark Complete</>}
                         </Button>
                     )}
                     {onEdit && (
@@ -194,13 +198,9 @@ export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, on
                             <Edit2 size={16} /> Edit
                         </Button>
                     )}
-                    {onComplete && !isMissed && (
-                        <Button
-                            variant={isCompleted ? "outline" : "scanline"}
-                            onClick={(e) => { e.stopPropagation(); onComplete(item); onClose(); }}
-                            className="flex-auto"
-                        >
-                            {isCompleted ? <><CheckCircle2 size={16} /> Uncomplete</> : <><Circle size={16} /> Mark Complete</>}
+                    {onDelete && (
+                        <Button variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(item); onClose(); }} className="flex-1">
+                            <Trash2 size={16} /> Delete
                         </Button>
                     )}
                 </div>
