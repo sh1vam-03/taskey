@@ -163,6 +163,7 @@ export default function UniversalTaskCard({
             className={`
       relative group
       bg-black
+      rounded-xl overflow-hidden
       border border-white/10
       hover:border-cyan-500/40
       transition-all duration-200
@@ -172,11 +173,7 @@ export default function UniversalTaskCard({
     `}
         >
 
-            {/* Corner Brackets (smaller) */}
-            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/20 group-hover:border-cyan-500" />
-            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white/20 group-hover:border-cyan-500" />
-            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white/20 group-hover:border-cyan-500" />
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/20 group-hover:border-cyan-500" />
+
 
             {/* Main Row */}
             <div className="grid grid-cols-[100px_1fr_auto] items-start gap-3">
@@ -215,7 +212,7 @@ export default function UniversalTaskCard({
               ${isCompleted ? "line-through opacity-40" : ""}
             `}
                         >
-                            {"> " + description}
+                            {description}
                         </p>
                     )}
                 </div>
