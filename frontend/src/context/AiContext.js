@@ -417,7 +417,7 @@ export function AiProvider({ children }) {
                     displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
                 }
 
-                dispatch({ type: 'SET_ERROR', payload: displayMsg });
+                dispatch({ type: 'STREAM_DONE', payload: displayMsg });
             },
             abortController.signal
         );
@@ -475,7 +475,18 @@ export function AiProvider({ children }) {
                 (err) => {
                     dispatch({ type: 'SET_STREAMING', payload: false });
                     dispatch({ type: 'SET_LOADING', key: 'isSendingMessage', value: false });
-                    dispatch({ type: 'SET_ERROR', payload: err.message || 'Voice processing failed' });
+
+                    const status = err?.status || err?.response?.status || 500;
+                    let displayMsg;
+                    if (status === 402) {
+                        displayMsg = '⚠️ **Your AI credits are finished.** Please top-up credits now to continue using the AI assistant.';
+                    } else if (status === 503) {
+                        displayMsg = '⚠️ **This model is currently not available.** Please use a different AI model from settings.';
+                    } else {
+                        displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
+                    }
+
+                    dispatch({ type: 'STREAM_DONE', payload: displayMsg });
                 },
                 abortController.signal
             );
