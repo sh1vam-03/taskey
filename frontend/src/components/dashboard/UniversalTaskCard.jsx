@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import TaskDetailDrawer from './TaskDetailDrawer';
 import {
     CheckSquare, Clock, Calendar, Edit2, Trash2,
     CheckCircle2, Circle, Repeat, ArrowDown, ArrowUp,
@@ -43,6 +44,8 @@ export default function UniversalTaskCard({
     onDelete,
     hideActions = false
 }) {
+    const [showDetails, setShowDetails] = useState(false);
+
     const isCompleted = item.status === 'COMPLETED' || item.isCompleted;
     const isMissed = item.status === 'MISSED';
 
@@ -160,8 +163,9 @@ export default function UniversalTaskCard({
 
     return (
         <div
+            onClick={() => setShowDetails(true)}
             className={`
-      relative group
+      relative group cursor-pointer
       bg-black
       rounded-xl overflow-hidden
       border border-white/10
@@ -313,6 +317,13 @@ export default function UniversalTaskCard({
                 </div>
             </div>
 
+            <TaskDetailDrawer
+                isOpen={showDetails}
+                onClose={(e) => { e?.stopPropagation(); setShowDetails(false); }}
+                item={item}
+                onComplete={onComplete}
+                onEdit={onEdit}
+            />
         </div>
     );
 }
