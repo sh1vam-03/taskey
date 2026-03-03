@@ -323,6 +323,7 @@ export default function UniversalTaskCard({
                 item={item}
                 onComplete={onComplete}
                 onEdit={onEdit}
+                onDelete={onDelete}
             />
         </div>
     );

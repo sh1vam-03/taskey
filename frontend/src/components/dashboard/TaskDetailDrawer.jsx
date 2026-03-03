@@ -1,13 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Calendar, Edit2, CheckCircle2, Circle, Clock, Tag, Flag } from "lucide-react";
+import { X, Calendar, Edit2, CheckCircle2, Circle, Clock, Tag, Flag, Trash2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, onEdit }) {
+export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, onEdit, onDelete }) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -165,8 +165,8 @@ export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, on
                                 <Flag size={16} /> <span className="text-sm font-medium uppercase font-mono tracking-wider">Priority</span>
                             </div>
                             <span className={`px-2 py-0.5 rounded text-xs font-bold border ${priority === 'HIGH' ? 'text-red-400 border-red-500/40 bg-red-500/10' :
-                                    priority === 'LOW' ? 'text-blue-400 border-blue-500/40 bg-blue-500/10' :
-                                        'text-amber-400 border-amber-500/40 bg-amber-500/10'
+                                priority === 'LOW' ? 'text-blue-400 border-blue-500/40 bg-blue-500/10' :
+                                    'text-amber-400 border-amber-500/40 bg-amber-500/10'
                                 }`}>{priority}</span>
                         </div>
                     </div>
@@ -184,8 +184,13 @@ export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, on
 
                 {/* Footer Actions */}
                 <div className="p-6 border-t border-white/10 shrink-0 flex items-center gap-3">
+                    {onDelete && (
+                        <Button variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(item); onClose(); }} className="flex-1">
+                            <Trash2 size={16} /> Delete
+                        </Button>
+                    )}
                     {onEdit && (
-                        <Button variant="secondary" onClick={() => { onEdit(item); onClose(); }} className="flex-1">
+                        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); onEdit(item); onClose(); }} className="flex-1">
                             <Edit2 size={16} /> Edit
                         </Button>
                     )}
@@ -193,7 +198,7 @@ export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, on
                         <Button
                             variant={isCompleted ? "outline" : "scanline"}
                             onClick={(e) => { e.stopPropagation(); onComplete(item); onClose(); }}
-                            className="flex-1"
+                            className="flex-auto"
                         >
                             {isCompleted ? <><CheckCircle2 size={16} /> Uncomplete</> : <><Circle size={16} /> Mark Complete</>}
                         </Button>
