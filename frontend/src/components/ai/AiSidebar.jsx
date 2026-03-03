@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Plus, Trash2, Pencil, Check, X, MoreVertical, MessageSquare, ChevronLeft, LogOut, ChevronDown, ChevronRight, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useAi } from '@/features/ai/useAi';
 import { useAuth } from '@/context/AuthContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -11,6 +12,7 @@ import CreditBadge from '@/components/ai/CreditBadge';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 
 export default function AiSidebar({ isOpen, onClose }) {
+    const router = useRouter();
     const { user, logout } = useAuth();
     const {
         conversations,
@@ -34,12 +36,12 @@ export default function AiSidebar({ isOpen, onClose }) {
     const hasVoice = settings.availableVoiceModels?.length > 0;
 
     const handleNewChat = () => {
-        openConversation(null); // Clear active chat, let first message create it
+        router.push('/dashboard/ai');
         if (window.innerWidth < 768) onClose?.();
     };
 
     const handleSelectChat = (conv) => {
-        openConversation(conv.id);
+        router.push(`/dashboard/ai/c/${conv.id}`);
         if (window.innerWidth < 768) onClose?.();
     };
 

@@ -2,16 +2,20 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Send, Mic, Square, Sparkles } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
 import { useAi } from '@/features/ai/useAi';
 import VoiceRecorder from '@/components/ai/VoiceRecorder';
 
 export default function ChatInput() {
+    const router = useRouter();
+    const params = useParams();
     const {
         sendMessage,
         stopStreaming,
         isSendingMessage,
         isStreaming,
         isProcessingVoice,
+        activeConversationId,
     } = useAi();
 
     const [input, setInput] = useState('');
@@ -20,14 +24,23 @@ export default function ChatInput() {
 
     const isDisabled = isStreaming || isSendingMessage || isProcessingVoice;
 
-    const handleSend = useCallback(() => {
+    const handleSend = useCallback(async () => {
         if (!input.trim() || isDisabled) return;
-        sendMessage(input.trim());
+
+        const currentInput = input.trim();
         setInput('');
+
         // Reset textarea height
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
         }
+
+        const abortFn = await sendMessage(currentInput);
+
+        // If we were on /dashboard/ai (new chat), navigation will be handled by context sync 
+        // OR we can explicitly navigate here after a short delay to ensure conv created.
+        // Actually, our layout sync is better if we fix it to only redirect URL -> Context
+        // and Context -> URL ONLY when moving from null to non-null.
     }, [input, isDisabled, sendMessage]);
 
     const handleKeyDown = (e) => {
@@ -102,8 +115,8 @@ export default function ChatInput() {
                                 onClick={handleSend}
                                 disabled={!input.trim() || isDisabled}
                                 className={`p-2.5 rounded-xl transition-all duration-200 shrink-0 ${input.trim() && !isDisabled
-                                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
-                                        : 'bg-white/[0.04] text-gray-600 cursor-not-allowed'
+                                    ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20'
+                                    : 'bg-white/[0.04] text-gray-600 cursor-not-allowed'
                                     }`}
                                 title="Send message"
                             >

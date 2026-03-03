@@ -287,8 +287,14 @@ export function AiProvider({ children }) {
     }, []);
 
     const openConversation = useCallback(async (id) => {
+        // Just set the active ID, the layout/page will trigger message loading if needed
+        // or we can load it here if we want it to be centralized.
+        // Let's keep it here but ensure we clear messages if ID is null.
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', payload: id });
-        if (!id) return; // Allow opening "null" for New Chats
+        if (!id) {
+            dispatch({ type: 'SET_MESSAGES', payload: [] });
+            return;
+        }
 
         dispatch({ type: 'SET_LOADING', key: 'isLoadingMessages', value: true });
         try {
@@ -305,12 +311,10 @@ export function AiProvider({ children }) {
             const data = await aiService.getConversations();
             dispatch({ type: 'SET_CONVERSATIONS', payload: data || [] });
 
-            // Auto-load most recent conversation on init if none is active
+            // Remove automatic loading of most recent conversation.
+            // We want /dashboard/ai to be a new chat by default.
             if (!hasInitializedRef.current) {
                 hasInitializedRef.current = true;
-                if (data?.length > 0) {
-                    openConversation(data[0].id);
-                }
             }
         } catch {
             dispatch({ type: 'SET_ERROR', payload: 'Failed to load conversations' });

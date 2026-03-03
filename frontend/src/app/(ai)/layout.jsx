@@ -1,8 +1,8 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
 import { AiProvider } from '@/context/AiContext';
 import { useAi } from '@/features/ai/useAi';
 import AiSidebar from '@/components/ai/AiSidebar';
@@ -12,8 +12,29 @@ import { ArrowLeft, Settings, Menu } from 'lucide-react';
 
 function AiLayoutInner({ children }) {
     const router = useRouter();
-    const { settings, isSettingsOpen, setIsSettingsOpen } = useAi();
+    const params = useParams();
+    const { settings, isSettingsOpen, setIsSettingsOpen, openConversation, activeConversationId } = useAi();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const lastIdRef = useRef(params.id);
+
+    // Sync active conversation with URL
+    useEffect(() => {
+        const urlId = params.id;
+
+        // 1. Handle URL changes (Manual navigation or back/forward)
+        if (urlId !== lastIdRef.current) {
+            openConversation(urlId || null);
+            lastIdRef.current = urlId;
+            return;
+        }
+
+        // 2. Handle Context changes (New chat creation from /dashboard/ai)
+        if (!urlId && activeConversationId) {
+            // We are on the "New Chat" page, but a conversation was just created in context
+            router.push(`/dashboard/ai/c/${activeConversationId}`);
+            lastIdRef.current = activeConversationId;
+        }
+    }, [params.id, activeConversationId, openConversation, router]);
 
     return (
         <div className="flex h-screen bg-black text-white overflow-hidden">
