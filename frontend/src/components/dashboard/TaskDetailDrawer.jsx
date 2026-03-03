@@ -9,6 +9,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 
 export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, onEdit, onDelete }) {
     const [mounted, setMounted] = useState(false);
+    const [isTitleExpanded, setIsTitleExpanded] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -111,7 +112,29 @@ export default function TaskDetailDrawer({ isOpen, onClose, item, onComplete, on
 
                             <span className="text-gray-500 text-[10px] font-mono">{isScheduleType ? 'SCHEDULE' : 'TASK'}</span>
                         </div>
-                        <h2 className={`text-xl font-bold text-white mt-2 leading-tight ${isCompleted ? 'line-through opacity-50' : ''}`}>{title}</h2>
+                        <h2 className={`text-xl font-bold text-white mt-2 leading-tight ${isCompleted ? 'line-through opacity-50' : ''}`}>
+                            {(() => {
+                                const words = title.split(' ');
+                                const isLong = words.length > 10;
+
+                                if (!isLong) return title;
+
+                                return (
+                                    <>
+                                        {isTitleExpanded ? title : words.slice(0, 10).join(' ') + '... '}
+                                        <span
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsTitleExpanded(!isTitleExpanded);
+                                            }}
+                                            className="text-cyan-400 font-mono text-sm ml-1 hover:text-cyan-300 cursor-pointer whitespace-nowrap inline-block"
+                                        >
+                                            {isTitleExpanded ? 'Show less' : 'Show more'}
+                                        </span>
+                                    </>
+                                );
+                            })()}
+                        </h2>
                     </div>
                     <button onClick={onClose} className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-full transition-colors self-start shrink-0">
                         <X size={20} />
