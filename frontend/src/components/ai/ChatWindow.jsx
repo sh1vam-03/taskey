@@ -6,7 +6,7 @@ import MessageBubble from '@/components/ai/MessageBubble';
 import StreamingMessage from '@/components/ai/StreamingMessage';
 import SkeletonLoader from '@/components/dashboard/SkeletonLoader';
 import AiEnergySphere from '@/components/ui/AiEnergySphere';
-import { Bot, Sparkles, BrainCircuit, Calendar as CalendarIcon, MessageSquare, ArrowDown, SearchX, Plus } from 'lucide-react';
+import { Sparkles, Calendar as CalendarIcon, Target, Clock, ArrowDown, SearchX, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function ChatWindow() {
@@ -69,7 +69,7 @@ export default function ChatWindow() {
             {settings?.chatModel === 'sarvam-m' && (
                 <div className="bg-cyan-500/10 border-b border-cyan-500/20 px-4 py-2.5 flex items-center justify-center gap-2 shrink-0">
                     <span className="text-cyan-400 text-[11px] font-medium tracking-wide">
-                        📚 Study Mode — Sarvam-M is a secure knowledge model. It cannot manage tasks or calendar.
+                        📚 Alpha Mode — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
                     </span>
                 </div>
             )}
@@ -145,64 +145,55 @@ function EmptyState() {
 
     const suggestions = [
         { icon: CalendarIcon, label: "What should I focus on?", sub: "Check my tasks & schedule" },
-        { icon: BrainCircuit, label: "Do I have free time?", sub: "Analyze my calendar today" },
-        { icon: Sparkles, label: "I'm feeling overwhelmed", sub: "Help me prioritize" },
-        { icon: MessageSquare, label: "Review my habits", sub: "How is my sleep & mood?" },
+        { icon: Target, label: "Create a session for me", sub: "Deep work or task focus" },
+        { icon: Sparkles, label: "What can you do?", sub: "Explore AI capabilities" },
+        { icon: Clock, label: "Analyze my time", sub: "Review habit consistency" }
     ];
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 items-center justify-center px-6 -mt-8 overflow-y-auto">
-            <div className="relative mb-6">
+        <div className="flex-1 flex flex-col min-h-0 items-center justify-center px-6 overflow-y-auto overflow-x-hidden w-full relative py-12">
+            {/* Background Sphere - Repositioned behind the greeting */}
+            <div className="absolute pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] opacity-35">
                 <AiEnergySphere
-                    size={400}
-                    baseRadius={60}
-                    rotationSpeed={0.003}
-                    waveStrength={5}
-                    particleCount={600}
-                    hoverRadius={50}
+                    size={800}
+                    baseRadius={200}
+                    rotationSpeed={0.02}
+                    waveStrength={10}
+                    particleCount={500}
+                    hoverRadius={60}
                 />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <Bot className="h-10 w-10 text-white/60" />
-                </div>
             </div>
 
-            <h2 className="text-2xl font-semibold text-white mb-2">How can I help you today?</h2>
-            <p className="text-sm text-gray-500 mb-8">Ask me anything about your tasks, schedule, or habits</p>
+            <div className="relative z-10 flex flex-col items-center text-center w-full max-w-2xl">
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">How can I help you today?</h2>
+                <p className="text-sm text-gray-400 mb-10 max-w-md leading-relaxed">
+                    Ask me anything about your tasks, schedule, or habits. I'm here to help you stay organized and productive.
+                </p>
 
-            {/* Context Badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-950/30 border border-cyan-500/20 rounded-full text-[11px] text-cyan-400 font-medium mb-6">
-                <Sparkles className="w-3 h-3" />
-                <span>Context Active: Schedule • Tasks • Habits</span>
-            </div>
+                {settings?.chatModel === 'sarvam-m' && (
+                    <div className="mb-8 px-4 py-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-[11px] md:text-xs text-cyan-400 font-medium tracking-wide">
+                        📚 Alpha Mode — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
+                    </div>
+                )}
 
-            {settings?.chatModel === 'sarvam-m' && (
-                <div className="text-center max-w-md w-full mb-6 p-4 rounded-xl border border-white/5 bg-white/2">
-                    <h3 className="text-sm font-semibold text-white mb-2 flex items-center justify-center gap-2">
-                        <BrainCircuit className="w-4 h-4 text-cyan-400" />
-                        Study Mode Active
-                    </h3>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                        You are using Sarvam-M, which is excellent for research and learning.
-                        Note: This model does not have access to manage your tasks or schedule.
-                    </p>
+                {/* Suggestions Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
+                    {suggestions.map((item, i) => (
+                        <button
+                            key={i}
+                            onClick={() => sendMessage(item.label)}
+                            className="flex items-start gap-4 p-4 rounded-2xl bg-white/4 border border-white/8 hover:bg-white/8 hover:border-white/12 transition-all group text-left"
+                        >
+                            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform shrink-0">
+                                <item.icon className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium text-white group-hover:text-cyan-400 transition-colors">{item.label}</span>
+                                <span className="text-xs text-gray-500">{item.sub}</span>
+                            </div>
+                        </button>
+                    ))}
                 </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
-                {suggestions.map((item, i) => (
-                    <button
-                        key={i}
-                        onClick={() => sendMessage(item.label)}
-                        className="text-left p-4 rounded-xl border border-white/6 hover:bg-white/4 transition-all duration-200
-                            text-sm group bg-white/2 hover:border-cyan-500/20"
-                    >
-                        <div className="font-medium text-gray-200 mb-1 group-hover:text-cyan-400 transition-colors flex items-center gap-2">
-                            <item.icon className="w-4 h-4" />
-                            {item.label}
-                        </div>
-                        <div className="text-gray-600 text-xs">{item.sub}</div>
-                    </button>
-                ))}
             </div>
         </div>
     );

@@ -110,7 +110,7 @@ export default function AiSidebar({ isOpen, onClose }) {
                             TASKTIME AI
                         </span>
                         <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                            ALPHA
+                            vALPHA
                         </span>
                     </div>
                     <button
