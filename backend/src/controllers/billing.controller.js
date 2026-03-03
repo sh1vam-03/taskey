@@ -108,13 +108,12 @@ export const getCurrentSubscription = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const subscription = await billingService.getSubscription(userId);
 
-    // Get Plan Config
-    const currentPlan = subscription?.plan || "FREE";
+    // Use authenticated user's plan as source of truth (set during login/token refresh)
+    // Fall back to subscription record, then to FREE
+    const currentPlan = req.user.plan || subscription?.plan || "FREE";
     const planConfig = PLANS[currentPlan] || PLANS.FREE;
 
     // Determine Usage Limit (Credits for the cycle)
-    // If FREE, limits.YEARLY/MONTHLY is 0.
-    // Use 'MONTHLY' as default for view if no sub.
     const billingCycle = subscription?.billingCycle || "MONTHLY";
     const usageLimit = planConfig.credits[billingCycle] || 0;
 
