@@ -117,10 +117,10 @@ export default function BehaviorPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-3">
                         <BrainCircuit className="h-8 w-8 text-cyan-500" />
-                        Neural Analysis
+                        Daily Behavior Insights
                     </h1>
                     <p className="text-gray-400 font-mono text-sm max-w-xl">
-                        Monitor behavioral patterns and productivity metrics.
+                        Track your habits and productivity over time.
                     </p>
                 </div>
 
@@ -130,7 +130,7 @@ export default function BehaviorPage() {
                     className="shrink-0"
                 >
                     <Activity className="h-4 w-4" />
-                    {todayLog ? "UPDATE LOG" : "LOG CURRENT STATE"}
+                    {todayLog ? "Update Activity" : "Add Activity"}
                 </Button>
             </div>
 
@@ -144,7 +144,7 @@ export default function BehaviorPage() {
                     <div className="flex flex-col h-full justify-between items-center z-10 relative">
                         {/* Top: Title */}
                         <h2 className="text-gray-400 text-sm font-mono font-bold uppercase tracking-widest mt-2">
-                            Behavior Score
+                            Daily Behavior Score
                         </h2>
 
                         {/* Center: Gauge */}
@@ -169,7 +169,7 @@ export default function BehaviorPage() {
                                                 )}
                                             </span>
                                             <div className="text-xs text-gray-500 font-mono mt-2 bg-black/50 px-2 py-1 rounded inline-block border border-white/5">
-                                                {selectedDate === new Date().toLocaleDateString('en-CA') ? 'CURRENT STATUS' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
+                                                {selectedDate === new Date().toLocaleDateString('en-CA') ? 'Today’s Score' : `SCORE FOR ${format(parseISO(selectedDate), 'MMM d')}`}
                                             </div>
                                         </div>
                                     </div>
@@ -186,7 +186,7 @@ export default function BehaviorPage() {
                             <div className="flex items-start justify-center gap-3 text-gray-300 text-sm">
                                 <Lightbulb className="text-yellow-500 shrink-0 mt-0.5 h-4 w-4" />
                                 <p className="font-mono text-xs leading-relaxed">
-                                    {loading || detailsLoading ? "ANALYZING NEURAL PATTERNS..." : explanation}
+                                    {loading || detailsLoading ? "Analyzing your activity..." : explanation}
                                 </p>
                             </div>
                         </div>
@@ -197,7 +197,7 @@ export default function BehaviorPage() {
                 <div className="space-y-6">
                     {/* Trend Chart */}
                     <Card
-                        title={`${chartPeriod}-Day Trend Analysis`}
+                        title={`${chartPeriod}-Day Progress`}
                         icon={TrendingUp}
                         className="relative"
                     >
@@ -246,7 +246,7 @@ export default function BehaviorPage() {
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-bold text-white flex items-center gap-2">
                                 <CalendarIcon className="h-5 w-5 text-blue-400" />
-                                Day Explorer
+                                Browse Days
                             </h2>
                             <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1 border border-white/5">
                                 <button onClick={handlePrevDay} className="p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white">
@@ -322,10 +322,10 @@ export default function BehaviorPage() {
                                 ) : (
                                     dayDetails?.exercise ? (
                                         <span className="flex items-center gap-2 text-cyan-400">
-                                            <CheckCircle2 className="h-5 w-5" /> COMPLETED
+                                            <CheckCircle2 className="h-5 w-5" /> DONE
                                         </span>
                                     ) : (
-                                        <span className="text-gray-500 text-base">NOT LOGGED</span>
+                                        <span className="text-gray-500 text-base">NO RECORD</span>
                                     )
                                 )}
                             </div>
@@ -340,7 +340,7 @@ export default function BehaviorPage() {
                 onClose={() => setIsModalOpen(false)}
                 onLogSaved={() => {
                     fetchData();
-                    success("Behavioral log committed");
+                    success("Activity saved successfully");
                 }}
                 currentLog={todayLog}
                 latestLog={latestLog}

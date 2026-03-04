@@ -66,16 +66,16 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
     };
 
     const moodOptions = [
-        { value: "HAPPY", icon: Smile, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/50", label: "OPTIMAL" },
-        { value: "NEUTRAL", icon: Meh, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/50", label: "NOMINAL" },
-        { value: "SAD", icon: Frown, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/50", label: "CRITICAL" }
+        { value: "HAPPY", icon: Smile, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/50", label: "HAPPY" },
+        { value: "NEUTRAL", icon: Meh, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/50", label: "NEUTRAL" },
+        { value: "SAD", icon: Frown, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/50", label: "SAD" }
     ];
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="LOG NEURAL STATE"
+            title="Today’s Activity"
             className="border-purple-500/20 bg-black/90 backdrop-blur-xl"
         >
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -88,7 +88,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                 {/* Mood Selector */}
                 <div className="space-y-3">
                     <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                        <Sparkles className="h-3 w-3 text-purple-400" /> Current Sentiment
+                        <Sparkles className="h-3 w-3 text-purple-400" /> How do you feel today?
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                         {moodOptions.map((option) => (
@@ -115,7 +115,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                     {/* Sleep Hours */}
                     <div className="space-y-2">
                         <label className="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                            <Clock className="h-3 w-3" /> Sleep Duration
+                            <Clock className="h-3 w-3" /> Hours of Sleep
                         </label>
                         <div className="relative">
                             <input
@@ -127,7 +127,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                                 onChange={(e) => setSleepHours(e.target.value)}
                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all text-sm font-mono text-center"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-mono">HRS</span>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-mono">hrs</span>
                         </div>
                     </div>
                     {/* Exercise Toggle */}
@@ -145,7 +145,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                             `}
                         >
                             {exercise ? <Check className="h-4 w-4" /> : null}
-                            {exercise ? 'COMPLETED' : 'SKIPPED'}
+                            {exercise ? 'Did exercise' : 'Not today'}
                         </button>
                     </div>
                 </div>
@@ -154,11 +154,11 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
 
                 {/* Notes */}
                 <div className="space-y-2">
-                    <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Observation Log</label>
+                    <label className="text-xs font-mono text-gray-400 uppercase tracking-widest">Notes</label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Record behavioral observations..."
+                        placeholder="Anything important about today?"
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white/20 transition-all placeholder-gray-600 min-h-[100px] resize-none text-sm font-mono"
                     />
                 </div>
@@ -170,14 +170,14 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                         onClick={onClose}
                         disabled={loading}
                     >
-                        DISCARD
+                        Cancel
                     </Button>
                     <Button
                         type="submit"
                         disabled={loading}
                         className="min-w-[140px]"
                     >
-                        {loading ? 'SAVING...' : 'COMMIT LOG'}
+                        {loading ? 'Saving...' : 'Save Activity'}
                     </Button>
                 </div>
             </form>
