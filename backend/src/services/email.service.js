@@ -96,16 +96,19 @@ const getEmailTemplate = (content) => `
                 <td style="padding:24px 40px;text-align:center;">
                     <table align="center" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                     <tr>
+                        <!-- Instagram -->
                         <td align="center" style="padding:0 10px;">
                             <a href="${BRAND.social.instagram}" target="_blank" style="text-decoration:none;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/15713/15713420.png" width="28" height="28" alt="Instagram" style="display:block;" />
                             </a>
                         </td>
+                        <!-- GitHub -->
                         <td align="center" style="padding:0 10px;">
                             <a href="${BRAND.social.github}" target="_blank" style="text-decoration:none;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/5968/5968866.png" width="28" height="28" alt="GitHub" style="display:block;" />
                             </a>
                         </td>
+                        <!-- LinkedIn -->
                         <td align="center" style="padding:0 10px;">
                             <a href="${BRAND.social.linkedin}" target="_blank" style="text-decoration:none;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/3536/3536505.png" width="28" height="28" alt="LinkedIn" style="display:block;" />
