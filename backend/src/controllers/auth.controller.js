@@ -12,8 +12,8 @@ const isProduction = process.env.NODE_ENV === "production";
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction, // HTTPS only in production
+    sameSite: "lax",      // Because of Next.js proxy, API and frontend share the same domain
     path: "/",
 };
 
