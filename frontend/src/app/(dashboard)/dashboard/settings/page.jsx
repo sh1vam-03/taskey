@@ -412,7 +412,7 @@ export default function SettingsPage() {
                                 title="Permanently delete account"
                             >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Delete Information
+                                Delete Account
                             </button>
 
                         </div>
