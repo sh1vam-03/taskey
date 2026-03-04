@@ -83,17 +83,12 @@ export const login = asyncHandler(async (req, res) => {
     });
 
     // 2. Refresh Token Cookie (Controls Persistence)
-    // Fix: Only set refresh token if remember is true (Strict security)
-    if (remember) {
-        res.cookie("refreshToken", result.refreshToken, {
-            ...COOKIE_OPTIONS,
-            maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
-        });
-    } else {
-        // Fix: Explicitly clear old refresh cookie if remember is false
-        // This prevents legacy persistent sessions from surviving a non-persistent login
-        res.clearCookie("refreshToken", COOKIE_OPTIONS);
-    }
+    // remember=true  → persistent cookie with 21-day maxAge
+    // remember=false → session cookie (no maxAge), cleared when browser closes
+    res.cookie("refreshToken", result.refreshToken, {
+        ...COOKIE_OPTIONS,
+        ...(remember ? { maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE } : {}),
+    });
 
     res.status(200).json({
         success: true,
@@ -207,18 +202,11 @@ export const refreshToken = asyncHandler(async (req, res) => {
     });
 
     // 2. Set New Refresh Token Cookie
-    // If not persistent, we do NOT set a refresh token, but since we are in refresh flow, 
-    // it implies it was persistent. We respect the session state.
-    if (result.isPersistent) {
-        res.cookie("refreshToken", result.refreshToken, {
-            ...COOKIE_OPTIONS,
-            maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE,
-        });
-    } else {
-        // Fix: Explicitly clear old refresh cookie if session is not persistent
-        // This handles edge cases where a session might have been persistent but logic changed
-        res.clearCookie("refreshToken", COOKIE_OPTIONS);
-    }
+    // Persistent → 21-day maxAge; Non-persistent → session cookie (no maxAge)
+    res.cookie("refreshToken", result.refreshToken, {
+        ...COOKIE_OPTIONS,
+        ...(result.isPersistent ? { maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE } : {}),
+    });
 
     res.status(200).json({
         success: true,
