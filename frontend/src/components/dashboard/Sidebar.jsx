@@ -76,6 +76,12 @@ export default function Sidebar() {
                                             <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400'}`} />
                                             <span className="font-sans tracking-wide">{item.name}</span>
 
+                                            {item.name === 'AI Assistant' && (
+                                                <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                    vALPHA
+                                                </span>
+                                            )}
+
                                             {isActive && (
                                                 <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_#06b6d4]" />
                                             )}
