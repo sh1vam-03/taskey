@@ -10,7 +10,7 @@ import { formatInTimeZone } from 'date-fns-tz';
  * Builds the full System Prompt with injected context.
  * Orchestrates: Profile + Behavior + Conversation Summary + System Rules + Real-time Workload
  */
-export const buildSystemContext = async (userId, user, conversationId = null) => {
+export const buildSystemContext = async (userId, user, conversationId = null, excludePersona = false) => {
     const timeZone = user?.timezone || "UTC";
 
     // 1. Get the current date string explicitly in the user's configured timezone
@@ -62,10 +62,7 @@ ${summary}
     }
 
     // 4. Construct Dynamic Prompt
-    const finalSystemPrompt = `${systemPrompt}
-
-${summarySection}
-
+    const finalSystemPrompt = `${excludePersona ? "" : systemPrompt + "\n\n"}${summarySection ? summarySection + "\n" : ""}
 ━━━━━━━━━━━━━━━━━━━━━━
 USER LIVE CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━
