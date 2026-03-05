@@ -243,6 +243,7 @@ export default function DashboardOverview() {
                                 </div>
                             </div>
                         }
+                        shimmer={true}
                         showBorder={true}
                         icon={BrainCircuit}
                         className="min-h-[140px] overflow-visible"
