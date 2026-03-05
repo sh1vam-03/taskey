@@ -419,8 +419,8 @@ export default function SettingsPage() {
                     </Card>
 
                     <div className="text-center">
-                        <p className="text-xs text-gray-600 font-mono">Taskey System v1.0.0</p>
-                        <p className="text-xs text-gray-600 font-mono">Session ID: {user?.id?.slice(0, 8)}</p>
+                        <p className="text-xs text-gray-600 font-mono">TASKTIME v1.0.0</p>
+                        <p className="text-xs text-gray-600 font-mono">User ID: {user?.id?.slice(0, 8)}</p>
                     </div>
 
                 </div>

@@ -215,6 +215,7 @@ export default function TodayDashboardPage() {
                         {/* Completion Rate */}
                         <Card
                             title="Completion Rate"
+                            shimmer={true}
                             icon={PieChart}
                             className="min-h-[140px]"
                         >

@@ -243,6 +243,7 @@ export default function DashboardOverview() {
                                 </div>
                             </div>
                         }
+                        showBorder={true}
                         icon={BrainCircuit}
                         className="min-h-[140px]"
                     >
@@ -257,6 +258,7 @@ export default function DashboardOverview() {
                     {/* Current Streak */}
                     <Card
                         title="Current Streak"
+                        variant='filled'
                         icon={TrendingUp}
                         className="min-h-[140px]"
                     >
