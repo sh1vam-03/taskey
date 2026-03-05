@@ -226,6 +226,7 @@ export function AiProvider({ children }) {
     const sentenceQueueRef = useRef([]);
     const isSynthesizingRef = useRef(false);
 
+    // Eagerly pre-synthesizes sentences while the previous one is still playing
     const processSentenceQueue = useCallback(async () => {
         if (isSynthesizingRef.current || sentenceQueueRef.current.length === 0) return;
 
@@ -236,14 +237,19 @@ export function AiProvider({ children }) {
             const chunk = await aiService.synthesizeSpeech(textToSpeak, state.settings.speaker);
             if (chunk?.audioUrl) {
                 audioQueueRef.current.push(chunk.audioUrl);
+                // Start playing immediately if not already playing
                 processAudioQueue();
             }
         } catch (err) {
             console.error('[VoiceStream] TTS chunk failed:', err);
         } finally {
             isSynthesizingRef.current = false;
-            // Process next sentence
-            processSentenceQueue();
+            // IMMEDIATELY process the next sentence in the background (pre-fetch)
+            // It will block if isSynthesizingRef is true, but will queue up the next audio URL
+            // as soon as the API call returns, independent of whether the audio is done playing.
+            if (sentenceQueueRef.current.length > 0) {
+                processSentenceQueue();
+            }
         }
     }, [state.settings.speaker]);
 
@@ -251,6 +257,8 @@ export function AiProvider({ children }) {
      * Splits text into sentences and triggers TTS sequentially for each.
      */
     const playVoiceStream = useCallback(async (fullText, isFinal = false) => {
+        // Only run if we actually started a voice session
+        if (!window.__voiceState) return;
         // Use a persistent ref to keep track of what we've already sent to TTS
         if (!window.__voiceState) window.__voiceState = { processedIndex: 0, pendingText: '' };
 
@@ -297,6 +305,7 @@ export function AiProvider({ children }) {
 
         audio.onended = () => {
             isPlayingAudioRef.current = false;
+            // Eagerly process the next audio if already synthesized
             processAudioQueue();
         };
 
@@ -402,6 +411,9 @@ export function AiProvider({ children }) {
         if (isVoiceMode) {
             window.__voiceState = { processedIndex: 0, pendingText: '' };
             stopVoiceAudio();
+        } else {
+            // Nullify voice state so the text streaming useEffect doesn't trigger voice
+            window.__voiceState = null;
         }
 
         // Auto-create conversation if none active
