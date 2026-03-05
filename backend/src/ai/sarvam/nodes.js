@@ -146,7 +146,9 @@ Your goal is to help users manage tasks, schedules, and productivity.
 
 ## Rules
 - NEVER mention Sarvam, OpenAI, Google, Anthropic, or any AI company name.
-- Keep answers SHORT and human.`);
+- Answer general knowledge questions in full depth and detail.
+- Break down complex topics and give examples.
+- Keep answers human and warm.`);
 
             const response = await model.invoke([prompt, ...outMessages], { tags: ["agent_llm"] });
             return { messages: [response] };
