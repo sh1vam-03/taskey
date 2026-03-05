@@ -118,7 +118,7 @@ export const executeAction = async (action, data, config) => {
                     repeatOnDays: repeatOnDays ?? [],
                 });
                 await incrementUsage(userId, 'schedule');
-                return { success: true, message: "Schedule created successfully.", schedule };
+                return { success: true, message: "Schedule created successfully.", schedule: { id: schedule.id, startTime: schedule.startTime } };
             } catch (error) {
                 console.error(`[Executor Error] create_schedule:`, error);
                 return { error: true, message: `Failed to create schedule: ${error.message}` };
@@ -184,7 +184,7 @@ export const executeAction = async (action, data, config) => {
                 return {
                     success: true,
                     message: `Successfully scheduled ${createdSchedules.length} tasks.${errors.length > 0 ? ` Errors locating: ${errors.join(', ')}` : ''}`,
-                    schedules: createdSchedules
+                    schedules: createdSchedules.map(s => ({ id: s.id, startTime: s.startTime }))
                 };
             } catch (error) {
                 console.error(`[Executor Error] create_schedules_bulk:`, error);
@@ -232,8 +232,8 @@ export const executeAction = async (action, data, config) => {
                 return {
                     success: true,
                     message: `Created task "${createdTask.title}" and scheduled it successfully.`,
-                    task: createdTask,
-                    schedule: createdSchedule
+                    task: { id: createdTask.id, title: createdTask.title },
+                    schedule: { id: createdSchedule.id, startTime: createdSchedule.startTime }
                 };
             } catch (error) {
                 console.error(`[Executor Error] create_task_and_schedule:`, error);
@@ -302,7 +302,7 @@ export const executeAction = async (action, data, config) => {
                     success: true,
                     message: `Successfully created and scheduled ${createdSchedules.length} items.`,
                     tasks: createdTasks.map(t => ({ id: t.id, title: t.title })),
-                    schedules: createdSchedules
+                    schedules: createdSchedules.map(s => ({ id: s.id, startTime: s.startTime }))
                 };
             } catch (error) {
                 console.error(`[Executor Error] create_task_and_schedules_bulk:`, error);
@@ -408,7 +408,7 @@ export const executeAction = async (action, data, config) => {
                 if (!data.scheduleId) return { error: true, message: "scheduleId is required to update a schedule." };
                 const { scheduleId, ...updates } = data;
                 const schedule = await scheduleService.updateSchedule(userId, scheduleId, updates);
-                return { success: true, schedule };
+                return { success: true, schedule: { id: schedule.id, startTime: schedule.startTime } };
             } catch (error) {
                 console.error(`[Executor Error] UPDATE_SCHEDULE:`, error);
                 return { error: true, message: `Update schedule failed: ${error.message}` };

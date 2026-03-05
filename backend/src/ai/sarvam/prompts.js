@@ -14,11 +14,12 @@ RULES:
 13. NEVER just talk about what you're doing if an action is requested. Output the JSON.
 14. If the user says "delete all my tasks" or "delete everything", use DELETE_MULTIPLE_TASKS with deleteAll: true.
 15. If the user says "delete all my schedules", use DELETE_MULTIPLE_SCHEDULES with deleteAll: true.
+16. WARNING: Do NOT copy the imaginary task names from the EXAMPLES section (like 'Morning Walk', 'Meeting', or 'Morning Planning') unless the user explicitly mentions them. Always use the actual task titles from the conversation.
 
 Available Actions:
 
 1. create_task - User explicitly gives a task to do.
-   data: { title: string (REQUIRED), description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string }
+   data: { title: string (REQUIRED), description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string (ONLY IF STRICT DEADLINE) }
 
 2. UPDATE_TASK
    data: { taskId: string (REQUIRED), title?: string, description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string, isCompleted?: boolean }
@@ -45,7 +46,7 @@ Available Actions:
    data: { date?: string (YYYY-MM-DD or "today") }
 
 12. create_tasks_bulk - User asks to create MANY tasks at once.
-   data: { tasks: Array<{ title: string (REQUIRED), description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string }> }
+   data: { tasks: Array<{ title: string (REQUIRED), description?: string, priority?: "LOW"|"MEDIUM"|"HIGH", dueDate?: string (ONLY IF STRICT DEADLINE) }> }
 
 12b. create_schedules_bulk - Schedule MANY existing tasks at once.
    data: {
