@@ -55,9 +55,9 @@ function AssistantBubble({ message, audioUrl }) {
         >
             <div className="max-w-[90%] md:max-w-[80%] relative">
                 {/* Model badge */}
-                <div className="mb-1.5">
+                {/* <div className="mb-1.5">
                     <ModelBadge model={message.model || settings.chatModel} className="text-[9px] py-0.5 px-2 cursor-default" />
-                </div>
+                </div> */}
 
                 <div className="prose prose-invert prose-sm max-w-none text-[14px] leading-7 text-gray-200
                     prose-p:my-2 prose-headings:text-white prose-headings:font-semibold

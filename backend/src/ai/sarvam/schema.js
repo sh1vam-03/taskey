@@ -49,7 +49,7 @@ export const CreateTaskSchema = z.object({
     title: z.string(),
     description: z.string().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
-    dueDate: z.string().optional().describe("YYYY-MM-DD or ISO string"),
+    dueDate: z.string().optional().describe("YYYY-MM-DD. ONLY provide if user explicitly mentions a date. Defaults to null."),
 });
 
 export const UpdateTaskSchema = z.object({
@@ -134,7 +134,7 @@ export const CreateMultipleTasksSchema = z.object({
         title: z.string(),
         description: z.string().optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
-        dueDate: z.string().optional().describe("YYYY-MM-DD or ISO string"),
+        dueDate: z.string().optional().describe("YYYY-MM-DD. ONLY provide if user explicitly mentions a date. Defaults to null."),
     }))
 });
 
