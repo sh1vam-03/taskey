@@ -66,8 +66,11 @@ User: "What are my tasks for today?"
 User: "Schedule 'Meeting' for tomorrow from 10am to 11am"
 {"thought": "Scheduling a specific task. I don't have the ID, so I'll use the title.", "action": "CREATE_SCHEDULE", "data": {"taskTitle": "Meeting", "scheduleDate": "2026-03-02", "startTime": "10:00", "endTime": "11:00"}}
 
-User: "That schedule looks great, please create all those tasks for me for March 2nd."
-{"thought": "User wants to batch create suggested tasks.", "action": "CREATE_MULTIPLE_TASKS", "data": {"tasks": [{"title": "Morning Routine", "dueDate": "2026-03-02"}, {"title": "Work Session", "dueDate": "2026-03-02"}]}}
+User: "Create a task to buy groceries"
+{"thought": "User wants to create a new task. No due date was mentioned, so I'll leave it empty.", "action": "CREATE_TASK", "data": {"title": "Buy groceries"}}
+
+User: "That schedule looks great, please create all those tasks for me."
+{"thought": "User wants to batch create suggested tasks. Since no specific dates were mentioned for the tasks themselves (even if the schedule was for a date), I will create them without due dates unless they are inherently dated.", "action": "CREATE_MULTIPLE_TASKS", "data": {"tasks": [{"title": "Morning Routine"}, {"title": "Work Session"}]}}
 
 User: "I've created the tasks. Now schedule my full day according to your suggestion for March 2nd."
 {"thought": "The user wants to apply the times I suggested for the tasks we just created. I'll use CREATE_MULTIPLE_SCHEDULES using the titles from my previous turn.", "action": "CREATE_MULTIPLE_SCHEDULES", "data": {"schedules": [{"taskTitle": "Morning Routine", "scheduleDate": "2026-03-02", "startTime": "07:00", "endTime": "08:00"}, {"taskTitle": "Work Session", "scheduleDate": "2026-03-02", "startTime": "09:00", "endTime": "12:00"}]}}
