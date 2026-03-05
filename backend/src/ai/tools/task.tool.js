@@ -9,12 +9,13 @@ const error = (msg) => JSON.stringify({ success: false, error: msg });
 
 export const createTaskTool = () => new DynamicStructuredTool({
     name: "create_task",
-    description: "Create a new task.",
+    description: "Creates a single task. Set dueDate to null unless user explicitly mentioned a date/deadline.",
     schema: z.object({
-        title: z.string(),
-        description: z.string().optional(),
-        priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
-        dueDate: z.string().optional(),
+        title: z.string().describe("Task title. Required."),
+        description: z.string().optional().describe("Optional task details. Only add if user provided extra context."),
+        priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional().describe("Task priority. Default MEDIUM."),
+        dueDate: z.string().optional().describe("ISO 8601 datetime. ONLY set if user explicitly mentioned a date or deadline. Otherwise MUST be null."),
+        categoryId: z.string().optional().describe("Category UUID. Only set if user mentioned a category.")
     }),
     func: async (args, config) => {
         try {
@@ -28,6 +29,37 @@ export const createTaskTool = () => new DynamicStructuredTool({
             return error(`Error creating task: ${e.message}`);
         }
     },
+});
+
+export const createTasksBulkTool = () => new DynamicStructuredTool({
+    name: "create_tasks_bulk",
+    description: "Creates multiple tasks at once. Use when user asks to create 2 or more tasks in a single message.",
+    schema: z.object({
+        tasks: z.array(z.object({
+            title: z.string(),
+            description: z.string().optional(),
+            priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
+            dueDate: z.string().optional().describe("Only set if user mentioned a date for this specific task. Otherwise null."),
+            categoryId: z.string().optional()
+        }))
+    }),
+    func: async (args, config) => {
+        try {
+            const userId = config.configurable?.user?.id || config.configurable?.userId;
+            if (!userId) return error("User ID missing in configuration");
+
+            // Assuming a batch or sequential create exists in the backend API logic
+            // We'll mimic the route POST /api/tasks/bulk by processing them iteratively
+            const results = await Promise.all(args.tasks.map(task => taskService.createTask(userId, task)));
+
+            // Increment usage per task (or batch)
+            // for (let i = 0; i < args.tasks.length; i++) await incrementUsage(userId, 'task');
+
+            return success({ message: `Created ${results.length} tasks successfully`, tasks: results });
+        } catch (e) {
+            return error(`Error creating batch tasks: ${e.message}`);
+        }
+    }
 });
 
 export const updateTaskTool = () => new DynamicStructuredTool({

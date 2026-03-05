@@ -5,11 +5,6 @@ import prisma from "../../config/db.js";
 import { incrementUsage } from "../../services/usageLimit.service.js";
 import { formatInTimeZone } from 'date-fns-tz';
 import { toUTCDateOnly } from "../../utils/date.utils.js";
-import {
-    CreateTaskSchema, UpdateTaskSchema, DeleteTaskSchema, ListTasksSchema,
-    CreateScheduleSchema, UpdateScheduleSchema, DeleteScheduleSchema, ListSchedulesSchema,
-    LogBehaviorSchema
-} from "./schema.js";
 
 /**
  * Validates 'data' against the Zod schema and maps the string 'action'
@@ -17,26 +12,30 @@ import {
  */
 export const executeAction = async (action, data, config) => {
     const userId = config.configurable?.user?.id || config.configurable?.userId;
-    if (!userId) throw new Error("User ID missing in configuration");
+    if (!userId) return { error: true, message: "User ID missing in configuration." };
 
-    try {
-        switch (action) {
-            case "CREATE_TASK": {
-                if (!data.title) throw new Error("Title is required for CREATE_TASK");
+    switch (action) {
+        case "create_task": {
+            try {
+                if (!data.title) return { error: true, message: "Title is required to create a task." };
 
-                // Calculate taskDate in user's timezone exactly like the API controller does
-                // This prevents tasks from appearing on the previous day if user's local day > UTC day
                 const timezone = config.configurable?.user?.timezone || "UTC";
                 const localDateStr = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
                 const taskDate = toUTCDateOnly(localDateStr);
 
                 const task = await taskService.createTask(userId, { ...data, taskDate });
                 await incrementUsage(userId, 'task');
-                return task;
+                return { success: true, message: "Task created successfully.", task };
+            } catch (error) {
+                console.error(`[Executor Error] create_task:`, error);
+                return { error: true, message: `Failed to create task: ${error.message}` };
             }
-            case "CREATE_MULTIPLE_TASKS": {
+        }
+
+        case "create_tasks_bulk": {
+            try {
                 if (!data.tasks || !Array.isArray(data.tasks)) {
-                    throw new Error("Tasks array is required for CREATE_MULTIPLE_TASKS");
+                    return { error: true, message: "Invalid payload for bulk task creation." };
                 }
 
                 const timezone = config.configurable?.user?.timezone || "UTC";
@@ -46,8 +45,6 @@ export const executeAction = async (action, data, config) => {
                 const createdTasks = [];
                 for (const taskData of data.tasks) {
                     if (!taskData.title) continue;
-
-                    // If task has its own dueDate, use it to calculate taskDate, else use today
                     let taskDate = defaultTaskDate;
                     if (taskData.dueDate) {
                         try {
@@ -56,118 +53,39 @@ export const executeAction = async (action, data, config) => {
                             taskDate = defaultTaskDate;
                         }
                     }
-
                     const task = await taskService.createTask(userId, { ...taskData, taskDate });
                     await incrementUsage(userId, 'task');
                     createdTasks.push(task);
                 }
 
                 return {
+                    success: true,
                     message: `Successfully created ${createdTasks.length} tasks.`,
                     tasks: createdTasks.map(t => ({ title: t.title, id: t.id }))
                 };
+            } catch (error) {
+                console.error(`[Executor Error] create_tasks_bulk:`, error);
+                return { error: true, message: `Failed to create tasks in bulk: ${error.message}` };
             }
-            case "UPDATE_TASK": {
-                if (!data.taskId) throw new Error("taskId is required for UPDATE_TASK");
-                const { taskId, ...updates } = data;
-                const task = await taskService.updateTask(userId, taskId, updates);
-                return task;
-            }
-            case "DELETE_TASK": {
-                let targetTaskId = data.taskId;
+        }
 
-                // Title-based fallback
-                if (!targetTaskId && data.taskTitle) {
-                    const searchTitle = data.taskTitle.trim();
-                    let foundTask = await prisma.task.findFirst({
-                        where: { userId, title: { equals: searchTitle, mode: 'insensitive' }, deletedAt: null },
-                        orderBy: { createdAt: 'desc' }
-                    });
-                    if (!foundTask) {
-                        foundTask = await prisma.task.findFirst({
-                            where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
-                            orderBy: { createdAt: 'desc' }
-                        });
-                    }
-                    if (!foundTask) {
-                        const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
-                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, take: 50 });
-                        foundTask = allTasks.find(t => clean(t.title) === clean(searchTitle) || clean(t.title).includes(clean(searchTitle)));
-                    }
-                    if (foundTask) targetTaskId = foundTask.id;
-                }
-
-                if (!targetTaskId) {
-                    throw new Error(`Could not find task "${data.taskTitle || 'unknown'}" to delete.`);
-                }
-
-                // Also delete associated schedules
-                await prisma.schedule.deleteMany({ where: { userId, taskId: targetTaskId } });
-                await taskService.deleteTask(userId, targetTaskId);
-                return { message: `Task "${data.taskTitle || ''}" and its schedules deleted successfully.` };
-            }
-            case "LIST_TASKS": {
-                if (data.date) {
-                    // Extract exact "Today" local date based on user's timezone
-                    const timezone = config.configurable?.user?.timezone || "UTC";
-                    // If the user said "today", or gave a specific day, we still use local matching for dashboard timeline
-                    const queryDateStr = data.date.toLowerCase() === "today"
-                        ? formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd')
-                        : toUTCDateOnly(data.date).toISOString().slice(0, 10);
-
-                    // Import dynamically to avoid circular dependencies if any
-                    const { getTodayDashboard } = await import("../../services/dashboard.service.js");
-                    const dashOverview = await getTodayDashboard(userId, queryDateStr);
-
-                    // Condense output explicitly for the AI to reduce context clutter
-                    const scheduledItems = dashOverview.timeline.filter(t => t.type === "SCHEDULED").map(t => ({
-                        title: t.title,
-                        description: t.description || "",
-                        priority: t.priority,
-                        status: t.status,
-                        time: t.startTime ? `${t.startTime} - ${t.endTime}` : "N/A"
-                    }));
-
-                    const unscheduledItems = dashOverview.timeline.filter(t => t.type === "UNSCHEDULED").map(t => ({
-                        title: t.title,
-                        description: t.description || "",
-                        priority: t.priority,
-                        status: t.status,
-                        time: "Anytime Today"
-                    }));
-
-                    return {
-                        summary: `You have ${scheduledItems.length} specific schedules and ${unscheduledItems.length} flexible tasks for today.`,
-                        schedules: scheduledItems,
-                        tasks: unscheduledItems
-                    };
-                }
-
-                // Default standard DB lookup for overarching queries
-                const result = await taskService.getTasks(userId, data);
-                return result.tasks;
-            }
-
-            case "CREATE_SCHEDULE": {
-                const { taskId, taskTitle, scheduleDate, startTime, endTime } = data;
+        case "create_schedule": {
+            try {
+                const { taskId, taskTitle, scheduleDate, startTime, endTime, recurrence, repeatUntil, repeatOnDays } = data;
                 if (!scheduleDate || !startTime || !endTime) {
-                    throw new Error("scheduleDate, startTime, and endTime are required for CREATE_SCHEDULE");
+                    return { error: true, message: "Schedule date and times are required." };
                 }
 
                 let finalTaskId = taskId;
 
                 // Lookup taskId by title if not provided
                 if (!finalTaskId && taskTitle) {
-                    console.log(`[Executor] Robustly searching for task: "${taskTitle}"`);
                     const searchTitle = taskTitle.trim();
-
-                    // 1. Precise Match (Case-insensitive)
                     let foundTask = await prisma.task.findFirst({
                         where: { userId, title: { equals: searchTitle, mode: 'insensitive' }, deletedAt: null },
                         orderBy: { createdAt: 'desc' }
                     });
 
-                    // 2. Contains Match
                     if (!foundTask) {
                         foundTask = await prisma.task.findFirst({
                             where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
@@ -175,44 +93,49 @@ export const executeAction = async (action, data, config) => {
                         });
                     }
 
-                    // 3. Ultra-Fuzzy Fallback (Strip emojis/special chars and compare in JS)
                     if (!foundTask) {
                         const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
-                        const allTasks = await prisma.task.findMany({
-                            where: { userId, deletedAt: null },
-                            orderBy: { createdAt: 'desc' },
-                            take: 50
-                        });
+                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 50 });
                         const cleanedSearch = clean(searchTitle);
                         foundTask = allTasks.find(t => clean(t.title) === cleanedSearch || clean(t.title).includes(cleanedSearch) || cleanedSearch.includes(clean(t.title)));
                     }
 
-                    if (foundTask) {
-                        console.log(`[Executor] Found task: "${foundTask.title}" (ID: ${foundTask.id})`);
-                        finalTaskId = foundTask.id;
-                    } else {
-                        console.log(`[Executor] Failed to find task after fuzzy search: "${searchTitle}"`);
-                    }
+                    if (foundTask) finalTaskId = foundTask.id;
                 }
 
                 if (!finalTaskId) {
-                    throw new Error(`Could not find task "${taskTitle || 'unknown'}" to schedule. Please make sure the task is already created.`);
+                    return { error: true, message: `Could not find task "${taskTitle || 'unknown'}" to schedule. Please make sure the task is created first.` };
                 }
 
-                const schedule = await scheduleService.createSchedule({ userId, taskId: finalTaskId, scheduleDate, startTime, endTime });
+                const schedule = await scheduleService.createSchedule({
+                    userId,
+                    taskId: finalTaskId,
+                    scheduleDate,
+                    startTime,
+                    endTime,
+                    recurrence: recurrence ?? "NONE",
+                    repeatUntil: repeatUntil ?? null,
+                    repeatOnDays: repeatOnDays ?? [],
+                });
                 await incrementUsage(userId, 'schedule');
-                return schedule;
+                return { success: true, message: "Schedule created successfully.", schedule };
+            } catch (error) {
+                console.error(`[Executor Error] create_schedule:`, error);
+                return { error: true, message: `Failed to create schedule: ${error.message}` };
             }
-            case "CREATE_MULTIPLE_SCHEDULES": {
+        }
+
+        case "create_schedules_bulk": {
+            try {
                 if (!data.schedules || !Array.isArray(data.schedules)) {
-                    throw new Error("Schedules array is required for CREATE_MULTIPLE_SCHEDULES");
+                    return { error: true, message: "Invalid payload for bulk schedules creation." };
                 }
 
                 const createdSchedules = [];
                 const errors = [];
 
                 for (const item of data.schedules) {
-                    const { taskId, taskTitle, scheduleDate, startTime, endTime } = item;
+                    const { taskId, taskTitle, scheduleDate, startTime, endTime, recurrence, repeatUntil, repeatOnDays } = item;
                     if (!scheduleDate || !startTime || !endTime) continue;
 
                     let finalTaskId = taskId;
@@ -230,15 +153,10 @@ export const executeAction = async (action, data, config) => {
                             });
                         }
 
-                        // Fuzzy fallback in loop
                         if (!foundTask) {
                             const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
                             const cleanedSearch = clean(searchTitle);
-                            const allTasks = await prisma.task.findMany({
-                                where: { userId, deletedAt: null },
-                                orderBy: { createdAt: 'desc' },
-                                take: 20
-                            });
+                            const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 20 });
                             foundTask = allTasks.find(t => clean(t.title) === cleanedSearch || clean(t.title).includes(cleanedSearch) || cleanedSearch.includes(clean(t.title)));
                         }
 
@@ -246,7 +164,16 @@ export const executeAction = async (action, data, config) => {
                     }
 
                     if (finalTaskId) {
-                        const schedule = await scheduleService.createSchedule({ userId, taskId: finalTaskId, scheduleDate, startTime, endTime });
+                        const schedule = await scheduleService.createSchedule({
+                            userId,
+                            taskId: finalTaskId,
+                            scheduleDate,
+                            startTime,
+                            endTime,
+                            recurrence: recurrence ?? "NONE",
+                            repeatUntil: repeatUntil ?? null,
+                            repeatOnDays: repeatOnDays ?? [],
+                        });
                         await incrementUsage(userId, 'schedule');
                         createdSchedules.push(schedule);
                     } else {
@@ -255,23 +182,246 @@ export const executeAction = async (action, data, config) => {
                 }
 
                 return {
+                    success: true,
                     message: `Successfully scheduled ${createdSchedules.length} tasks.${errors.length > 0 ? ` Errors locating: ${errors.join(', ')}` : ''}`,
                     schedules: createdSchedules
                 };
+            } catch (error) {
+                console.error(`[Executor Error] create_schedules_bulk:`, error);
+                return { error: true, message: `Failed to create schedules in bulk: ${error.message}` };
             }
-            case "UPDATE_SCHEDULE": {
-                if (!data.scheduleId) throw new Error("scheduleId is required for UPDATE_SCHEDULE");
-                const { scheduleId, ...updates } = data;
-                const schedule = await scheduleService.updateSchedule(userId, scheduleId, updates);
-                return schedule;
-            }
-            case "DELETE_SCHEDULE": {
-                if (data.scheduleId) {
-                    await scheduleService.deleteSchedule(userId, data.scheduleId);
-                    return { message: "Schedule deleted successfully." };
+        }
+
+        case "create_task_and_schedule": {
+            try {
+                if (!data.task || !data.schedule) {
+                    return { error: true, message: "Both task and schedule data are required." };
                 }
 
-                // Title-based fallback: delete all schedules for a task by title
+                // 1. Create Task Sequentially First
+                const timezone = config.configurable?.user?.timezone || "UTC";
+                const localDateStr = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+                let taskDate = toUTCDateOnly(localDateStr);
+
+                if (data.task.dueDate) {
+                    try {
+                        taskDate = toUTCDateOnly(data.task.dueDate.slice(0, 10));
+                    } catch (e) {
+                        // fallback to default
+                    }
+                }
+
+                const createdTask = await taskService.createTask(userId, { ...data.task, taskDate });
+                await incrementUsage(userId, 'task');
+
+                // 2. Schedule using the newly created Task's ID
+                const { scheduleDate, startTime, endTime, recurrence, repeatUntil, repeatOnDays, notes } = data.schedule;
+                const createdSchedule = await scheduleService.createSchedule({
+                    userId,
+                    taskId: createdTask.id,
+                    scheduleDate,
+                    startTime,
+                    endTime,
+                    recurrence: recurrence ?? "NONE",
+                    repeatUntil: repeatUntil ?? null,
+                    repeatOnDays: repeatOnDays ?? [],
+                    notes: notes ?? null
+                });
+                await incrementUsage(userId, 'schedule');
+
+                return {
+                    success: true,
+                    message: `Created task "${createdTask.title}" and scheduled it successfully.`,
+                    task: createdTask,
+                    schedule: createdSchedule
+                };
+            } catch (error) {
+                console.error(`[Executor Error] create_task_and_schedule:`, error);
+                return { error: true, message: `Failed to create task and schedule: ${error.message}` };
+            }
+        }
+
+        case "create_task_and_schedules_bulk": {
+            try {
+                if (!data.items || !Array.isArray(data.items)) {
+                    return { error: true, message: "Invalid payload for bulk creation." };
+                }
+
+                const timezone = config.configurable?.user?.timezone || "UTC";
+                const localDateStr = formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+                const defaultTaskDate = toUTCDateOnly(localDateStr);
+
+                // 1. Create all tasks in parallel first
+                const taskPromises = data.items.map(item => {
+                    let taskDate = defaultTaskDate;
+                    if (item.task?.dueDate) {
+                        try {
+                            taskDate = toUTCDateOnly(item.task.dueDate.slice(0, 10));
+                        } catch (e) { }
+                    }
+                    return taskService.createTask(userId, { ...item.task, taskDate });
+                });
+
+                const createdTasks = await Promise.all(taskPromises);
+
+                // Increment usage for all created tasks
+                for (let i = 0; i < createdTasks.length; i++) {
+                    await incrementUsage(userId, 'task');
+                }
+
+                // 2. Map task IDs to schedules and create them in bulk
+                const schedulesToCreate = [];
+                const createdSchedules = [];
+
+                for (let i = 0; i < data.items.length; i++) {
+                    const task = createdTasks[i];
+                    const scheduleData = data.items[i].schedule;
+
+                    if (task && scheduleData && scheduleData.scheduleDate && scheduleData.startTime && scheduleData.endTime) {
+                        try {
+                            const schedule = await scheduleService.createSchedule({
+                                userId,
+                                taskId: task.id,
+                                scheduleDate: scheduleData.scheduleDate,
+                                startTime: scheduleData.startTime,
+                                endTime: scheduleData.endTime,
+                                recurrence: scheduleData.recurrence ?? "NONE",
+                                repeatUntil: scheduleData.repeatUntil ?? null,
+                                repeatOnDays: scheduleData.repeatOnDays ?? [],
+                                notes: scheduleData.notes ?? null
+                            });
+                            await incrementUsage(userId, 'schedule');
+                            createdSchedules.push(schedule);
+                        } catch (scheduleError) {
+                            console.error(`Failed to schedule task ${task.id}:`, scheduleError);
+                        }
+                    }
+                }
+
+                return {
+                    success: true,
+                    message: `Successfully created and scheduled ${createdSchedules.length} items.`,
+                    tasks: createdTasks.map(t => ({ id: t.id, title: t.title })),
+                    schedules: createdSchedules
+                };
+            } catch (error) {
+                console.error(`[Executor Error] create_task_and_schedules_bulk:`, error);
+                return { error: true, message: `Failed to bulk create tasks and schedules: ${error.message}` };
+            }
+        }
+
+        // LEGACY / READ ACTIONS
+        case "UPDATE_TASK": {
+            try {
+                if (!data.taskId) return { error: true, message: "taskId is required to update a task." };
+                const { taskId, ...updates } = data;
+                const task = await taskService.updateTask(userId, taskId, updates);
+                return { success: true, message: "Task updated.", task };
+            } catch (error) {
+                console.error(`[Executor Error] UPDATE_TASK:`, error);
+                return { error: true, message: `Update failed: ${error.message}` };
+            }
+        }
+
+        case "DELETE_TASK": {
+            try {
+                let targetTaskId = data.taskId;
+
+                if (!targetTaskId && data.taskTitle) {
+                    const searchTitle = data.taskTitle.trim();
+                    let foundTask = await prisma.task.findFirst({
+                        where: { userId, title: { equals: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                        orderBy: { createdAt: 'desc' }
+                    });
+                    if (!foundTask) {
+                        foundTask = await prisma.task.findFirst({
+                            where: { userId, title: { contains: searchTitle, mode: 'insensitive' }, deletedAt: null },
+                            orderBy: { createdAt: 'desc' }
+                        });
+                    }
+                    if (!foundTask) {
+                        const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 50 });
+                        foundTask = allTasks.find(t => clean(t.title) === clean(searchTitle) || clean(t.title).includes(clean(searchTitle)));
+                    }
+                    if (foundTask) targetTaskId = foundTask.id;
+                }
+
+                if (!targetTaskId) {
+                    return { error: true, message: `Could not find task "${data.taskTitle || 'unknown'}" to delete.` };
+                }
+
+                await prisma.schedule.deleteMany({ where: { userId, taskId: targetTaskId } });
+                await taskService.deleteTask(userId, targetTaskId);
+                return { success: true, message: `Task "${data.taskTitle || ''}" and its schedules deleted successfully.` };
+            } catch (error) {
+                console.error(`[Executor Error] DELETE_TASK:`, error);
+                return { error: true, message: `Delete failed: ${error.message}` };
+            }
+        }
+
+        case "LIST_TASKS": {
+            try {
+                if (data.date) {
+                    const timezone = config.configurable?.user?.timezone || "UTC";
+                    const queryDateStr = data.date.toLowerCase() === "today"
+                        ? formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd')
+                        : toUTCDateOnly(data.date).toISOString().slice(0, 10);
+
+                    const { getTodayDashboard } = await import("../../services/dashboard.service.js");
+                    const dashOverview = await getTodayDashboard(userId, queryDateStr);
+
+                    const scheduledItems = dashOverview.timeline.filter(t => t.type === "SCHEDULED").map(t => ({
+                        title: t.title,
+                        description: t.description || "",
+                        priority: t.priority,
+                        status: t.status,
+                        time: t.startTime ? `${t.startTime} - ${t.endTime}` : "N/A"
+                    }));
+
+                    const unscheduledItems = dashOverview.timeline.filter(t => t.type === "UNSCHEDULED").map(t => ({
+                        title: t.title,
+                        description: t.description || "",
+                        priority: t.priority,
+                        status: t.status,
+                        time: "Anytime Today"
+                    }));
+
+                    return {
+                        success: true,
+                        summary: `You have ${scheduledItems.length} specific schedules and ${unscheduledItems.length} flexible tasks for today.`,
+                        schedules: scheduledItems,
+                        tasks: unscheduledItems
+                    };
+                }
+
+                const result = await taskService.getTasks(userId, data);
+                return { success: true, tasks: result.tasks };
+            } catch (error) {
+                console.error(`[Executor Error] LIST_TASKS:`, error);
+                return { error: true, message: `List tasks failed: ${error.message}` };
+            }
+        }
+
+        case "UPDATE_SCHEDULE": {
+            try {
+                if (!data.scheduleId) return { error: true, message: "scheduleId is required to update a schedule." };
+                const { scheduleId, ...updates } = data;
+                const schedule = await scheduleService.updateSchedule(userId, scheduleId, updates);
+                return { success: true, schedule };
+            } catch (error) {
+                console.error(`[Executor Error] UPDATE_SCHEDULE:`, error);
+                return { error: true, message: `Update schedule failed: ${error.message}` };
+            }
+        }
+
+        case "DELETE_SCHEDULE": {
+            try {
+                if (data.scheduleId) {
+                    await scheduleService.deleteSchedule(userId, data.scheduleId);
+                    return { success: true, message: "Schedule deleted successfully." };
+                }
+
                 if (data.taskTitle) {
                     const searchTitle = data.taskTitle.trim();
                     let foundTask = await prisma.task.findFirst({
@@ -280,26 +430,31 @@ export const executeAction = async (action, data, config) => {
                     });
                     if (!foundTask) {
                         const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
-                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, take: 50 });
+                        const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 50 });
                         foundTask = allTasks.find(t => clean(t.title).includes(clean(searchTitle)));
                     }
-                    if (!foundTask) throw new Error(`Could not find task "${searchTitle}" to delete schedules for.`);
+                    if (!foundTask) return { error: true, message: `Could not find task "${searchTitle}" to delete schedules for.` };
 
                     const deleted = await prisma.schedule.deleteMany({ where: { userId, taskId: foundTask.id } });
-                    return { message: `Deleted ${deleted.count} schedule(s) for "${foundTask.title}".` };
+                    return { success: true, message: `Deleted ${deleted.count} schedule(s) for "${foundTask.title}".` };
                 }
 
-                throw new Error("scheduleId or taskTitle is required for DELETE_SCHEDULE");
+                return { error: true, message: "scheduleId or taskTitle is required to delete schedule." };
+            } catch (error) {
+                console.error(`[Executor Error] DELETE_SCHEDULE:`, error);
+                return { error: true, message: `Delete schedule failed: ${error.message}` };
             }
-            case "DELETE_MULTIPLE_TASKS": {
+        }
+
+        case "DELETE_MULTIPLE_TASKS": {
+            try {
                 if (data.deleteAll) {
-                    // Delete ALL schedules first, then soft-delete ALL tasks
                     const deletedSchedules = await prisma.schedule.deleteMany({ where: { userId } });
                     const deletedTasks = await prisma.task.updateMany({
                         where: { userId, deletedAt: null },
                         data: { deletedAt: new Date(), isArchived: true }
                     });
-                    return { message: `Deleted ${deletedTasks.count} tasks and ${deletedSchedules.count} schedules.` };
+                    return { success: true, message: `Deleted ${deletedTasks.count} tasks and ${deletedSchedules.count} schedules.` };
                 }
 
                 if (data.taskTitles && Array.isArray(data.taskTitles)) {
@@ -313,7 +468,7 @@ export const executeAction = async (action, data, config) => {
                         });
                         if (!foundTask) {
                             const clean = (s) => s.toLowerCase().replace(/[^\w\s]/gi, '').trim();
-                            const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, take: 50 });
+                            const allTasks = await prisma.task.findMany({ where: { userId, deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 50 });
                             foundTask = allTasks.find(t => clean(t.title).includes(clean(searchTitle)));
                         }
                         if (foundTask) {
@@ -324,15 +479,21 @@ export const executeAction = async (action, data, config) => {
                             errors.push(`"${title}"`);
                         }
                     }
-                    return { message: `Deleted ${deletedCount} tasks.${errors.length > 0 ? ` Could not find: ${errors.join(', ')}` : ''}` };
+                    return { success: true, message: `Deleted ${deletedCount} tasks.${errors.length > 0 ? ` Could not find: ${errors.join(', ')}` : ''}` };
                 }
 
-                throw new Error("deleteAll or taskTitles is required for DELETE_MULTIPLE_TASKS");
+                return { error: true, message: "deleteAll or taskTitles is required." };
+            } catch (error) {
+                console.error(`[Executor Error] DELETE_MULTIPLE_TASKS:`, error);
+                return { error: true, message: `Bulk delete failed: ${error.message}` };
             }
-            case "DELETE_MULTIPLE_SCHEDULES": {
+        }
+
+        case "DELETE_MULTIPLE_SCHEDULES": {
+            try {
                 if (data.deleteAll) {
                     const deleted = await prisma.schedule.deleteMany({ where: { userId } });
-                    return { message: `Deleted all ${deleted.count} schedules.` };
+                    return { success: true, message: `Deleted all ${deleted.count} schedules.` };
                 }
 
                 if (data.taskTitles && Array.isArray(data.taskTitles)) {
@@ -351,19 +512,30 @@ export const executeAction = async (action, data, config) => {
                             errors.push(`"${title}"`);
                         }
                     }
-                    return { message: `Deleted ${totalDeleted} schedules.${errors.length > 0 ? ` Could not find tasks: ${errors.join(', ')}` : ''}` };
+                    return { success: true, message: `Deleted ${totalDeleted} schedules.${errors.length > 0 ? ` Could not find tasks: ${errors.join(', ')}` : ''}` };
                 }
 
-                throw new Error("deleteAll or taskTitles is required for DELETE_MULTIPLE_SCHEDULES");
+                return { error: true, message: "deleteAll or taskTitles is required." };
+            } catch (error) {
+                console.error(`[Executor Error] DELETE_MULTIPLE_SCHEDULES:`, error);
+                return { error: true, message: `Bulk delete failed: ${error.message}` };
             }
-            case "LIST_SCHEDULES": {
-                if (!data.from || !data.to) throw new Error("from and to dates are required for LIST_SCHEDULES");
-                const calendarDays = await calendarService.getRangeCalendar(userId, data.from, data.to);
-                return calendarDays;
-            }
+        }
 
-            case "LOG_BEHAVIOR": {
-                if (!data.date) throw new Error("date is required for LOG_BEHAVIOR");
+        case "LIST_SCHEDULES": {
+            try {
+                if (!data.from || !data.to) return { error: true, message: "from and to dates are required." };
+                const calendarDays = await calendarService.getRangeCalendar(userId, data.from, data.to);
+                return { success: true, data: calendarDays };
+            } catch (error) {
+                console.error(`[Executor Error] LIST_SCHEDULES:`, error);
+                return { error: true, message: `List schedules failed: ${error.message}` };
+            }
+        }
+
+        case "LOG_BEHAVIOR": {
+            try {
+                if (!data.date) return { error: true, message: "date is required to log behavior." };
                 await prisma.behaviorLog.upsert({
                     where: {
                         userId_date: {
@@ -384,10 +556,15 @@ export const executeAction = async (action, data, config) => {
                         notes: data.notes,
                     },
                 });
-                return { message: "Behavior logged successfully." };
+                return { success: true, message: "Behavior logged successfully." };
+            } catch (error) {
+                console.error(`[Executor Error] LOG_BEHAVIOR:`, error);
+                return { error: true, message: `Log behavior failed: ${error.message}` };
             }
+        }
 
-            case "GET_DASHBOARD_SUMMARY": {
+        case "GET_DASHBOARD_SUMMARY": {
+            try {
                 const timezone = config.configurable?.user?.timezone || "UTC";
                 const queryDateStr = (!data.date || data.date.toLowerCase() === "today")
                     ? formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd')
@@ -397,23 +574,24 @@ export const executeAction = async (action, data, config) => {
                 const dashOverview = await getDashboardOverview(userId, queryDateStr);
 
                 return {
+                    success: true,
                     summary: `For ${queryDateStr}, you have ${dashOverview.completedTasksCount} completed tasks out of ${dashOverview.todayTasksTotal} total.`,
                     productivityScore: dashOverview.productivityScore,
                     behaviorScore: dashOverview.behaviorScore,
                     currentStreak: dashOverview.currentStreak,
                     pendingTasks: dashOverview.todayTasksCount
                 };
+            } catch (error) {
+                console.error(`[Executor Error] GET_DASHBOARD_SUMMARY:`, error);
+                return { error: true, message: `Failed to load dashboard summary: ${error.message}` };
             }
-
-            case "UNKNOWN":
-                // This shouldn't be executed directly since validationNode bypasses
-                return { message: "No action mapped" };
-
-            default:
-                throw new Error(`Unsupported action type: ${action}`);
         }
-    } catch (error) {
-        // Zod validation errors or Service execution errors
-        throw new Error(`Action Execution Failed (${action}): ${error.message}`);
+
+        case "unknown":
+        case "UNKNOWN":
+            return { message: "No action mapped. Please clarify." };
+
+        default:
+            return { error: true, message: `Unsupported action type requested: ${action}` };
     }
 };
