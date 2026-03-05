@@ -97,7 +97,7 @@ User: "Delete Morning Walk and Coffee Time tasks"
 {"thought": "User wants to delete specific tasks by title.", "action": "DELETE_MULTIPLE_TASKS", "data": {"taskTitles": ["Morning Walk", "Coffee Time"]}}
 `;
 
-export const responsePrompt = `You are TaskTime AI Assistant.
+export const responsePrompt = `You are TASKTIME Assistant.
 A user asked you to perform an action, and the backend has executed it. Below is the system result of that action. 
 
 Your job is to read the result and respond directly to the user in a natural, helpful, and conversational tone.
