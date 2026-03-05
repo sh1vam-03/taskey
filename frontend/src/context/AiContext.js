@@ -221,6 +221,7 @@ export function AiProvider({ children }) {
     const audioQueueRef = useRef([]);
     const isPlayingAudioRef = useRef(false);
     const audioAbortControllerRef = useRef(null);
+    const currentAudioRef = useRef(null); // Track the currently playing Audio object
 
     // TTS Sequential Queue Refs
     const sentenceQueueRef = useRef([]);
@@ -236,7 +237,10 @@ export function AiProvider({ children }) {
         try {
             const chunk = await aiService.synthesizeSpeech(textToSpeak, state.settings.speaker);
             if (chunk?.audioUrl) {
-                audioQueueRef.current.push(chunk.audioUrl);
+                // Pre-load the audio from the URL immediately so the browser fetches it in the background!
+                const audio = new Audio(chunk.audioUrl);
+                audio.preload = "auto";
+                audioQueueRef.current.push(audio);
                 // Start playing immediately if not already playing
                 processAudioQueue();
             }
@@ -302,23 +306,28 @@ export function AiProvider({ children }) {
         if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
 
         isPlayingAudioRef.current = true;
-        const audioUrl = audioQueueRef.current.shift();
-        const audio = new Audio(audioUrl);
+
+        // Grab the pre-loaded HTMLAudioElement
+        const audio = audioQueueRef.current.shift();
+        currentAudioRef.current = audio;
 
         audio.onended = () => {
             isPlayingAudioRef.current = false;
+            currentAudioRef.current = null;
             // Eagerly process the next audio if already synthesized
             processAudioQueue();
         };
 
         audio.onerror = () => {
             isPlayingAudioRef.current = false;
+            currentAudioRef.current = null;
             processAudioQueue();
         };
 
         audio.play().catch(e => {
             console.warn('[VoiceStream] Audio play failed:', e);
             isPlayingAudioRef.current = false;
+            currentAudioRef.current = null;
             processAudioQueue();
         });
     }, []);
@@ -326,7 +335,11 @@ export function AiProvider({ children }) {
     const stopVoiceAudio = useCallback(() => {
         audioQueueRef.current = [];
         isPlayingAudioRef.current = false;
-        // Ideally we'd keep track of the current Audio object to stop it
+        if (currentAudioRef.current) {
+            currentAudioRef.current.pause();
+            currentAudioRef.current.currentTime = 0;
+            currentAudioRef.current = null;
+        }
     }, []);
 
     const openConversation = useCallback(async (id) => {
