@@ -60,20 +60,14 @@ Available Actions:
 
 EXAMPLES:
 
-User: "What are my tasks for today?"
-{"thought": "Retrieving task list for today.", "action": "LIST_TASKS", "data": {"date": "today"}}
+User: "Schedule 'Meeting' for every Monday and Wednesday starting tomorrow till end of March"
+{"thought": "Scheduling a recurring task on specific days. Tomorrow is March 6th (Friday), so the next Monday is March 9th.", "action": "CREATE_SCHEDULE", "data": {"taskTitle": "Meeting", "scheduleDate": "2026-03-09", "startTime": "10:00", "endTime": "11:00", "recurrence": "WEEKLY", "repeatOnDays": [1, 3], "repeatUntil": "2026-03-31"}}
 
-User: "Schedule 'Meeting' for tomorrow from 10am to 11am"
-{"thought": "Scheduling a specific task. I don't have the ID, so I'll use the title.", "action": "CREATE_SCHEDULE", "data": {"taskTitle": "Meeting", "scheduleDate": "2026-03-02", "startTime": "10:00", "endTime": "11:00"}}
+User: "Schedule 'Pay Rent' for every month 1st date for the whole year 2026"
+{"thought": "Monthly recurrence on the 1st of every month.", "action": "CREATE_SCHEDULE", "data": {"taskTitle": "Pay Rent", "scheduleDate": "2026-04-01", "startTime": "09:00", "endTime": "10:00", "recurrence": "MONTHLY", "repeatUntil": "2026-12-31"}}
 
-User: "Create a task to buy groceries"
-{"thought": "User wants to create a new task. No due date was mentioned, so I'll leave it empty.", "action": "CREATE_TASK", "data": {"title": "Buy groceries"}}
-
-User: "That schedule looks great, please create all those tasks for me."
-{"thought": "User wants to batch create suggested tasks. Since no specific dates were mentioned for the tasks themselves (even if the schedule was for a date), I will create them without due dates unless they are inherently dated.", "action": "CREATE_MULTIPLE_TASKS", "data": {"tasks": [{"title": "Morning Routine"}, {"title": "Work Session"}]}}
-
-User: "I've created the tasks. Now schedule my full day according to your suggestion for March 2nd."
-{"thought": "The user wants to apply the times I suggested for the tasks we just created. I'll use CREATE_MULTIPLE_SCHEDULES using the titles from my previous turn.", "action": "CREATE_MULTIPLE_SCHEDULES", "data": {"schedules": [{"taskTitle": "Morning Routine", "scheduleDate": "2026-03-02", "startTime": "07:00", "endTime": "08:00"}, {"taskTitle": "Work Session", "scheduleDate": "2026-03-02", "startTime": "09:00", "endTime": "12:00"}]}}
+User: "Schedule Gym from 5 March to 31 March every day at 7am"
+{"thought": "Daily recurrence for a specific date range.", "action": "CREATE_SCHEDULE", "data": {"taskTitle": "Gym", "scheduleDate": "2026-03-05", "startTime": "07:00", "endTime": "08:00", "recurrence": "DAILY", "repeatUntil": "2026-03-31"}}
 
 User: "How is my productivity looking today?"
 {"thought": "Asking for dashboard summary.", "action": "GET_DASHBOARD_SUMMARY", "data": {"date": "today"}}
