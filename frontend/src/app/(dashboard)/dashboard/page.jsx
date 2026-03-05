@@ -238,14 +238,15 @@ export default function DashboardOverview() {
                                 <div className="group relative">
                                     <Activity className="h-4 w-4 text-gray-500 hover:text-cyan-400 cursor-help transition-colors" />
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs text-cyan-100 bg-cyan-950/90 border border-cyan-500/20 rounded shadow-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                                        Tasks (70%) + Lifestyle (30%)
+                                        Task Completion (70%) + Behavior Score (30%)
                                     </div>
                                 </div>
                             </div>
                         }
+                        shimmer={true}
                         showBorder={true}
                         icon={BrainCircuit}
-                        className="min-h-[140px]"
+                        className="min-h-[140px] overflow-visible"
                     >
                         <div className="flex-1 flex items-center">
                             <div className="text-3xl font-bold text-white">{overview?.productivityScore || 0}</div>
