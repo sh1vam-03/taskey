@@ -75,7 +75,8 @@ export const speakText = async ({
 
     // ── Sarvam Bulbul v3 ──────────────────────────────────────
     if (ttsModel === "bulbul:v3") {
-        const audioPath = path.join(TMP_DIR, `voice-${ts}.wav`);
+        const randStr = Math.random().toString(36).substring(2, 8);
+        const audioPath = path.join(TMP_DIR, `voice-${ts}-${randStr}.wav`);
 
         // AUTO-DETECT language from the actual text characters
         const detectedLang = detectTextLanguage(text);
@@ -115,7 +116,8 @@ export const speakText = async ({
     }
 
     // ── OpenAI tts-1 ─────────────────────────────────────────
-    const audioPath = path.join(TMP_DIR, `voice-${ts}.mp3`);
+    const randStr = Math.random().toString(36).substring(2, 8);
+    const audioPath = path.join(TMP_DIR, `voice-${ts}-${randStr}.mp3`);
 
     const speed = emotion?.rate
         ? Math.max(0.85, Math.min(1.2, emotion.rate))
