@@ -28,6 +28,14 @@ export const sarvamState = {
  */
 
 export const ActionTypeSchema = z.enum([
+    "create_task",
+    "create_tasks_bulk",
+    "create_schedule",
+    "create_schedules_bulk",
+    "create_task_and_schedule",
+    "create_task_and_schedules_bulk",
+    "unknown",
+
     "CREATE_TASK",
     "UPDATE_TASK",
     "DELETE_TASK",

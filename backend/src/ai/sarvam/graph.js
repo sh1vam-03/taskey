@@ -9,13 +9,13 @@ import {
 
 /**
  * Conditional edge to decide if we should execute an action or
- * if it was an UNKNOWN/conversational intent that should just get a response.
+ * if it was an unknown/conversational intent that should just get a response.
  */
 const shouldExecuteAction = (state) => {
     const intent = state.parsedIntent;
 
     // If validation failed or it's just a chat, skip execution
-    if (!intent || intent.action === "UNKNOWN" || state.routingError) {
+    if (!intent || intent.action === "unknown" || state.routingError) {
         return "response";
     }
 
