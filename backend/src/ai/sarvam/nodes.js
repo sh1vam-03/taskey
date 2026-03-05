@@ -13,8 +13,8 @@ export const createIntentExtractorNode = (model) => {
         const { messages } = state;
         const { user, conversationId } = config.configurable;
 
-        // Context (same as Gemini)
-        let systemContext = await buildSystemContext(user.id, user, conversationId);
+        // Context (same as Gemini) but WITHOUT the conversational persona
+        let systemContext = await buildSystemContext(user.id, user, conversationId, true);
 
         // Prepend JSON instructional prompt to context. 
         // IMPORTANT: intentPrompt goes LAST so the LLM remembers it is an Intent Parser, 
@@ -52,10 +52,11 @@ export const validateIntentNode = async (state) => {
         // Strip out markdown fences exactly as specified
         let cleanString = rawIntentString.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-        // Extract ONLY the JSON object (in case the model still chatted outside fences)
-        const jsonMatch = cleanString.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            cleanString = jsonMatch[0];
+        // Extract ONLY the JSON object, finding the first '{' and the last '}'
+        const firstBrace = cleanString.indexOf('{');
+        const lastBrace = cleanString.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+            cleanString = cleanString.substring(firstBrace, lastBrace + 1);
         }
 
         parsedJson = JSON.parse(cleanString);
