@@ -198,6 +198,7 @@ export default function BehaviorPage() {
                     {/* Trend Chart */}
                     <Card
                         title={`${chartPeriod}-Day Progress`}
+                        shimmer={true}
                         icon={TrendingUp}
                         className="relative"
                     >
