@@ -223,39 +223,56 @@ export function AiProvider({ children }) {
     const audioAbortControllerRef = useRef(null);
     const currentAudioRef = useRef(null); // Track the currently playing Audio object
 
-    // TTS Sequential Queue Refs
-    const sentenceQueueRef = useRef([]);
-    const isSynthesizingRef = useRef(false);
+    const playAndRemoveNext = useCallback(async () => {
+        if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
 
-    // Eagerly pre-synthesizes sentences while the previous one is still playing
-    const processSentenceQueue = useCallback(async () => {
-        if (isSynthesizingRef.current || sentenceQueueRef.current.length === 0) return;
+        isPlayingAudioRef.current = true;
 
-        isSynthesizingRef.current = true;
-        const textToSpeak = sentenceQueueRef.current.shift();
+        // Grab the *promise* or *object* from the front of the queue
+        const item = audioQueueRef.current[0];
 
         try {
-            const chunk = await aiService.synthesizeSpeech(textToSpeak, state.settings.speaker);
-            if (chunk?.audioUrl) {
-                // Pre-load the audio from the URL immediately so the browser fetches it in the background!
-                const audio = new Audio(chunk.audioUrl);
-                audio.preload = "auto";
-                audioQueueRef.current.push(audio);
-                // Start playing immediately if not already playing
-                processAudioQueue();
+            // Await the item in case the API call is still inflight
+            const synthesizedAudio = await item.promise;
+
+            if (!synthesizedAudio?.audioUrl) {
+                // If it failed/returned empty, remove from queue and proceed to next
+                audioQueueRef.current.shift();
+                isPlayingAudioRef.current = false;
+                playAndRemoveNext();
+                return;
             }
+
+            // Create and pre-load the HTMLAudioElement
+            const audio = new Audio(synthesizedAudio.audioUrl);
+            audio.preload = "auto";
+            currentAudioRef.current = audio;
+
+            audio.onended = () => {
+                isPlayingAudioRef.current = false;
+                currentAudioRef.current = null;
+                audioQueueRef.current.shift(); // Remove only AFTER playing
+                playAndRemoveNext(); // Play next
+            };
+
+            audio.onerror = () => {
+                isPlayingAudioRef.current = false;
+                currentAudioRef.current = null;
+                audioQueueRef.current.shift();
+                playAndRemoveNext();
+            };
+
+            await audio.play();
+
         } catch (err) {
-            console.error('[VoiceStream] TTS chunk failed:', err);
-        } finally {
-            isSynthesizingRef.current = false;
-            // IMMEDIATELY process the next sentence in the background (pre-fetch)
-            // It will block if isSynthesizingRef is true, but will queue up the next audio URL
-            // as soon as the API call returns, independent of whether the audio is done playing.
-            if (sentenceQueueRef.current.length > 0) {
-                processSentenceQueue();
-            }
+            console.error('[VoiceStream] Audio playback/fetch failed:', err);
+            isPlayingAudioRef.current = false;
+            currentAudioRef.current = null;
+            audioQueueRef.current.shift();
+            playAndRemoveNext();
         }
-    }, [state.settings.speaker]);
+
+    }, []);
 
     /**
      * Splits text into sentences and triggers TTS sequentially for each.
@@ -293,44 +310,24 @@ export function AiProvider({ children }) {
         for (const text of completeSentences) {
             if (text.length < 2) continue; // skip very short fragments
 
-            // Push to sequential queue instead of parallel fetch
-            sentenceQueueRef.current.push(text);
+            // 1) IMMEDIATELY fire off the API request to synthesize the speech out-of-band (Parallel)
+            // This promises resolves to { audioUrl }
+            const fetchPromise = aiService.synthesizeSpeech(text, state.settings.speaker).catch(err => {
+                console.error('[VoiceStream] TTS chunk failed:', err);
+                return null;
+            });
+
+            // 2) Push the pending promise into the strictly-ordered timeline queue!
+            audioQueueRef.current.push({ text, promise: fetchPromise });
         }
 
-        // Trigger processing
-        processSentenceQueue();
+        // 3) Nudge the playback loop. It will await the promise at the front of the queue.
+        playAndRemoveNext();
 
-    }, [processSentenceQueue]);
+    }, [playAndRemoveNext, state.settings.speaker]);
 
-    const processAudioQueue = useCallback(() => {
-        if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
-
-        isPlayingAudioRef.current = true;
-
-        // Grab the pre-loaded HTMLAudioElement
-        const audio = audioQueueRef.current.shift();
-        currentAudioRef.current = audio;
-
-        audio.onended = () => {
-            isPlayingAudioRef.current = false;
-            currentAudioRef.current = null;
-            // Eagerly process the next audio if already synthesized
-            processAudioQueue();
-        };
-
-        audio.onerror = () => {
-            isPlayingAudioRef.current = false;
-            currentAudioRef.current = null;
-            processAudioQueue();
-        };
-
-        audio.play().catch(e => {
-            console.warn('[VoiceStream] Audio play failed:', e);
-            isPlayingAudioRef.current = false;
-            currentAudioRef.current = null;
-            processAudioQueue();
-        });
-    }, []);
+    // OBSOLETE - replaced by playAndRemoveNext
+    // Keeping stopVoiceAudio intact below.
 
     const stopVoiceAudio = useCallback(() => {
         audioQueueRef.current = [];
