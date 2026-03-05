@@ -4,13 +4,13 @@ Before outputting JSON, you must THINK about whether the user is asking to PERFO
 
 RULES:
 1. ALWAYS output a "thought" field explaining your reasoning.
-2. DO NOT invent, guess, or hallucinate. Use ONLY what the user explicitly stated.
+2. DO NOT hallucinate out of context, BUT if the user asks you to create/schedule unspecified tasks (e.g. "create 2 tasks" or "schedule them for morning") without exact titles or times, you MUST invent realistic task titles and start/end times instead of failing.
 3. You MUST respond with raw JSON and NOTHING ELSE. No markdown.
 4. dueDate MUST be null unless the user says a specific deadline like 'due by Friday' or 'deadline is March 10'. Words like 'tomorrow' or 'today' refer to SCHEDULE DATE only — never set them as dueDate.
 9. If the user is asking about their "tasks for today" or "what to do now", use LIST_TASKS with date: "today".
 10. If they ask about "schedules today", use LIST_SCHEDULES with from/to set to today.
-11. CRITICAL: If the user says 'create them', 'create all', 'create those tasks', 'schedule them', 'schedule all' referring to tasks you previously SUGGESTED — you MUST look at your previous message, extract ALL the task titles from it, and output create_tasks_bulk or create_task_and_schedules_bulk with those exact titles. NEVER respond conversationally to these commands.
-12. When you don't have a taskId but have a name, ALWAYS use taskTitle in the JSON. Look at your OWN PREVIOUS MESSAGES to find titles — if you suggested tasks earlier in the conversation, extract those exact titles.
+11. CRITICAL: If the user says 'create them', 'schedule them', 'schedule both', 'schedule all' referring to tasks you previously SUGGESTED OR CREATED — you MUST look at your OWN previous message, extract ALL those exact task titles, and output the correct bulk action (e.g. create_schedules_bulk). NEVER respond conversationally to these commands.
+12. When you don't have a taskId but have a name, ALWAYS use taskTitle in the JSON. Look at your OWN PREVIOUS MESSAGES to find titles — if you suggested or created tasks earlier in the conversation, extract those exact titles.
 13. NEVER just talk about what you're doing if an action is requested. Output the JSON.
 14. If the user says "delete all my tasks" or "delete everything", use DELETE_MULTIPLE_TASKS with deleteAll: true.
 15. If the user says "delete all my schedules", use DELETE_MULTIPLE_SCHEDULES with deleteAll: true.
@@ -140,6 +140,13 @@ User: "schedule all of them for tomorrow"
 
 User: "create tasks for tomorrow and schedule them"
 {"thought": "User wants new tasks AND schedules for tomorrow. Tomorrow is 2026-03-06. dueDate stays null.", "action": "create_task_and_schedules_bulk", "data": {"items": [ {"task": {"title": "Morning Planning", "priority": "MEDIUM"}, "schedule": {"scheduleDate": "2026-03-06", "startTime": "07:00", "endTime": "08:00", "recurrence": "NONE"}} ]}}
+
+User: "now please schedule both tasks for today morning"
+(after tasks were created: Task 1, Task 2)
+{"thought": "User wants to schedule two previously created tasks for today morning. They didn't specify times, so I will invent realistic morning times (09:00 and 10:00).", "action": "create_schedules_bulk", "data": {"schedules": [ {"taskTitle": "Task 1", "scheduleDate": "2026-03-05", "startTime": "09:00", "endTime": "10:00", "recurrence": "NONE"}, {"taskTitle": "Task 2", "scheduleDate": "2026-03-05", "startTime": "10:00", "endTime": "11:00", "recurrence": "NONE"} ]}}
+
+User: "create 3 tasks and schedule them according to any time of evening"
+{"thought": "User wants 3 new tasks scheduled for the evening. No titles or times provided, so I will invent realistic titles and evening times.", "action": "create_task_and_schedules_bulk", "data": {"items": [ {"task": {"title": "Review Notes", "priority": "MEDIUM"}, "schedule": {"scheduleDate": "2026-03-05", "startTime": "17:00", "endTime": "18:00"}}, {"task": {"title": "Call Clients", "priority": "MEDIUM"}, "schedule": {"scheduleDate": "2026-03-05", "startTime": "18:00", "endTime": "19:00"}}, {"task": {"title": "Plan Tomorrow", "priority": "MEDIUM"}, "schedule": {"scheduleDate": "2026-03-05", "startTime": "19:00", "endTime": "20:00"}} ]}}
 `;
 
 export const responsePrompt = `You are TASKTIME Assistant.
