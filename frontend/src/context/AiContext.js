@@ -266,8 +266,10 @@ export function AiProvider({ children }) {
         window.__voiceState.processedIndex = fullText.length;
         window.__voiceState.pendingText += newText;
 
-        // Split by sentence boundaries: . ! ? or newline
-        const sentences = window.__voiceState.pendingText.split(/([.!?\n]+)/);
+        // Split by sentence boundaries and commas: . , ! ? or newline
+        // Adding comma (,) makes chunks much smaller, allowing Sarvam to return audio much faster
+        // which eliminates latency between sentences.
+        const sentences = window.__voiceState.pendingText.split(/([.,!?\n]+)/);
 
         // The last element might be an incomplete sentence unless isFinal is true
         let completeSentences = [];
@@ -440,7 +442,12 @@ export function AiProvider({ children }) {
             convId,
             text,
             "TEXT",
-            (token) => dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token }),
+            (token, currentFullText) => {
+                dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token });
+                if (isVoiceMode) {
+                    playVoiceStream(currentFullText, false);
+                }
+            },
             (fullText) => {
                 dispatch({ type: 'STREAM_DONE', payload: fullText });
                 if (isVoiceMode) playVoiceStream(fullText, true);
@@ -513,8 +520,10 @@ export function AiProvider({ children }) {
                 convId,
                 userText,
                 "VOICE",
-                (token) => {
+                (token, currentFullText) => {
                     dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token });
+                    // Directly trigger TTS instead of waiting for a React batch update/useEffect
+                    playVoiceStream(currentFullText, false);
                 },
                 (fullText) => {
                     dispatch({ type: 'STREAM_DONE', payload: fullText });
@@ -593,12 +602,8 @@ export function AiProvider({ children }) {
         };
     }, [loadSettings, loadConversations, stopVoiceAudio]);
 
-    // Use a reference to latest tokens for the voice stream playback
-    useEffect(() => {
-        if (state.isStreaming && window.__voiceState) {
-            playVoiceStream(state.streamingContent);
-        }
-    }, [state.streamingContent, state.isStreaming, playVoiceStream]);
+    // Remove obsolete useEffect that triggered voice stream via state.streamingContent since 
+    // it's now handled smoothly and directly in the api streaming hook.
 
     const value = {
         ...state,

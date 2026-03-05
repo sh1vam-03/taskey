@@ -66,7 +66,7 @@ const aiService = {
      * @param {string} conversationId
      * @param {string} message
      * @param {string} mode - "TEXT" or "VOICE"
-     * @param {(token: string) => void} onToken - called with each text chunk
+     * @param {(token: string, fullText: string) => void} onToken - called with each text chunk and the accumulated text
      * @param {(fullText: string) => void} onDone - called when stream finishes
      * @param {(error: Error) => void} onError - called on error
      * @returns {() => void} abort function
@@ -142,7 +142,7 @@ const aiService = {
 
                                 if (parsed.token) {
                                     fullText += parsed.token;
-                                    onToken(parsed.token);
+                                    onToken(parsed.token, fullText);
                                 }
 
                                 if (parsed.title && onTitle) {
