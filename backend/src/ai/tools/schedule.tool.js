@@ -15,6 +15,9 @@ export const createScheduleTool = () => new DynamicStructuredTool({
         scheduleDate: z.string().describe("Date YYYY-MM-DD"),
         startTime: z.string().describe("Start time HH:mm"),
         endTime: z.string().describe("End time HH:mm"),
+        recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional().describe("Recurrence type"),
+        repeatUntil: z.string().optional().describe("End date for recurrence YYYY-MM-DD"),
+        repeatOnDays: z.array(z.number().min(0).max(6)).optional().describe("For WEEKLY: 0=Sun, 1=Mon, etc."),
     }),
     func: async (args, config) => {
         try {

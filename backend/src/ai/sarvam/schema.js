@@ -78,6 +78,9 @@ export const CreateScheduleSchema = z.object({
     scheduleDate: z.string().describe("YYYY-MM-DD"),
     startTime: z.string().describe("HH:mm"),
     endTime: z.string().describe("HH:mm"),
+    recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional(),
+    repeatUntil: z.string().optional().describe("YYYY-MM-DD"),
+    repeatOnDays: z.array(z.number().min(0).max(6)).optional().describe("0=Sun, 1=Mon, etc. (Required for WEEKLY)"),
 });
 
 export const UpdateScheduleSchema = z.object({
@@ -116,6 +119,9 @@ export const CreateMultipleSchedulesSchema = z.object({
         scheduleDate: z.string().describe("YYYY-MM-DD"),
         startTime: z.string().describe("HH:mm"),
         endTime: z.string().describe("HH:mm"),
+        recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional(),
+        repeatUntil: z.string().optional().describe("YYYY-MM-DD"),
+        repeatOnDays: z.array(z.number().min(0).max(6)).optional(),
     }))
 });
 
