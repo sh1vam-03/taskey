@@ -81,7 +81,8 @@ const buildSarvamModel = (streaming = false) =>
             defaultHeaders: {
                 "api-subscription-key": process.env.SARVAM_API_KEY
             }
-        }
+        },
+        reasoning_effort: "high"
     });
 
 /**
@@ -102,7 +103,8 @@ const buildSarvamMModel = (streaming = false) =>
             defaultHeaders: {
                 "api-subscription-key": process.env.SARVAM_API_KEY
             }
-        }
+        },
+        reasoning_effort: "high"
     });
 
 /**
