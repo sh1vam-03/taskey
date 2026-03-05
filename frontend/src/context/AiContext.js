@@ -264,6 +264,19 @@ export function AiProvider({ children }) {
         }
     }, [state.settings.speaker]);
 
+    /**
+     * Strips common markdown syntax to prevent TTS from reading it aloud.
+     */
+    const stripMarkdown = (text) => {
+        if (!text) return "";
+        return text
+            .replace(/[#*`_~]/g, "") // Headers, bold, code, italic, strikethrough
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1") // Links: [text](url) -> text
+            .replace(/^[>\-\+\*]\s+/gm, "") // Blockquotes and list markers
+            .replace(/^\d+\.\s+/gm, "") // Numbered lists
+            .trim();
+    };
+
     const playAndRemoveNext = useCallback(async () => {
         if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
 
@@ -349,6 +362,10 @@ export function AiProvider({ children }) {
         for (const text of completeSentences) {
             if (text.length < 2) continue; // skip very short fragments
 
+            // Clean markdown before synthesis
+            const cleanText = stripMarkdown(text);
+            if (!cleanText || cleanText.length < 2) continue;
+
             // 1) Create a deferred promise that will be resolved by the synthesis manager
             let resolvePromise;
             const fetchPromise = new Promise((resolve) => {
@@ -357,13 +374,13 @@ export function AiProvider({ children }) {
 
             // 2) Push to the internal synthesis worker queue
             pendingSynthesisQueueRef.current.push({
-                text,
+                text: cleanText,
                 speaker: state.settings.speaker,
                 resolve: resolvePromise
             });
 
             // 3) Push the pending promise into the strictly-ordered timeline queue!
-            audioQueueRef.current.push({ text, promise: fetchPromise });
+            audioQueueRef.current.push({ text: cleanText, promise: fetchPromise });
         }
 
         // 4) Start synthesis workers
