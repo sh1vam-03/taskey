@@ -69,7 +69,7 @@ export default function ChatWindow() {
             {settings?.chatModel === 'sarvam-m' && (
                 <div className="bg-cyan-500/10 border-b border-cyan-500/20 px-4 py-2.5 flex items-center justify-center gap-2 shrink-0">
                     <span className="text-cyan-400 text-[11px] font-medium tracking-wide">
-                        📚 Alpha Mode — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
+                        📚 Alpha Version — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
                     </span>
                 </div>
             )}
@@ -172,7 +172,7 @@ function EmptyState() {
 
                 {settings?.chatModel === 'sarvam-m' && (
                     <div className="mb-8 px-4 py-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-[11px] md:text-xs text-cyan-400 font-medium tracking-wide">
-                        📚 Alpha Mode — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
+                        📚 Alpha Version — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
                     </div>
                 )}
 
