@@ -222,8 +222,33 @@ export function AiProvider({ children }) {
     const isPlayingAudioRef = useRef(false);
     const audioAbortControllerRef = useRef(null);
 
+    // TTS Sequential Queue Refs
+    const sentenceQueueRef = useRef([]);
+    const isSynthesizingRef = useRef(false);
+
+    const processSentenceQueue = useCallback(async () => {
+        if (isSynthesizingRef.current || sentenceQueueRef.current.length === 0) return;
+
+        isSynthesizingRef.current = true;
+        const textToSpeak = sentenceQueueRef.current.shift();
+
+        try {
+            const chunk = await aiService.synthesizeSpeech(textToSpeak, state.settings.speaker);
+            if (chunk?.audioUrl) {
+                audioQueueRef.current.push(chunk.audioUrl);
+                processAudioQueue();
+            }
+        } catch (err) {
+            console.error('[VoiceStream] TTS chunk failed:', err);
+        } finally {
+            isSynthesizingRef.current = false;
+            // Process next sentence
+            processSentenceQueue();
+        }
+    }, [state.settings.speaker]);
+
     /**
-     * Splits text into sentences and triggers TTS for each.
+     * Splits text into sentences and triggers TTS sequentially for each.
      */
     const playVoiceStream = useCallback(async (fullText, isFinal = false) => {
         // Use a persistent ref to keep track of what we've already sent to TTS
@@ -254,17 +279,14 @@ export function AiProvider({ children }) {
         for (const text of completeSentences) {
             if (text.length < 2) continue; // skip very short fragments
 
-            try {
-                const chunk = await aiService.synthesizeSpeech(text, state.settings.speaker);
-                if (chunk?.audioUrl) {
-                    audioQueueRef.current.push(chunk.audioUrl);
-                    processAudioQueue();
-                }
-            } catch (err) {
-                console.error('[VoiceStream] TTS chunk failed:', err);
-            }
+            // Push to sequential queue instead of parallel fetch
+            sentenceQueueRef.current.push(text);
         }
-    }, [state.settings.speaker]);
+
+        // Trigger processing
+        processSentenceQueue();
+
+    }, [processSentenceQueue]);
 
     const processAudioQueue = useCallback(() => {
         if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
@@ -405,6 +427,7 @@ export function AiProvider({ children }) {
         aiService.sendMessageStream(
             convId,
             text,
+            "TEXT",
             (token) => dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token }),
             (fullText) => {
                 dispatch({ type: 'STREAM_DONE', payload: fullText });
@@ -477,6 +500,7 @@ export function AiProvider({ children }) {
             aiService.sendMessageStream(
                 convId,
                 userText,
+                "VOICE",
                 (token) => {
                     dispatch({ type: 'APPEND_STREAM_TOKEN', payload: token });
                 },
