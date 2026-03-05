@@ -223,6 +223,47 @@ export function AiProvider({ children }) {
     const audioAbortControllerRef = useRef(null);
     const currentAudioRef = useRef(null); // Track the currently playing Audio object
 
+    // Synthesis Throttling & Queueing
+    const pendingSynthesisQueueRef = useRef([]);
+    const activeSynthesisCountRef = useRef(0);
+    const MAX_CONCURRENT_SYNTHESIS = 3;
+
+    const processSynthesisQueue = useCallback(async () => {
+        if (activeSynthesisCountRef.current >= MAX_CONCURRENT_SYNTHESIS || pendingSynthesisQueueRef.current.length === 0) {
+            return;
+        }
+
+        const task = pendingSynthesisQueueRef.current.shift();
+        activeSynthesisCountRef.current++;
+
+        const synthesizeWithRetry = async (text, speaker, attempts = 0) => {
+            try {
+                const result = await aiService.synthesizeSpeech(text, speaker);
+                if (!result?.audioUrl) throw new Error("Missing audioUrl");
+                return result;
+            } catch (err) {
+                if (attempts < 2) {
+                    console.warn(`[VoiceStream] TTS retry ${attempts + 1} for: ${text.substring(0, 30)}...`);
+                    // Small delay before retry
+                    await new Promise(r => setTimeout(r, 500 * (attempts + 1)));
+                    return synthesizeWithRetry(text, speaker, attempts + 1);
+                }
+                throw err;
+            }
+        };
+
+        try {
+            const result = await synthesizeWithRetry(task.text, task.speaker);
+            task.resolve(result);
+        } catch (err) {
+            console.error('[VoiceStream] TTS failed after retries:', err);
+            task.resolve(null); // Resolve with null so the playback queue can skip it safely
+        } finally {
+            activeSynthesisCountRef.current--;
+            processSynthesisQueue(); // Trigger next task
+        }
+    }, [state.settings.speaker]);
+
     const playAndRemoveNext = useCallback(async () => {
         if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
 
@@ -279,9 +320,7 @@ export function AiProvider({ children }) {
      */
     const playVoiceStream = useCallback(async (fullText, isFinal = false) => {
         // Only run if we actually started a voice session
-        if (!window.__voiceState) return;
-        // Use a persistent ref to keep track of what we've already sent to TTS
-        if (!window.__voiceState) window.__voiceState = { processedIndex: 0, pendingText: '' };
+        if (!window.__voiceState || typeof window.__voiceState !== 'object') return;
 
         const newText = fullText.substring(window.__voiceState.processedIndex);
         window.__voiceState.processedIndex = fullText.length;
@@ -310,27 +349,39 @@ export function AiProvider({ children }) {
         for (const text of completeSentences) {
             if (text.length < 2) continue; // skip very short fragments
 
-            // 1) IMMEDIATELY fire off the API request to synthesize the speech out-of-band (Parallel)
-            // This promises resolves to { audioUrl }
-            const fetchPromise = aiService.synthesizeSpeech(text, state.settings.speaker).catch(err => {
-                console.error('[VoiceStream] TTS chunk failed:', err);
-                return null;
+            // 1) Create a deferred promise that will be resolved by the synthesis manager
+            let resolvePromise;
+            const fetchPromise = new Promise((resolve) => {
+                resolvePromise = resolve;
             });
 
-            // 2) Push the pending promise into the strictly-ordered timeline queue!
+            // 2) Push to the internal synthesis worker queue
+            pendingSynthesisQueueRef.current.push({
+                text,
+                speaker: state.settings.speaker,
+                resolve: resolvePromise
+            });
+
+            // 3) Push the pending promise into the strictly-ordered timeline queue!
             audioQueueRef.current.push({ text, promise: fetchPromise });
         }
 
-        // 3) Nudge the playback loop. It will await the promise at the front of the queue.
+        // 4) Start synthesis workers
+        for (let i = 0; i < MAX_CONCURRENT_SYNTHESIS; i++) {
+            processSynthesisQueue();
+        }
+
+        // 5) Nudge the playback loop. It will await the promise at the front of the queue.
         playAndRemoveNext();
 
-    }, [playAndRemoveNext, state.settings.speaker]);
+    }, [playAndRemoveNext, processSynthesisQueue, state.settings.speaker]);
 
     // OBSOLETE - replaced by playAndRemoveNext
     // Keeping stopVoiceAudio intact below.
 
     const stopVoiceAudio = useCallback(() => {
         audioQueueRef.current = [];
+        pendingSynthesisQueueRef.current = []; // Clear pending synthesis too
         isPlayingAudioRef.current = false;
         if (currentAudioRef.current) {
             currentAudioRef.current.pause();
@@ -426,6 +477,7 @@ export function AiProvider({ children }) {
         } else {
             // Nullify voice state so the text streaming useEffect doesn't trigger voice
             window.__voiceState = null;
+            stopVoiceAudio();
         }
 
         // Auto-create conversation if none active
