@@ -393,7 +393,7 @@ export const getMessages = asyncHandler(async (req, res) => {
 export const sendMessage = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
-    const { message, stream } = req.body;
+    const { message, stream, mode } = req.body;
 
     if (!message) throw new ApiError(400, "Message is required");
 
@@ -413,7 +413,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
                 userId,
                 conversationId: id,
                 message,
-                mode: "TEXT"
+                mode: mode || "TEXT"
             })) {
                 // Handle special title event from orchestrator
                 if (typeof chunk === "string" && chunk.startsWith("__title__:")) {
@@ -458,7 +458,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
         userId,
         conversationId: id,
         message,
-        mode: "TEXT"
+        mode: mode || "TEXT"
     });
 
     res.status(200).json({ success: true, data: formatMessage(aiMessage) });

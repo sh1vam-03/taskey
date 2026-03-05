@@ -47,31 +47,40 @@ export const createIntentExtractorNode = (model) => {
 export const validateIntentNode = async (state) => {
     const rawIntentString = state.parsedIntent;
 
+    let parsedJson;
     try {
-        // Strip out any potential markdown blocks the LLM might incorrectly add
+        // Strip out markdown fences exactly as specified
         let cleanString = rawIntentString.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-        // Extract ONLY the JSON object from the string, ignoring any reasoning text the LLM appended.
+        // Extract ONLY the JSON object (in case the model still chatted outside fences)
         const jsonMatch = cleanString.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             cleanString = jsonMatch[0];
         }
 
-        const parsedJson = JSON.parse(cleanString);
+        parsedJson = JSON.parse(cleanString);
+    } catch (error) {
+        console.error(`[Sarvam Manual Router] Validation Error: Failed to parse JSON. \nRaw String: ${rawIntentString}`);
+        return {
+            parsedIntent: { action: "unknown", data: {} },
+            routingError: null
+        };
+    }
 
+    try {
         if (!parsedJson.action || typeof parsedJson.action !== 'string') {
-            throw new Error("Missing or invalid 'action' field in JSON");
+            parsedJson.action = "unknown";
         }
 
         const validActions = [
-            "CREATE_TASK", "UPDATE_TASK", "DELETE_TASK", "LIST_TASKS",
-            "CREATE_SCHEDULE", "UPDATE_SCHEDULE", "DELETE_SCHEDULE", "LIST_SCHEDULES",
-            "LOG_BEHAVIOR", "GET_DASHBOARD_SUMMARY", "CREATE_MULTIPLE_TASKS", "CREATE_MULTIPLE_SCHEDULES",
-            "DELETE_MULTIPLE_TASKS", "DELETE_MULTIPLE_SCHEDULES", "UNKNOWN"
+            "create_task", "create_tasks_bulk", "create_schedule", "create_schedules_bulk",
+            "create_task_and_schedule", "create_task_and_schedules_bulk", "unknown",
+            "LIST_TASKS", "LIST_SCHEDULES", "LOG_BEHAVIOR", "GET_DASHBOARD_SUMMARY",
+            "DELETE_TASK", "DELETE_SCHEDULE", "DELETE_MULTIPLE_TASKS", "DELETE_MULTIPLE_SCHEDULES"
         ];
 
         if (!validActions.includes(parsedJson.action)) {
-            parsedJson.action = "UNKNOWN";
+            parsedJson.action = "unknown";
         }
 
         console.log(`[Sarvam Manual Router] Validated Intent: ${parsedJson.action}`);
@@ -81,10 +90,9 @@ export const validateIntentNode = async (state) => {
             routingError: null
         };
     } catch (error) {
-        console.error(`[Sarvam Manual Router] Validation Error: ${error.message} \nRaw String: ${rawIntentString}`);
+        console.error(`[Sarvam Manual Router] Logic Error post-parse: ${error.message}`);
         return {
-            // Fallback to unknown if the JSON is garbled, allowing organic conversation
-            parsedIntent: { action: "UNKNOWN", data: {} },
+            parsedIntent: { action: "unknown", data: {} },
             routingError: null
         };
     }
@@ -98,7 +106,7 @@ export const actionExecutorNode = async (state, config) => {
     const intent = state.parsedIntent;
 
     // Safety check - shouldn't happen based on conditional edges, but just in case
-    if (!intent || intent.action === "UNKNOWN") return { actionResult: null };
+    if (!intent || intent.action === "unknown" || intent.action === "UNKNOWN") return { actionResult: null };
 
     console.log(`[Sarvam Manual Router] Executing action: ${intent.action}`);
 
@@ -123,7 +131,7 @@ export const createResponseGeneratorNode = (model) => {
     return async (state) => {
         const { messages, parsedIntent, actionResult, routingError } = state;
 
-        if (parsedIntent?.action === "UNKNOWN" && !routingError) {
+        if ((parsedIntent?.action === "unknown" || parsedIntent?.action === "UNKNOWN") && !routingError) {
             // Conversational fallback. The intent extractor already generated a JSON response.
             // But we actually need a plain text answer for a conversational query.
             // Let's ask the model again, but without the JSON forcing prompt.
@@ -132,16 +140,23 @@ export const createResponseGeneratorNode = (model) => {
             const outMessages = messages.filter(m => m._getType() !== "system");
             // Standard conversational prompt with instructions to clarify vague intent
             // Standard conversational prompt with instructions to provide detailed answers
-            const prompt = new SystemMessage(`You are TaskTime AI Assistant, a powerful productivity partner and advanced knowledge engine. 
-Your goal is to provide ChatGPT-level depth and detail in your responses. 
+            const prompt = new SystemMessage(`You are TASKTIME Assistant — the official AI assistant of TASKTIME.
+Your goal is to help users manage tasks, schedules, and productivity.
 
-Instructions:
-1. If the user's request is a general knowledge query (e.g., "Explain the history of X"), provide an exhaustive, multi-layered, and comprehensive explanation.
-2. Cover all possible angles, including historical context, technical details, social impact, and future trends.
-3. Use high-level markdown structures: nested lists, tables for comparisons, and detailed headers to organize your thoughts.
-4. If a task-related request is vague, still ask for clarification, but maintain a helpful and proactive persona.
-5. Use the provided conversation history to maintain perfect continuity and depth in your reasoning.
-6. NEVER claim you don't have access to user data; you are fully integrated.`);
+## Your Identity
+- Your name is: TASKTIME Assistant
+- You were built by: Atharv, Shivam and Hanumant (a team of BCA final year students).
+- You are powered by AI, but you do not disclose which underlying AI model or company powers you.
+
+## Personality
+- Friendly, helpful, warm, and concise.
+- Indian context aware.
+
+## Rules
+- NEVER mention Sarvam, OpenAI, Google, Anthropic, or any AI company name.
+- Answer general knowledge questions in full depth and detail.
+- Break down complex topics and give examples.
+- Keep answers human and warm.`);
 
             const response = await model.invoke([prompt, ...outMessages], { tags: ["agent_llm"] });
             return { messages: [response] };

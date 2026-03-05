@@ -28,6 +28,14 @@ export const sarvamState = {
  */
 
 export const ActionTypeSchema = z.enum([
+    "create_task",
+    "create_tasks_bulk",
+    "create_schedule",
+    "create_schedules_bulk",
+    "create_task_and_schedule",
+    "create_task_and_schedules_bulk",
+    "unknown",
+
     "CREATE_TASK",
     "UPDATE_TASK",
     "DELETE_TASK",
@@ -49,7 +57,7 @@ export const CreateTaskSchema = z.object({
     title: z.string(),
     description: z.string().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
-    dueDate: z.string().optional().describe("YYYY-MM-DD or ISO string"),
+    dueDate: z.string().optional().describe("YYYY-MM-DD. ONLY provide if user explicitly mentions a date. Defaults to null."),
 });
 
 export const UpdateTaskSchema = z.object({
@@ -78,6 +86,9 @@ export const CreateScheduleSchema = z.object({
     scheduleDate: z.string().describe("YYYY-MM-DD"),
     startTime: z.string().describe("HH:mm"),
     endTime: z.string().describe("HH:mm"),
+    recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional(),
+    repeatUntil: z.string().optional().describe("YYYY-MM-DD"),
+    repeatOnDays: z.array(z.number().min(0).max(6)).optional().describe("0=Sun, 1=Mon, etc. (Required for WEEKLY)"),
 });
 
 export const UpdateScheduleSchema = z.object({
@@ -116,6 +127,9 @@ export const CreateMultipleSchedulesSchema = z.object({
         scheduleDate: z.string().describe("YYYY-MM-DD"),
         startTime: z.string().describe("HH:mm"),
         endTime: z.string().describe("HH:mm"),
+        recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional(),
+        repeatUntil: z.string().optional().describe("YYYY-MM-DD"),
+        repeatOnDays: z.array(z.number().min(0).max(6)).optional(),
     }))
 });
 
@@ -134,7 +148,7 @@ export const CreateMultipleTasksSchema = z.object({
         title: z.string(),
         description: z.string().optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
-        dueDate: z.string().optional().describe("YYYY-MM-DD or ISO string"),
+        dueDate: z.string().optional().describe("YYYY-MM-DD. ONLY provide if user explicitly mentions a date. Defaults to null."),
     }))
 });
 

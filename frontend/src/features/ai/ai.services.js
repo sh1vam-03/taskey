@@ -65,12 +65,13 @@ const aiService = {
      *
      * @param {string} conversationId
      * @param {string} message
-     * @param {(token: string) => void} onToken - called with each text chunk
+     * @param {string} mode - "TEXT" or "VOICE"
+     * @param {(token: string, fullText: string) => void} onToken - called with each text chunk and the accumulated text
      * @param {(fullText: string) => void} onDone - called when stream finishes
      * @param {(error: Error) => void} onError - called on error
      * @returns {() => void} abort function
      */
-    sendMessageStream(conversationId, message, onToken, onDone, onError, onTitle, onWarning, signal = null) {
+    sendMessageStream(conversationId, message, mode, onToken, onDone, onError, onTitle, onWarning, signal = null) {
         const controller = new AbortController();
         const effectiveSignal = signal || controller.signal;
 
@@ -80,7 +81,7 @@ const aiService = {
 
                 const makeRequest = () => api.post(
                     `/ai/conversations/${conversationId}/message?stream=true`,
-                    { message, stream: true },
+                    { message, stream: true, mode },
                     {
                         responseType: 'stream',
                         adapter: 'fetch', // Forces Axios to use the Fetch API natively, exposing a ReadableStream
@@ -141,7 +142,7 @@ const aiService = {
 
                                 if (parsed.token) {
                                     fullText += parsed.token;
-                                    onToken(parsed.token);
+                                    onToken(parsed.token, fullText);
                                 }
 
                                 if (parsed.title && onTitle) {

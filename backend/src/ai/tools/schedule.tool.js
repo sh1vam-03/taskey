@@ -9,12 +9,16 @@ const error = (msg) => JSON.stringify({ success: false, error: msg });
 
 export const createScheduleTool = () => new DynamicStructuredTool({
     name: "create_schedule",
-    description: "Schedule a task for a specific time.",
+    description: "Creates a schedule (time block) for an existing task. A schedule MUST be linked to a taskId. Always create the task first if it doesn't exist.",
     schema: z.object({
-        taskId: z.string().describe("The ID of the task to schedule"),
-        scheduleDate: z.string().describe("Date YYYY-MM-DD"),
-        startTime: z.string().describe("Start time HH:mm"),
-        endTime: z.string().describe("End time HH:mm"),
+        taskId: z.string().describe("UUID of the task this schedule belongs to. Required. Always required."),
+        scheduleDate: z.string().describe("Date of the schedule in YYYY-MM-DD format. Required."),
+        startTime: z.string().describe("Start time in HH:MM:SS (24hr). Required. Ask user if not mentioned."),
+        endTime: z.string().describe("End time in HH:MM:SS (24hr). Required. If user didn't mention, add 1 hour to startTime."),
+        recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional().default("NONE").describe("NONE = one-time. Only change if user says daily/weekly/monthly/repeat/every day etc."),
+        repeatUntil: z.string().optional().describe("YYYY-MM-DD. Only set if user mentioned an end date for recurrence. Otherwise null."),
+        repeatOnDays: z.array(z.number().min(0).max(6)).optional().describe("Only for WEEKLY recurrence. Days as integers: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat. E.g. every Monday+Wednesday = [1,3]"),
+        notes: z.string().optional().describe("Optional notes for this schedule slot.")
     }),
     func: async (args, config) => {
         try {
@@ -26,6 +30,41 @@ export const createScheduleTool = () => new DynamicStructuredTool({
             return success(schedule);
         } catch (e) {
             return error(`Error scheduling task: ${e.message}`);
+        }
+    }
+});
+
+export const createSchedulesBulkTool = () => new DynamicStructuredTool({
+    name: "create_schedules_bulk",
+    description: "Creates multiple schedules at once. Use when user asks to schedule 2 or more things in one message.",
+    schema: z.object({
+        schedules: z.array(z.object({
+            taskId: z.string().describe("UUID of the task. Required for each schedule."),
+            scheduleDate: z.string().describe("YYYY-MM-DD"),
+            startTime: z.string().describe("HH:MM:SS (24hr)"),
+            endTime: z.string().describe("HH:MM:SS (24hr)"),
+            recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY", "NONE"]).optional().default("NONE"),
+            repeatUntil: z.string().optional(),
+            repeatOnDays: z.array(z.number().min(0).max(6)).optional(),
+            notes: z.string().optional()
+        }))
+    }),
+    func: async (args, config) => {
+        try {
+            const userId = config.configurable?.user?.id || config.configurable?.userId;
+            if (!userId) return error("User ID missing in configuration");
+
+            // Mocking sequential creation to match a bulk endpoint logic internally
+            const results = [];
+            for (const sched of args.schedules) {
+                const schedule = await scheduleService.createSchedule({ userId, ...sched });
+                results.push(schedule);
+                await incrementUsage(userId, 'schedule');
+            }
+
+            return success({ message: `Created ${results.length} schedules successfully`, schedules: results });
+        } catch (e) {
+            return error(`Error creating batch schedules: ${e.message}`);
         }
     }
 });
