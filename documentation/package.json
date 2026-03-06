@@ -1,0 +1,13 @@
+{
+    "name": "tasktime-documentation",
+    "version": "1.0.0",
+    "description": "BCA Project Report Generator for TASKTIME",
+    "main": "generate.js",
+    "scripts": {
+        "generate": "node generate.js",
+        "build": "node generate.js"
+    },
+    "dependencies": {
+        "docx": "^9.5.3"
+    }
+}
