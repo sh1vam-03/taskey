@@ -9,7 +9,7 @@
 const {
     Paragraph, TextRun, Table, TableRow, TableCell,
     AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
-} = require('/home/claude/.npm-global/lib/node_modules/docx');
+} = require('docx');
 
 const {
     txt, jpp, jp, h1, sp, sp2, pb, tbl, W,

@@ -8,6 +8,6 @@
         "build": "node generate.js"
     },
     "dependencies": {
-        "docx": "^9.5.3"
+        "docx": "^9.6.0"
     }
 }
