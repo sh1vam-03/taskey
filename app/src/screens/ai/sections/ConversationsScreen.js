@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import ConversationItem from '../components/ConversationItem';
 import { getConversations } from '../../../api/ai.api';
 import { useTheme } from '../../../context/ThemeContext';
+import { EmptyState } from '../../../components/common/EmptyState';
 
 export default function ConversationsScreen({ navigation }) {
     const [conversations, setConversations] = useState([]);
@@ -55,10 +56,15 @@ export default function ConversationsScreen({ navigation }) {
                     />
                 )}
                 ListEmptyComponent={
-                    <View style={styles.empty}>
-                        <Icon name="message-square" size={48} color={theme.textDim} />
-                        <Text style={[styles.emptyText, { color: theme.textDim }]}>No conversations yet.</Text>
-                    </View>
+                    <EmptyState
+                        title="No conversations yet"
+                        description="Start a new intelligence session."
+                        icon="message-text-outline"
+                        action={{
+                            label: "New Session",
+                            onPress: () => navigation.navigate('Chat')
+                        }}
+                    />
                 }
             />
         </SafeAreaView>

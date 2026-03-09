@@ -56,27 +56,25 @@ export function EmptyState({ title, description, icon, iconColor, action }) {
                 {description}
             </Text>
 
-            {action && (
-                <TouchableOpacity
-                    onPress={action.onPress}
-                    activeOpacity={0.82}
-                    style={[styles.emptyBtn, {
-                        backgroundColor: cyan + '18',
-                        borderColor: cyan + '44',
-                        ...Platform.select({
-                            ios: {
-                                shadowColor: cyan,
-                                shadowOffset: { width: 0, height: 5 },
-                                shadowOpacity: 0.20,
-                                shadowRadius: 12,
-                            }
-                        }),
-                    }]}
-                >
-                    <Icon name="plus" size={13} color={cyan} style={{ marginRight: 6 }} />
-                    <Text style={[styles.emptyBtnTxt, { color: cyan }]}>{action.label}</Text>
-                </TouchableOpacity>
-            )}
+            <TouchableOpacity
+                onPress={action.onPress}
+                activeOpacity={0.82}
+                style={[styles.emptyBtn, {
+                    backgroundColor: cyan + '1A',
+                    borderColor: cyan + '50',
+                    ...Platform.select({
+                        ios: {
+                            shadowColor: cyan,
+                            shadowOffset: { width: 0, height: 8 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 16,
+                        }
+                    }),
+                }]}
+            >
+                <Icon name="plus" size={15} color={cyan} style={{ marginRight: 6 }} />
+                <Text style={[styles.emptyBtnTxt, { color: cyan }]}>{action.label}</Text>
+            </TouchableOpacity>
         </View>
     );
 }
