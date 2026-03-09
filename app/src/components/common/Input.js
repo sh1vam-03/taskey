@@ -50,7 +50,7 @@ export default function Input({
     });
 
     /* glass bg */
-    const inputBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+    const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
 
     const renderSideIcon = (iconProp, right = false) => {
         if (!iconProp) return null;

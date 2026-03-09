@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parse } from 'date-fns';
@@ -23,8 +24,17 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [pickerMode, setPickerMode] = useState(null); // 'date' | 'start' | 'end' | 'repeatUntil'
+    const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
+
+    /* glass tokens */
+    const sheetBg = isDark ? 'rgba(10,10,14,0.98)' : 'rgba(250,250,255,0.98)';
+    const sheetBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+    const inputBord = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)';
 
     useEffect(() => {
         if (preselectedTaskId) {
@@ -100,15 +110,27 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ width: '100%', justifyContent: 'flex-end' }}
                 >
-                    <View style={[styles.sheetContainer, { backgroundColor: theme.surface }]}>
+                    <View style={[
+                        styles.sheetContainer,
+                        {
+                            backgroundColor: sheetBg,
+                            borderColor: sheetBord,
+                            paddingBottom: insets.bottom + 10,
+                        }
+                    ]}>
+                        <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]} />
                         <View style={styles.header}>
                             <Text style={[styles.headerTitle, { color: theme.text }]}>Schedule Task</Text>
-                            <TouchableOpacity onPress={handleClose}>
-                                <Icon name="close" size={24} color={theme.text} />
+                            <TouchableOpacity
+                                onPress={handleClose}
+                                activeOpacity={0.75}
+                                style={[styles.closeBtn, { backgroundColor: glassBg, borderColor: glassBord }]}
+                            >
+                                <Icon name="close" size={18} color={isDark ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.45)'} />
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
                             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                             <Text style={[styles.label, { color: theme.text }]}>Select Task (Inbox ONLY)</Text>
@@ -116,10 +138,16 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                 {tasks.length > 0 ? tasks.map(t => (
                                     <TouchableOpacity
                                         key={t._id}
-                                        style={[styles.taskChip, { borderColor: theme.border }, selectedTaskId === t._id && { backgroundColor: theme.cyanDim, borderColor: theme.cyan }]}
+                                        style={[
+                                            styles.taskChip,
+                                            {
+                                                backgroundColor: selectedTaskId === t._id ? cyan + (isDark ? '1E' : '14') : glassBg,
+                                                borderColor: selectedTaskId === t._id ? cyan + '55' : glassBord
+                                            }
+                                        ]}
                                         onPress={() => setSelectedTaskId(t._id)}
                                     >
-                                        <Text style={[styles.taskText, { color: theme.textDim }, selectedTaskId === t._id && { color: theme.cyan, fontWeight: 'bold' }]}>
+                                        <Text style={[styles.taskText, { color: selectedTaskId === t._id ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }, selectedTaskId === t._id && { fontWeight: 'bold' }]}>
                                             {t.title}
                                         </Text>
                                     </TouchableOpacity>
@@ -135,7 +163,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                     <TouchableOpacity
                                         onPress={() => setPickerMode('date')}
                                         activeOpacity={0.7}
-                                        style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                        style={[styles.pickerTrigger, { backgroundColor: inputBg, borderColor: inputBord }]}
                                     >
                                         <Icon name="calendar" size={18} color={cyan} style={{ marginRight: 12 }} />
                                         <Text style={{ color: theme.text, fontWeight: '600' }}>
@@ -150,7 +178,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         <TouchableOpacity
                                             onPress={() => setPickerMode('start')}
                                             activeOpacity={0.7}
-                                            style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                            style={[styles.pickerTrigger, { backgroundColor: inputBg, borderColor: inputBord }]}
                                         >
                                             <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
                                             <Text style={{ color: theme.text, fontWeight: '600' }}>
@@ -164,7 +192,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         <TouchableOpacity
                                             onPress={() => setPickerMode('end')}
                                             activeOpacity={0.7}
-                                            style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                            style={[styles.pickerTrigger, { backgroundColor: inputBg, borderColor: inputBord }]}
                                         >
                                             <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
                                             <Text style={{ color: theme.text, fontWeight: '600' }}>
@@ -203,10 +231,16 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                 {['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'].map(r => (
                                     <TouchableOpacity
                                         key={r}
-                                        style={[styles.recChip, { borderColor: theme.border }, recurrence === r && { backgroundColor: theme.cyanDim, borderColor: theme.cyan }]}
+                                        style={[
+                                            styles.recChip,
+                                            {
+                                                backgroundColor: recurrence === r ? cyan + (isDark ? '1E' : '14') : glassBg,
+                                                borderColor: recurrence === r ? cyan + '55' : glassBord
+                                            }
+                                        ]}
                                         onPress={() => setRecurrence(r)}
                                     >
-                                        <Text style={[styles.recText, { color: theme.textDim }, recurrence === r && { color: theme.cyan, fontWeight: 'bold' }]}>{r}</Text>
+                                        <Text style={[styles.recText, { color: recurrence === r ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }, recurrence === r && { fontWeight: '900' }]}>{r}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -218,10 +252,16 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayChar, i) => (
                                             <TouchableOpacity
                                                 key={i}
-                                                style={[styles.dayCircle, { borderColor: theme.border }, weeklyDays.includes(i) && { backgroundColor: theme.cyan, borderColor: theme.cyan }]}
+                                                style={[
+                                                    styles.dayCircle,
+                                                    {
+                                                        backgroundColor: weeklyDays.includes(i) ? cyan : glassBg,
+                                                        borderColor: weeklyDays.includes(i) ? cyan : glassBord
+                                                    }
+                                                ]}
                                                 onPress={() => toggleDay(i)}
                                             >
-                                                <Text style={[styles.dayText, { color: theme.textDim }, weeklyDays.includes(i) && { color: '#000' }]}>{dayChar}</Text>
+                                                <Text style={[styles.dayText, { color: weeklyDays.includes(i) ? '#000' : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }]}>{dayChar}</Text>
                                             </TouchableOpacity>
                                         ))}
                                     </View>
@@ -234,7 +274,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                     <TouchableOpacity
                                         onPress={() => setPickerMode('repeatUntil')}
                                         activeOpacity={0.7}
-                                        style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                        style={[styles.pickerTrigger, { backgroundColor: inputBg, borderColor: inputBord }]}
                                     >
                                         <Icon name="calendar-range" size={18} color={repeatUntil ? cyan : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')} style={{ marginRight: 12 }} />
                                         <Text style={{ color: repeatUntil ? theme.text : (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'), fontWeight: '600' }}>
@@ -274,11 +314,42 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    sheetContainer: { borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 20, maxHeight: '90%' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    headerTitle: { fontSize: typography.fontSizes.xl, fontWeight: 'bold' },
-    label: { fontSize: typography.fontSizes.sm, marginBottom: 8, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+    sheetContainer: {
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        paddingHorizontal: 22,
+        paddingTop: 8,
+        maxHeight: '92%',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: 24,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        letterSpacing: -0.3,
+    },
+    handle: {
+        width: 36, height: 4,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 10, marginBottom: 22,
+    },
+    closeBtn: {
+        width: 34, height: 34,
+        borderRadius: 11,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    label: { fontSize: 9, marginBottom: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
     pickerTrigger: {
         height: 52,
         borderRadius: 16,
@@ -288,12 +359,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     taskScroll: { flexDirection: 'row', marginBottom: 16 },
-    taskChip: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderRadius: 8, marginRight: 8 },
+    taskChip: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderRadius: 14, marginRight: 8 },
     taskText: {},
     emptyTasksText: { fontStyle: 'italic', marginBottom: 12 },
     recurrenceRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
-    recChip: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 8 },
-    recText: {},
+    recChip: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderRadius: 12 },
+    recText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
     daysRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
     dayCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     dayText: { fontWeight: 'bold' },
