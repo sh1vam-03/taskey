@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createTask, updateTask } from '../../../api/task.api';
 import { createCategory, getCategories } from '../../../api/category.api';
@@ -9,14 +9,18 @@ import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
 import Icon from 'react-native-vector-icons/Feather';
 
-export default function CreateTaskScreen({ navigation, route }) {
-    const { onCreated, onCategoryCreated } = route.params || {};
-    const { theme } = useTheme();
+export default function CreateTaskScreen({ navigation, route, visible, onClose, onCreated, hideDueDate, onScheduleRequested }) {
+    // Props-based if used as component, route-based if used as screen
+    const effectiveOnCreated = onCreated || route?.params?.onCreated;
+    const effectiveOnClose = onClose || (() => navigation?.goBack());
+
+    const { theme, isDark } = useTheme();
+    const cyan = theme.cyan ?? '#00d4ff';
 
     const [categories, setCategories] = useState([]);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [priority, setPriority] = useState('MEDIUM'); // LOW, MEDIUM, HIGH
+    const [priority, setPriority] = useState('MEDIUM');
     const [categoryId, setCategoryId] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [loading, setLoading] = useState(false);
@@ -28,7 +32,7 @@ export default function CreateTaskScreen({ navigation, route }) {
 
     useEffect(() => {
         fetchCategories();
-        if (route.params?.task) {
+        if (route?.params?.task) {
             const t = route.params.task;
             setTitle(t.title || '');
             setDescription(t.description || '');
@@ -36,7 +40,7 @@ export default function CreateTaskScreen({ navigation, route }) {
             setCategoryId(t.categoryId || t.category?.id || t.category?._id || '');
             setDueDate(t.dueDate ? t.dueDate.split('T')[0] : '');
         }
-    }, [route.params?.task]);
+    }, [route?.params?.task]);
 
     const fetchCategories = async () => {
         try {
@@ -47,8 +51,8 @@ export default function CreateTaskScreen({ navigation, route }) {
         }
     };
 
-    const handleSave = async () => {
-        if (!title) {
+    const handleSave = async (shouldSchedule = false) => {
+        if (!title.trim()) {
             setError('Title is required'); return;
         }
         setLoading(true);
@@ -56,17 +60,26 @@ export default function CreateTaskScreen({ navigation, route }) {
         try {
             const payload = { title, description, priority };
             if (categoryId) payload.categoryId = categoryId;
-            if (dueDate) payload.dueDate = dueDate;
+            if (dueDate && !hideDueDate) payload.dueDate = dueDate;
+            if (hideDueDate) payload.dueDate = null;
 
-            if (route.params?.task) {
-                await updateTask(route.params.task.id, payload);
+            let result;
+            if (route?.params?.task) {
+                result = await updateTask(route.params.task.id, payload);
             } else {
-                await createTask(payload);
+                result = await createTask(payload);
             }
-            onCreated?.();
+
+            const newTask = result.data?.data || result.data;
+
+            if (shouldSchedule && onScheduleRequested) {
+                onScheduleRequested(newTask);
+            } else {
+                effectiveOnCreated?.();
+            }
             handleClose();
         } catch (err) {
-            setError(err.response?.data?.message || `Failed to ${route.params?.task ? 'update' : 'create'} task`);
+            setError(err.response?.data?.message || `Failed to ${route?.params?.task ? 'update' : 'create'} task`);
         } finally {
             setLoading(false);
         }
@@ -81,20 +94,20 @@ export default function CreateTaskScreen({ navigation, route }) {
         setError('');
         setIsCreatingCategory(false);
         setNewCategoryName('');
-        navigation.goBack();
+        effectiveOnClose();
     };
 
-    return (
+    const content = (
         <View style={styles.container}>
             <TouchableOpacity
                 style={styles.overlay}
                 activeOpacity={1}
                 onPress={handleClose}
             />
-            <View style={[styles.sheetContainer, { backgroundColor: theme.surface }]}>
+            <View style={[styles.sheetContainer, { backgroundColor: theme.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28 }]}>
                 <View style={styles.header}>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>
-                        {route.params?.task ? 'Update Objective' : 'New Objective'}
+                    <Text style={[styles.headerTitle, { color: theme.text, fontWeight: '900', letterSpacing: 0.5 }]}>
+                        {route?.params?.task ? 'Update Objective' : 'New Objective'}
                     </Text>
                     <TouchableOpacity onPress={handleClose}>
                         <Icon name="x" size={24} color={theme.text} />
@@ -105,15 +118,15 @@ export default function CreateTaskScreen({ navigation, route }) {
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                     <Input
-                        label="Task Title *"
-                        placeholder="e.g. Redesign landing page"
+                        label="Objective Title *"
+                        placeholder="e.g. System Audit"
                         value={title}
                         onChangeText={setTitle}
                     />
 
                     <Input
                         label="Description"
-                        placeholder="Add details..."
+                        placeholder="Add tactical details..."
                         value={description}
                         onChangeText={setDescription}
                         multiline
@@ -122,6 +135,7 @@ export default function CreateTaskScreen({ navigation, route }) {
                         placeholderTextColor={theme.textDim}
                     />
 
+                    {/* Category logic remains same */}
                     <Text style={[styles.label, { color: theme.text }]}>Category</Text>
                     {!isCreatingCategory ? (
                         <View style={{ marginBottom: 16 }}>
@@ -166,16 +180,16 @@ export default function CreateTaskScreen({ navigation, route }) {
                                     try {
                                         const response = await createCategory({
                                             name: newCategoryName,
-                                            color: "#06b6d4",
+                                            color: cyan,
                                             icon: "circle"
                                         });
-                                        if (onCategoryCreated) await onCategoryCreated?.();
                                         const newCat = response.data?.data || response.data;
                                         setCategoryId(newCat.id || newCat._id);
                                         setIsCreatingCategory(false);
                                         setNewCategoryName('');
+                                        fetchCategories();
                                     } catch (e) {
-                                        setError(e.response?.data?.message || "Failed to create category");
+                                        setError("Failed to create category");
                                     } finally {
                                         setIsCategoryLoading(false);
                                     }
@@ -183,21 +197,17 @@ export default function CreateTaskScreen({ navigation, route }) {
                                 disabled={isCategoryLoading}
                                 style={{ paddingHorizontal: 16 }}
                             />
-                            <Button
-                                title="X"
-                                onPress={() => setIsCreatingCategory(false)}
-                                style={{ backgroundColor: 'transparent', paddingHorizontal: 12 }}
-                                textStyle={{ color: theme.textDim }}
-                            />
                         </View>
                     )}
 
-                    <Input
-                        label="Due Date (YYYY-MM-DD)"
-                        placeholder="Optional due date"
-                        value={dueDate}
-                        onChangeText={setDueDate}
-                    />
+                    {!hideDueDate && (
+                        <Input
+                            label="Due Date (YYYY-MM-DD)"
+                            placeholder="Optional due date"
+                            value={dueDate}
+                            onChangeText={setDueDate}
+                        />
+                    )}
 
                     <Text style={[styles.label, { color: theme.text }]}>Priority</Text>
                     <View style={styles.priorityRow}>
@@ -212,16 +222,90 @@ export default function CreateTaskScreen({ navigation, route }) {
                         ))}
                     </View>
 
-                    <Button
-                        title="Save Task"
-                        onPress={handleSave}
-                        loading={loading}
-                        style={{ marginTop: 24 }}
-                    />
+                    {onScheduleRequested ? (
+                        <View style={{ flexDirection: 'row', gap: 12, marginTop: 28 }}>
+                            <Button
+                                title="Create Task"
+                                onPress={() => handleSave(false)}
+                                loading={loading}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: cyan + '1A',
+                                    borderColor: cyan + '65',
+                                    borderWidth: 1.5,
+                                    height: 54,
+                                    borderRadius: 18,
+                                    ...Platform.select({
+                                        ios: {
+                                            shadowColor: cyan,
+                                            shadowOffset: { width: 0, height: 8 },
+                                            shadowOpacity: 0.40,
+                                            shadowRadius: 18,
+                                        },
+                                        android: { elevation: 8 }
+                                    })
+                                }}
+                                textStyle={{ color: cyan, fontWeight: '900', letterSpacing: 0.5 }}
+                            />
+                            <Button
+                                title="Create & Schedule"
+                                onPress={() => handleSave(true)}
+                                loading={loading}
+                                style={{
+                                    flex: 1.6,
+                                    backgroundColor: cyan,
+                                    height: 54,
+                                    borderRadius: 18,
+                                    ...Platform.select({
+                                        ios: {
+                                            shadowColor: cyan,
+                                            shadowOffset: { width: 0, height: 8 },
+                                            shadowOpacity: 0.45,
+                                            shadowRadius: 18,
+                                        },
+                                        android: { elevation: 10 }
+                                    })
+                                }}
+                                textStyle={{ color: '#000', fontWeight: '900', letterSpacing: 0.6 }}
+                            />
+                        </View>
+                    ) : (
+                        <Button
+                            title={route?.params?.task ? "Update Task" : "Save Task"}
+                            onPress={() => handleSave(false)}
+                            loading={loading}
+                            style={{
+                                marginTop: 28,
+                                backgroundColor: cyan,
+                                height: 54,
+                                borderRadius: 18,
+                                ...Platform.select({
+                                    ios: {
+                                        shadowColor: cyan,
+                                        shadowOffset: { width: 0, height: 8 },
+                                        shadowOpacity: 0.45,
+                                        shadowRadius: 18,
+                                    },
+                                    android: { elevation: 10 }
+                                })
+                            }}
+                            textStyle={{ color: '#000', fontWeight: '900', letterSpacing: 0.6 }}
+                        />
+                    )}
                 </ScrollView>
             </View>
         </View>
     );
+
+    if (visible !== undefined) {
+        return (
+            <Modal visible={visible} animationType="slide" transparent>
+                {content}
+            </Modal>
+        );
+    }
+
+    return content;
 }
 
 const styles = StyleSheet.create({

@@ -9,10 +9,10 @@ import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
 
 // Simple mockup for Time/Date selection inputs for React Native
-export default function CreateScheduleScreen({ visible, onClose, onCreated }) {
+export default function CreateScheduleScreen({ visible, onClose, onCreated, preselectedTaskId }) {
     const [tasks, setTasks] = useState([]);
-    const [selectedTaskId, setSelectedTaskId] = useState('');
-    const [date, setDate] = useState('2026-03-08'); // mockup value
+    const [selectedTaskId, setSelectedTaskId] = useState(preselectedTaskId || '');
+    const [date, setDate] = useState('2026-03-09'); // mockup value
     const [startTime, setStartTime] = useState('09:00:00'); // mockup value
     const [endTime, setEndTime] = useState('10:00:00'); // mockup value
     const [recurrence, setRecurrence] = useState('NONE');
@@ -21,6 +21,12 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { theme } = useTheme();
+
+    useEffect(() => {
+        if (preselectedTaskId) {
+            setSelectedTaskId(preselectedTaskId);
+        }
+    }, [preselectedTaskId]);
 
     useEffect(() => {
         if (visible) {
@@ -156,7 +162,22 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated }) {
                             title="Save Schedule"
                             onPress={handleSave}
                             loading={loading}
-                            style={{ marginTop: 24 }}
+                            style={{
+                                marginTop: 28,
+                                backgroundColor: theme.cyan ?? '#00d4ff',
+                                height: 54,
+                                borderRadius: 18,
+                                ...Platform.select({
+                                    ios: {
+                                        shadowColor: theme.cyan ?? '#00d4ff',
+                                        shadowOffset: { width: 0, height: 8 },
+                                        shadowOpacity: 0.45,
+                                        shadowRadius: 18,
+                                    },
+                                    android: { elevation: 10 }
+                                })
+                            }}
+                            textStyle={{ color: '#000', fontWeight: '900', letterSpacing: 0.6 }}
                         />
                     </ScrollView>
                 </View>
