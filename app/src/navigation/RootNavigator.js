@@ -14,6 +14,7 @@ const Theme = {
     },
 };
 
+console.log('### LOADING: RootNavigator.js, useAuthStore =', typeof useAuthStore);
 export default function RootNavigator() {
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const user = useAuthStore((state) => state.user);

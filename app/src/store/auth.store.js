@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Storage } from '../utils/storage';
 
+console.log('### LOADING: auth.store.js');
 export const useAuthStore = create((set) => ({
     user: Storage.getUser(),
     accessToken: Storage.getAccessToken(),

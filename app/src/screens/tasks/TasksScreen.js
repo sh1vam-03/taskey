@@ -410,7 +410,7 @@ export default function TasksScreen({ navigation }) {
                         <Icon name="format-list-checks" size={18} color={cyan} />
                     </View>
                     <View>
-                        <Text style={[styles.pageTitle, { color: textColor }]}>Task Command</Text>
+                        <Text style={[styles.pageTitle, { color: textColor }]}>TASK</Text>
                         <Text style={[styles.pageSub, {
                             color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
                         }]}>
@@ -489,29 +489,7 @@ export default function TasksScreen({ navigation }) {
                         backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
                     }]} />
 
-                    {/* All categories */}
-                    <TouchableOpacity
-                        onPress={() => setFilterCategory('ALL')}
-                        activeOpacity={0.75}
-                        style={[styles.chip, {
-                            backgroundColor: filterCategory === 'ALL'
-                                ? cyan + (isDark ? '1E' : '14')
-                                : glassBg,
-                            borderColor: filterCategory === 'ALL' ? cyan + '55' : glassBord,
-                        }]}
-                    >
-                        <Icon
-                            name="tag-multiple-outline"
-                            size={10}
-                            color={filterCategory === 'ALL' ? cyan : (isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.30)')}
-                        />
-                        <Text style={[styles.chipTxt, {
-                            color: filterCategory === 'ALL' ? cyan : (isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.40)'),
-                            fontWeight: filterCategory === 'ALL' ? '900' : '700',
-                        }]}>
-                            All
-                        </Text>
-                    </TouchableOpacity>
+
 
                     {/* Per-category */}
                     {categories.map(cat => {
@@ -687,7 +665,7 @@ const styles = StyleSheet.create({
         borderRadius: 15, borderWidth: 1,
         alignItems: 'center', justifyContent: 'center',
     },
-    pageTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.3 },
+    pageTitle: { fontSize: 18, fontWeight: '900', letterSpacing: 4 },
     pageSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
 
     searchRow: {
