@@ -13,6 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../context/ThemeContext';
+import Button from '../../../components/common/Button';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -130,15 +131,15 @@ export default function BehaviorLogSheet({
                     <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
 
                     <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={styles.avoidingView}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        style={{ width: '100%', justifyContent: 'flex-end' }}
                     >
                         <Animated.View style={[
                             styles.sheet,
                             {
                                 backgroundColor: sheetBg,
                                 borderColor: sheetBord,
-                                paddingBottom: insets.bottom + 16,
+                                paddingBottom: insets.bottom,
                                 transform: [{ translateY: slideY }],
                                 ...Platform.select({
                                     ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.22, shadowRadius: 24 },
@@ -253,35 +254,27 @@ export default function BehaviorLogSheet({
 
                                 {/* ── ACTIONS ── */}
                                 <View style={styles.actions}>
-                                    <TouchableOpacity
-                                        onPress={onClose}
-                                        activeOpacity={0.75}
-                                        style={[styles.cancelBtn, { backgroundColor: glassBg, borderColor: glassBord }]}
-                                    >
-                                        <Text style={[styles.cancelTxt, {
-                                            color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.40)',
-                                        }]}>
-                                            Cancel
-                                        </Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
+                                    <Button
+                                        title={currentLog ? 'Update' : 'Save Activity'}
                                         onPress={handleSave}
-                                        activeOpacity={0.80}
-                                        style={[styles.saveBtn, {
+                                        style={{
+                                            flex: 1,
+                                            marginTop: 12,
                                             backgroundColor: cyan,
+                                            height: 54,
+                                            borderRadius: 18,
                                             ...Platform.select({
-                                                ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 12 },
-                                                android: { elevation: 6 },
-                                            }),
-                                        }]}
-                                    >
-                                        {/* shimmer */}
-                                        <View style={styles.saveBtnShimmer} />
-                                        <Text style={styles.saveTxt}>
-                                            {currentLog ? 'Update' : 'Save Activity'}
-                                        </Text>
-                                    </TouchableOpacity>
+                                                ios: {
+                                                    shadowColor: cyan,
+                                                    shadowOffset: { width: 0, height: 8 },
+                                                    shadowOpacity: 0.45,
+                                                    shadowRadius: 18,
+                                                },
+                                                android: { elevation: 10 }
+                                            })
+                                        }}
+                                        textStyle={{ color: '#000', fontWeight: '900', letterSpacing: 0.6 }}
+                                    />
                                 </View>
 
                             </ScrollView>
@@ -299,7 +292,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.55)',
         justifyContent: 'flex-end',
     },
-    avoidingView: { width: '100%' },
+    avoidingView: { width: '100%', justifyContent: 'flex-end' },
     sheet: {
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
