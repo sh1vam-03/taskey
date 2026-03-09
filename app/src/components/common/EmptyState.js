@@ -1,13 +1,7 @@
 /**
  * EmptyState -- TASKTIME
- * Premium glass empty state with ambient glow + animated icon.
- *
- * Props:
- *   title       — main heading
- *   description — sub-text
- *   icon        — MCI icon name (string) or custom element
- *   iconColor   — override icon color (defaults to cyan)
- *   action      — { label, onPress } for optional CTA button
+ * Premium glass empty state with pulse animation.
+ * Ported directly from TasksScreen redesign.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -21,126 +15,110 @@ import { useTheme } from '../../context/ThemeContext';
 export function EmptyState({ title, description, icon, iconColor, action }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
-    const iColor = iconColor || cyan;
-    const pulse = useRef(new Animated.Value(0.7)).current;
+    const iColor = iconColor || (isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.13)');
+    const pulse = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
+                Animated.timing(pulse, { toValue: 1.07, duration: 1800, useNativeDriver: true }),
                 Animated.timing(pulse, { toValue: 1, duration: 1800, useNativeDriver: true }),
-                Animated.timing(pulse, { toValue: 0.7, duration: 1800, useNativeDriver: true }),
             ])
         ).start();
     }, []);
 
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
 
     return (
-        <View style={styles.container}>
-            {/* Glass icon well */}
-            <View style={[styles.iconWell, {
+        <View style={styles.emptyWrap}>
+            <Animated.View style={[styles.emptyIcon, {
                 backgroundColor: glassBg,
                 borderColor: glassBord,
+                transform: [{ scale: pulse }],
                 ...Platform.select({
                     ios: {
-                        shadowColor: iColor,
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: 0.20,
+                        shadowColor: cyan,
+                        shadowOffset: { width: 0, height: 8 },
+                        shadowOpacity: 0.15,
                         shadowRadius: 18,
                     },
                 }),
             }]}>
-                {/* Ambient glow blob */}
-                <Animated.View style={[
-                    styles.glowBlob,
-                    { backgroundColor: iColor, opacity: pulse },
-                ]} />
+                <Icon name={icon} size={36} color={iColor} />
+            </Animated.View>
 
-                {typeof icon === 'string'
-                    ? <Icon name={icon} size={32} color={iColor} style={{ zIndex: 1 }} />
-                    : icon}
-            </View>
-
-            <Text style={[styles.title, { color: theme.text ?? '#fff' }]}>
+            <Text style={[styles.emptyTitle, { color: isDark ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.48)' }]}>
                 {title}
             </Text>
 
-            {description ? (
-                <Text style={[styles.desc, {
-                    color: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.40)',
-                }]}>
-                    {description}
-                </Text>
-            ) : null}
+            <Text style={[styles.emptySub, { color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.26)' }]}>
+                {description}
+            </Text>
 
-            {action ? (
+            {action && (
                 <TouchableOpacity
                     onPress={action.onPress}
-                    activeOpacity={0.80}
-                    style={[styles.actionBtn, {
-                        backgroundColor: iColor + '18',
-                        borderColor: iColor + '44',
+                    activeOpacity={0.82}
+                    style={[styles.emptyBtn, {
+                        backgroundColor: cyan + '18',
+                        borderColor: cyan + '44',
+                        ...Platform.select({
+                            ios: {
+                                shadowColor: cyan,
+                                shadowOffset: { width: 0, height: 5 },
+                                shadowOpacity: 0.20,
+                                shadowRadius: 12,
+                            }
+                        }),
                     }]}
                 >
-                    <Text style={[styles.actionTxt, { color: iColor }]}>
-                        {action.label}
-                    </Text>
+                    <Icon name="plus" size={13} color={cyan} style={{ marginRight: 6 }} />
+                    <Text style={[styles.emptyBtnTxt, { color: cyan }]}>{action.label}</Text>
                 </TouchableOpacity>
-            ) : null}
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    emptyWrap: {
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: 32,
-        gap: 16,
+        paddingVertical: 56,
     },
-    iconWell: {
-        width: 80,
-        height: 80,
-        borderRadius: 26,
+    emptyIcon: {
+        width: 82,
+        height: 82,
+        borderRadius: 28,
         borderWidth: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
-        marginBottom: 4,
+        marginBottom: 20,
     },
-    glowBlob: {
-        position: 'absolute',
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        top: -16,
-        opacity: 0.08,
+    emptyTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 6,
     },
-    title: {
-        fontSize: 18,
-        fontWeight: '800',
-        textAlign: 'center',
-        letterSpacing: -0.3,
-    },
-    desc: {
+    emptySub: {
         fontSize: 13,
         fontWeight: '500',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 19,
+        marginBottom: 22,
     },
-    actionBtn: {
-        marginTop: 8,
-        paddingHorizontal: 22,
-        paddingVertical: 11,
+    emptyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 42,
         borderRadius: 14,
         borderWidth: 1,
+        paddingHorizontal: 18,
     },
-    actionTxt: {
-        fontSize: 12,
+    emptyBtnTxt: {
+        fontSize: 13,
         fontWeight: '800',
-        letterSpacing: 0.5,
+        letterSpacing: 0.4,
     },
 });
 

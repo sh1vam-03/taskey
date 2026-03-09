@@ -1,22 +1,35 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Feather';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+    View, Text, StyleSheet, FlatList, TouchableOpacity,
+    RefreshControl, Platform, Dimensions
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getDayCalendar, completeSchedule } from '../../../api/schedule.api';
 import ScheduleCard from '../components/ScheduleCard';
-import EmptyState from '../../../components/common/EmptyState';
+import { EmptyState } from '../../../components/common/EmptyState';
 import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
 import { format, addDays, startOfWeek } from 'date-fns';
 import CreateScheduleScreen from './CreateScheduleScreen';
 
+const { width: W } = Dimensions.get('window');
+
 export default function ScheduleScreen() {
+    const insets = useSafeAreaInsets();
+    const { theme, isDark } = useTheme();
+    const cyan = theme.cyan ?? '#00d4ff';
+    const textColor = theme.text ?? '#fff';
+
     const [schedules, setSchedules] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [weekDates, setWeekDates] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { theme } = useTheme();
+
+    /* glass tokens */
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
 
     useEffect(() => {
         // Generate week strip
@@ -30,7 +43,6 @@ export default function ScheduleScreen() {
         try {
             const formattedDate = format(date, 'yyyy-MM-dd');
             const { data } = await getDayCalendar(formattedDate);
-            // Backend returns { success, message, data: { days: { "YYYY-MM-DD": [...] } } }
             const calendarData = data?.data || data;
             setSchedules(calendarData?.days?.[formattedDate] || []);
         } catch (err) {
@@ -54,32 +66,60 @@ export default function ScheduleScreen() {
         }
     };
 
-    return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
-            <View style={styles.localHeader}>
-                <Text style={[styles.localHeaderTitle, { color: theme.text }]}>SCHEDULE</Text>
-                <TouchableOpacity
-                    style={[styles.addButton, { backgroundColor: theme.cyan }]}
-                    onPress={() => setIsModalOpen(true)}
-                >
-                    <Icon name="plus" size={24} color="#000" />
-                </TouchableOpacity>
+    const totalLabel = useMemo(() => {
+        return `${schedules.length} block${schedules.length !== 1 ? 's' : ''} scheduled`;
+    }, [schedules]);
+
+    const renderHeader = () => (
+        <View style={{ paddingTop: insets.top + 16 }}>
+            {/* ── PAGE TITLE (Matching TasksScreen) ── */}
+            <View style={styles.pageHead}>
+                <View style={[styles.pageIconWrap, {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.09)',
+                    ...Platform.select({
+                        ios: {
+                            shadowColor: cyan, shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.15, shadowRadius: 10,
+                        }
+                    }),
+                }]}>
+                    <Icon name="calendar-clock" size={18} color={cyan} />
+                </View>
+                <View>
+                    <Text style={[styles.pageTitle, { color: textColor }]}>SCHEDULE</Text>
+                    <Text style={[styles.pageSub, {
+                        color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
+                    }]}>
+                        {refreshing ? 'Refreshing…' : totalLabel}
+                    </Text>
+                </View>
             </View>
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>{format(selectedDate, 'MMM yyyy')}</Text>
+
+            {/* ── DATE STRIP & HEADER ── */}
+            <View style={styles.calendarControl}>
+                <Text style={[styles.monthTitle, { color: textColor }]}>
+                    {format(selectedDate, 'MMMM yyyy')}
+                </Text>
+
                 <View style={styles.weekStrip}>
                     {weekDates.map((d, i) => {
                         const isSelected = format(d, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
                         return (
                             <TouchableOpacity
                                 key={i}
-                                style={[styles.dayItem, isSelected && { backgroundColor: theme.cyan }]}
+                                activeOpacity={0.8}
+                                style={[
+                                    styles.dayItem,
+                                    { backgroundColor: isSelected ? cyan : glassBg },
+                                    { borderColor: isSelected ? cyan : glassBord }
+                                ]}
                                 onPress={() => setSelectedDate(d)}
                             >
-                                <Text style={[styles.dayName, { color: isSelected ? '#000000' : theme.textMuted }]}>
+                                <Text style={[styles.dayName, { color: isSelected ? '#000000' : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)') }]}>
                                     {format(d, 'EEE')}
                                 </Text>
-                                <Text style={[styles.dayNum, { color: isSelected ? '#000000' : theme.text }]}>
+                                <Text style={[styles.dayNum, { color: isSelected ? '#000000' : textColor }]}>
                                     {format(d, 'd')}
                                 </Text>
                             </TouchableOpacity>
@@ -87,12 +127,29 @@ export default function ScheduleScreen() {
                     })}
                 </View>
             </View>
+        </View>
+    );
 
+    return (
+        <View style={[styles.root, { backgroundColor: theme.bg ?? '#0a0a0a' }]}>
             <FlatList
                 data={schedules}
                 keyExtractor={item => item._id}
-                contentContainerStyle={styles.listContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.cyan} />}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={renderHeader}
+                contentContainerStyle={[
+                    styles.listContent,
+                    { paddingBottom: insets.bottom + 120 },
+                    schedules.length === 0 && { flexGrow: 1 }
+                ]}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={cyan}
+                        progressViewOffset={insets.top}
+                    />
+                }
                 renderItem={({ item }) => (
                     <ScheduleCard
                         schedule={item}
@@ -101,48 +158,116 @@ export default function ScheduleScreen() {
                 )}
                 ListEmptyComponent={
                     <EmptyState
-                        title="No scheduled blocks"
-                        description="Tap + to schedule a task to your calendar."
-                        icon={<Icon name="calendar" size={48} color={theme.textDim} />}
+                        title="No operations scheduled"
+                        description="Initialize a new temporal block."
+                        icon="calendar-clock"
+                        action={{
+                            label: "Initialize Block",
+                            onPress: () => setIsModalOpen(true)
+                        }}
                     />
                 }
             />
+
+            {/* ── FAB (Matching TasksScreen) ── */}
+            <TouchableOpacity
+                onPress={() => setIsModalOpen(true)}
+                activeOpacity={0.85}
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: cyan,
+                        bottom: insets.bottom + 88,
+                        ...Platform.select({
+                            ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 18 },
+                            android: { elevation: 10 },
+                        }),
+                    },
+                ]}
+            >
+                <View style={styles.fabShimmer} />
+                <Icon name="plus" size={26} color="#000" />
+            </TouchableOpacity>
 
             <CreateScheduleScreen
                 visible={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onCreated={() => fetchSchedule(selectedDate)}
             />
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    localHeader: {
+    root: { flex: 1 },
+    listContent: { paddingHorizontal: 20 },
+
+    /* Page Head */
+    pageHead: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 14,
+        marginBottom: 24,
+    },
+    pageIconWrap: {
+        width: 46, height: 46,
+        borderRadius: 15, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    pageTitle: { fontSize: 18, fontWeight: '900', letterSpacing: 4 },
+    pageSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+
+    /* Calendar Control */
+    calendarControl: {
+        marginBottom: 20,
+    },
+    monthTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        marginBottom: 16,
+        letterSpacing: -0.2,
+    },
+    weekStrip: {
+        flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        height: 70,
+        gap: 6,
     },
-    localHeaderTitle: {
-        fontSize: 18,
+    dayItem: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderRadius: 14,
+        borderWidth: 1,
+    },
+    dayName: {
+        fontSize: 10,
+        fontWeight: '800',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+    },
+    dayNum: {
+        fontSize: 14,
         fontWeight: '900',
-        letterSpacing: 4,
     },
-    addButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+
+    /* FAB (Consistent with TasksScreen) */
+    fab: {
+        position: 'absolute',
+        right: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
     },
-    header: { padding: 16, borderBottomWidth: 1 },
-    headerTitle: { fontSize: typography.fontSizes.lg, fontWeight: 'bold', marginBottom: 12 },
-    weekStrip: { flexDirection: 'row', justifyContent: 'space-between' },
-    dayItem: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
-    dayName: { fontSize: typography.fontSizes.xs, marginBottom: 4 },
-    dayNum: { fontSize: typography.fontSizes.md, fontWeight: 'bold' },
-    listContent: { padding: 16, paddingBottom: 100 },
+    fabShimmer: {
+        position: 'absolute',
+        top: 0,
+        left: '10%',
+        width: '40%',
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.42)',
+        borderRadius: 1,
+    },
 });

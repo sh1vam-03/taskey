@@ -1,66 +1,97 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../../context/ThemeContext';
-import { typography } from '../../../theme/typography';
 import { format } from 'date-fns';
 
 export default function ScheduleCard({ schedule, onToggleComplete, isToday = false }) {
     const isCompleted = schedule.status === 'COMPLETED';
-    const { theme } = useTheme();
+    const { theme, isDark } = useTheme();
+    const cyan = theme.cyan ?? '#00d4ff';
 
     const formatTime = (timeStr) => {
         if (!timeStr) return '';
         try {
             const d = new Date(timeStr);
-            return isNaN(d) ? timeStr : format(d, 'h:mm a');
+            return isNaN(d) ? timeStr : format(d, 'hh:mm a');
         } catch {
             return timeStr;
         }
     };
 
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const textColor = theme.text ?? '#fff';
+
     return (
         <View style={[
             styles.cardContainer,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-            isToday && { borderColor: theme.cyan, borderWidth: 2 }
+            {
+                backgroundColor: glassBg,
+                borderColor: isToday ? cyan + '44' : glassBord,
+                borderWidth: isToday ? 1.5 : 1
+            }
         ]}>
-            <View style={[styles.timeSection, { borderRightColor: theme.border }]}>
-                <Text style={[styles.startTime, { color: theme.text }]}>{formatTime(schedule.startTime)}</Text>
-                <View style={[styles.timeLine, { backgroundColor: theme.border }]} />
-                <Text style={[styles.endTime, { color: theme.textDim }]}>{formatTime(schedule.endTime)}</Text>
+            <View style={[styles.timeSection, { borderRightColor: glassBord }]}>
+                <Text style={[styles.startTime, { color: textColor }]}>
+                    {formatTime(schedule.startTime)}
+                </Text>
+                <View style={[styles.timeLine, { backgroundColor: isToday ? cyan : glassBord }]} />
+                <Text style={[styles.endTime, { color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)' }]}>
+                    {formatTime(schedule.endTime)}
+                </Text>
             </View>
 
             <View style={styles.mainContent}>
                 <View style={styles.titleRow}>
-                    <Text style={[styles.title, { color: theme.text }, isCompleted && styles.completedTitle]} numberOfLines={1}>
-                        {schedule.task?.title || 'Unknown Task'}
+                    <Text
+                        style={[
+                            styles.title,
+                            { color: textColor },
+                            isCompleted && {
+                                color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                                textDecorationLine: 'line-through'
+                            }
+                        ]}
+                        numberOfLines={1}
+                    >
+                        {schedule.task?.title || 'Unknown Objective'}
                     </Text>
-                    <TouchableOpacity onPress={onToggleComplete} style={styles.checkbox}>
+                    <TouchableOpacity
+                        onPress={onToggleComplete}
+                        style={styles.checkbox}
+                        activeOpacity={0.7}
+                    >
                         <View style={[
                             styles.checkboxInner,
-                            { borderColor: isCompleted ? theme.success : theme.border },
-                            isCompleted && { backgroundColor: theme.success }
+                            {
+                                borderColor: isCompleted ? '#00cc88' : glassBord,
+                                backgroundColor: isCompleted ? '#00cc8822' : 'transparent'
+                            }
                         ]}>
-                            {isCompleted && <Icon name="check" size={12} color="#000" />}
+                            {isCompleted && <Icon name="check" size={12} color="#00cc88" />}
                         </View>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.metaRow}>
                     <View style={[
-                        isToday ? styles.todayBadge : styles.categoryBadge,
-                        { backgroundColor: isToday ? theme.cyanDim : theme.border }
+                        styles.badge,
+                        { backgroundColor: isToday ? cyan + '18' : glassBg }
                     ]}>
                         <Text style={[
-                            isToday ? styles.todayBadgeText : styles.categoryText,
-                            { color: isToday ? theme.cyan : theme.textDim }
+                            styles.badgeText,
+                            { color: isToday ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)') }
                         ]}>
-                            {isToday ? 'LIVE' : (schedule.task?.category?.name || 'Schedule')}
+                            {isToday ? 'LIVE' : (schedule.task?.category?.name || 'TEMPORAL')}
                         </Text>
                     </View>
-                    {schedule.recurrence !== 'NONE' && (
-                        <Icon name="repeat" size={12} color={theme.textDim} style={{ marginLeft: 8 }} />
+
+                    {schedule.recurrence && schedule.recurrence !== 'NONE' && (
+                        <View style={[styles.recurrenceWrap, { backgroundColor: 'rgba(168,85,247,0.1)' }]}>
+                            <Icon name="repeat" size={10} color="#a855f7" />
+                            <Text style={styles.recurrenceTxt}>{schedule.recurrence}</Text>
+                        </View>
                     )}
                 </View>
             </View>
@@ -71,34 +102,36 @@ export default function ScheduleCard({ schedule, onToggleComplete, isToday = fal
 const styles = StyleSheet.create({
     cardContainer: {
         flexDirection: 'row',
-        borderRadius: 20,
-        marginBottom: 16,
-        padding: 16,
-        borderWidth: 1,
+        borderRadius: 22,
+        marginBottom: 12,
+        padding: 14,
+        overflow: 'hidden',
     },
     timeSection: {
-        width: 80,
+        width: 75,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingRight: 16,
+        paddingRight: 10,
         borderRightWidth: 1,
     },
     startTime: {
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 11,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
     endTime: {
-        fontSize: 10,
-        marginTop: 4,
+        fontSize: 9,
+        fontWeight: '700',
     },
     timeLine: {
-        width: 2,
-        height: 12,
+        width: 1.5,
+        height: 10,
         marginVertical: 4,
+        borderRadius: 1,
     },
     mainContent: {
         flex: 1,
-        paddingLeft: 16,
+        paddingLeft: 14,
         justifyContent: 'center',
     },
     titleRow: {
@@ -109,43 +142,51 @@ const styles = StyleSheet.create({
     },
     title: {
         flex: 1,
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    completedTitle: {
-        textDecorationLine: 'line-through',
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: -0.2,
     },
     checkbox: {
-        marginLeft: 8,
+        width: 24,
+        height: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     checkboxInner: {
         width: 20,
         height: 20,
-        borderRadius: 6,
-        borderWidth: 2,
+        borderRadius: 7,
+        borderWidth: 1.5,
         alignItems: 'center',
         justifyContent: 'center',
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 8,
     },
-    categoryBadge: {
+    badge: {
         paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+        paddingVertical: 3,
+        borderRadius: 7,
     },
-    categoryText: {
-        fontSize: 10,
-        fontWeight: 'bold',
+    badgeText: {
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
-    todayBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+    recurrenceWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 7,
+        gap: 4,
     },
-    todayBadgeText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
+    recurrenceTxt: {
+        fontSize: 8,
+        fontWeight: '900',
+        color: '#a855f7',
+        textTransform: 'uppercase',
+    }
 });

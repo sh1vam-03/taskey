@@ -25,6 +25,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import TaskCard from './components/TaskCard';
 import PriorityBadge from './components/PriorityBadge';
 import { useTheme } from '../../context/ThemeContext';
+import { EmptyState } from '../../components/common/EmptyState';
 import API from '../../api/client';
 
 const { width: W } = Dimensions.get('window');
@@ -92,68 +93,6 @@ function SectionLabel({ icon, iconColor, label, count, isDark }) {
     );
 }
 
-/* ── Empty state ──────────────────────────────────────────────────────────── */
-function EmptyState({ searching, onAdd, isDark, cyan }) {
-    const pulse = useRef(new Animated.Value(1)).current;
-    useEffect(() => {
-        Animated.loop(Animated.sequence([
-            Animated.timing(pulse, { toValue: 1.07, duration: 1800, useNativeDriver: true }),
-            Animated.timing(pulse, { toValue: 1, duration: 1800, useNativeDriver: true }),
-        ])).start();
-    }, []);
-    return (
-        <View style={styles.emptyWrap}>
-            <Animated.View style={[styles.emptyIcon, {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
-                transform: [{ scale: pulse }],
-                ...Platform.select({
-                    ios: {
-                        shadowColor: cyan, shadowOffset: { width: 0, height: 8 },
-                        shadowOpacity: 0.15, shadowRadius: 18,
-                    }
-                }),
-            }]}>
-                <Icon
-                    name={searching ? 'magnify-close' : 'clipboard-text-outline'}
-                    size={36}
-                    color={isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.13)'}
-                />
-            </Animated.View>
-            <Text style={[styles.emptyTitle, {
-                color: isDark ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.48)',
-            }]}>
-                {searching ? 'No matches found' : 'Queue is empty'}
-            </Text>
-            <Text style={[styles.emptySub, {
-                color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.26)',
-            }]}>
-                {searching
-                    ? 'Try adjusting your filters or search.'
-                    : 'Initialize your first objective.'}
-            </Text>
-            {!searching && (
-                <TouchableOpacity
-                    onPress={onAdd}
-                    activeOpacity={0.82}
-                    style={[styles.emptyBtn, {
-                        backgroundColor: cyan + '18',
-                        borderColor: cyan + '44',
-                        ...Platform.select({
-                            ios: {
-                                shadowColor: cyan, shadowOffset: { width: 0, height: 5 },
-                                shadowOpacity: 0.20, shadowRadius: 12,
-                            }
-                        }),
-                    }]}
-                >
-                    <Icon name="plus" size={13} color={cyan} style={{ marginRight: 6 }} />
-                    <Text style={[styles.emptyBtnTxt, { color: cyan }]}>Initialize Task</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-    );
-}
 
 /* ── Delete confirm sheet ─────────────────────────────────────────────────── */
 function DeleteSheet({ task, onConfirm, onCancel, isDark, deleting }) {
@@ -546,10 +485,13 @@ export default function TasksScreen({ navigation }) {
                     <SkeletonList />
                 ) : tasks.length === 0 ? (
                     <EmptyState
-                        searching={isFiltering}
-                        onAdd={() => navigation.navigate('CreateTask')}
-                        isDark={isDark}
-                        cyan={cyan}
+                        title={isFiltering ? 'No matches found' : 'Queue is empty'}
+                        description={isFiltering ? 'Try adjusting your filters or search.' : 'Initialize your first objective.'}
+                        icon={isFiltering ? 'magnify-close' : 'clipboard-text-outline'}
+                        action={!isFiltering ? {
+                            label: 'Initialize Task',
+                            onPress: () => navigation.navigate('CreateTask')
+                        } : null}
                     />
                 ) : (
                     <View>
