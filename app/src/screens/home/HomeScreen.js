@@ -53,8 +53,7 @@ export default function HomeScreen() {
     const glassStroke = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
 
     return (
-        <View style={[styles.root, { backgroundColor: theme.bg ?? '#0a0a0a' }]}>
-
+        <View style={[styles.root, { backgroundColor: isDark ? (theme.bg ?? '#000') : (theme.surface ?? '#f8fafc') }]}>
             {/* ── FLOATING PILL HEADER ────────────────────────────── */}
             <AppHeader
                 showCalendar

@@ -56,11 +56,16 @@ function HeroCard({ value, label, icon, color }) {
     const { theme, isDark } = useTheme();
     return (
         <View style={[styles.heroCard, {
-            backgroundColor: isDark ? color + '12' : color + '0A',
-            borderColor: isDark ? color + '30' : color + '22',
+            backgroundColor: isDark ? color + '12' : '#ffffff',
+            borderColor: isDark ? color + '30' : 'rgba(0,0,0,0.05)',
         }, Platform.select({
-            ios: { shadowColor: color, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.20, shadowRadius: 20 },
-            android: { elevation: 6 },
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: isDark ? 8 : 10 },
+                shadowOpacity: isDark ? 0.20 : 0.05,
+                shadowRadius: isDark ? 20 : 15,
+            },
+            android: { elevation: isDark ? 6 : 4 },
         })]}>
             <View style={[styles.heroIconBadge, {
                 backgroundColor: color + (isDark ? '20' : '16'),
@@ -86,8 +91,10 @@ function SmallCard({ value, label, icon, color }) {
     const { theme, isDark } = useTheme();
     return (
         <View style={[styles.smallCard, {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-            borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+            borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)',
+        }, !isDark && {
+            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
         }]}>
             <View style={[styles.smallIconBadge, {
                 backgroundColor: color + (isDark ? '1C' : '14'),
@@ -153,9 +160,9 @@ function Heatmap({ data }) {
 export default function StreaksSection({ refreshing }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
-    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
-    const micro = isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.35)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
+    const micro = isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.30)';
 
     const [loading, setLoading] = useState(true);
     const [streakData, setStreakData] = useState(null);
@@ -209,7 +216,12 @@ export default function StreaksSection({ refreshing }) {
             </View>
 
             {/* ── Milestone bar ── */}
-            <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <View style={[styles.card, {
+                backgroundColor: glassBg,
+                borderColor: glassBord
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
                 <Text style={[styles.micro, { color: micro }]}>NEXT GOAL</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
                     <Text style={[styles.milestoneBig, { color: theme.text ?? '#fff' }]}>{next} Days</Text>
@@ -233,7 +245,12 @@ export default function StreaksSection({ refreshing }) {
 
             {/* ── Insights ── */}
             {insights.length > 0 && (
-                <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+                <View style={[styles.card, {
+                    backgroundColor: glassBg,
+                    borderColor: glassBord,
+                }, !isDark && {
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+                }]}>
                     <Text style={[styles.micro, { color: micro }]}>STREAK HABITS</Text>
                     {insights.map((txt, i) => (
                         <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -245,7 +262,12 @@ export default function StreaksSection({ refreshing }) {
             )}
 
             {/* ── Heatmap ── */}
-            <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <View style={[styles.card, {
+                backgroundColor: glassBg,
+                borderColor: glassBord,
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
                 <Text style={[styles.micro, { color: micro }]}>ACTIVITY LOG</Text>
                 <Heatmap data={calendarData} />
             </View>

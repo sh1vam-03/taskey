@@ -48,8 +48,8 @@ function ScoreRing({ score = 0, size = 150, strokeWidth = 11 }) {
                 : score >= 40 ? '#ffaa00'
                     : '#ff4444';
 
-    // ✅ FIX: track stroke respects isDark (was hardcoded rgba(255,255,255,0.07))
-    const trackStroke = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)';
+    // ✅ FIX: track stroke respects isDark
+    const trackStroke = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.04)';
     const labelColor = isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.35)';
 
     return (
@@ -181,8 +181,8 @@ export default function BehaviorSection({ refreshing }) {
     const cyan = theme.cyan ?? '#00d4ff';
 
     // Consistent glass tokens — same as AppHeader / CustomTabBar
-    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
 
     const todayStr = new Date().toLocaleDateString('en-CA');
     const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -247,8 +247,13 @@ export default function BehaviorSection({ refreshing }) {
             {/* ── Score ring + explanation ── */}
             <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord },
             Platform.select({
-                ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14 },
-                android: { elevation: 3 },
+                ios: {
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: isDark ? 4 : 10 },
+                    shadowOpacity: isDark ? 0.08 : 0.05,
+                    shadowRadius: isDark ? 14 : 15,
+                },
+                android: { elevation: isDark ? 3 : 4 },
             }),
             ]}>
                 <ScoreRing score={score} />
@@ -303,7 +308,12 @@ export default function BehaviorSection({ refreshing }) {
 
             {/* ── 7-day behavior trend chart ── */}
             {history.length > 1 && (
-                <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+                <View style={[styles.card, {
+                    backgroundColor: glassBg,
+                    borderColor: glassBord,
+                }, !isDark && {
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+                }]}>
                     <Text style={[styles.cardMicro, {
                         color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)',
                     }]}>
@@ -366,7 +376,12 @@ export default function BehaviorSection({ refreshing }) {
             </View>
 
             {/* ── Browse days strip ── */}
-            <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <View style={[styles.card, {
+                backgroundColor: glassBg,
+                borderColor: glassBord,
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
                 <Text style={[styles.cardMicro, {
                     color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)',
                 }]}>

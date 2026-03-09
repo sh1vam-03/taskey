@@ -96,11 +96,16 @@ function HeroMetricCard({ label, value, suffix, color, icon }) {
     const { theme, isDark } = useTheme();
     return (
         <View style={[styles.heroCard, {
-            backgroundColor: isDark ? color + '12' : color + '0A',
-            borderColor: isDark ? color + '30' : color + '22',
+            backgroundColor: isDark ? color + '12' : '#ffffff',
+            borderColor: isDark ? color + '30' : 'rgba(0,0,0,0.05)',
         }, Platform.select({
-            ios: { shadowColor: color, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.20, shadowRadius: 20 },
-            android: { elevation: 6 },
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: isDark ? 8 : 10 },
+                shadowOpacity: isDark ? 0.20 : 0.05,
+                shadowRadius: isDark ? 20 : 15,
+            },
+            android: { elevation: isDark ? 6 : 4 },
         })]}>
             <View style={[styles.heroIconBadge, {
                 backgroundColor: color + (isDark ? '20' : '16'),
@@ -127,8 +132,10 @@ function SmallMetricCard({ label, value, suffix, color, icon }) {
     const { theme, isDark } = useTheme();
     return (
         <View style={[styles.smallCard, {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-            borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+            borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)',
+        }, !isDark && {
+            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
         }]}>
             <View style={[styles.smallIconBadge, {
                 backgroundColor: color + (isDark ? '1C' : '14'),
@@ -184,9 +191,9 @@ const VIEWS = ['DAILY', 'WEEKLY', 'MONTHLY'];
 export default function PerformanceSection({ refreshing }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
-    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
-    const micro = isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.35)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
+    const micro = isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.30)';
 
     const [view, setView] = useState('WEEKLY');
     const [cache, setCache] = useState({});
@@ -254,7 +261,12 @@ export default function PerformanceSection({ refreshing }) {
             </View>
 
             {/* ── Area chart ── */}
-            <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <View style={[styles.card, {
+                backgroundColor: glassBg,
+                borderColor: glassBord,
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
                 <Text style={[styles.micro, { color: micro }]}>{view} PERFORMANCE</Text>
                 {loading ? (
                     <View style={styles.chartSkeleton}>
@@ -272,7 +284,12 @@ export default function PerformanceSection({ refreshing }) {
 
             {/* ── Insights ── */}
             {!loading && data && (
-                <View style={[styles.card, { backgroundColor: glassBg, borderColor: glassBord }]}>
+                <View style={[styles.card, {
+                    backgroundColor: glassBg,
+                    borderColor: glassBord,
+                }, !isDark && {
+                    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+                }]}>
                     <Text style={[styles.micro, { color: micro }]}>AI INSIGHTS</Text>
                     {getInsights(data).map((ins, i) => (
                         <InsightRow key={i} text={ins.text} type={ins.type} />

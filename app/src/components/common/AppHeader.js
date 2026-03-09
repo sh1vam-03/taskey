@@ -39,8 +39,8 @@ export default function AppHeader({
     const { theme, isDark } = useTheme();
 
     // Glass colours — identical to CustomTabBar
-    const glassFill = isDark ? 'rgba(12,12,14,0.96)' : 'rgba(255,255,255,0.98)';
-    const glassStroke = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
+    const glassFill = isDark ? 'rgba(12,12,14,0.96)' : '#ffffff';
+    const glassStroke = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.04)';
     const cyan = theme.cyan ?? '#00d4ff';
 
     // Icon pill glass — same as floating circle in bottom bar
@@ -53,6 +53,16 @@ export default function AppHeader({
 
     // Top safe-area padding so the pill sits just below the status bar
     const topPad = insets.top + 8;
+
+    const pillShadow = Platform.select({
+        ios: {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: isDark ? 0.22 : 0.06,
+            shadowRadius: isDark ? 20 : 18,
+        },
+        android: { elevation: isDark ? 12 : 5 },
+    });
 
     return (
         <>
@@ -72,6 +82,7 @@ export default function AppHeader({
                     {
                         backgroundColor: glassFill,
                         borderColor: glassStroke,
+                        ...pillShadow,
                     },
                 ]}>
 
@@ -172,15 +183,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 14,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.20,
-                shadowRadius: 18,
-            },
-            android: { elevation: 14 },
-        }),
     },
 
     // Left and right sides — fixed width so center stays truly centered

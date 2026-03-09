@@ -69,10 +69,15 @@ function MiniRing({ value = 0, max = 100, color, size = 46, stroke = 4 }) {
 /* ── premium stat card ────────────────────────────────────────────────────── */
 function StatCard({ label, value, icon, color, ring, ringMax }) {
     const { theme, isDark } = useTheme();
-    const glassBg = isDark ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.045)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
     return (
-        <View style={[styles.statCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
+        <View style={[styles.statCard, {
+            backgroundColor: glassBg,
+            borderColor: glassBord,
+        }, !isDark && {
+            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
+        }]}>
             <View style={styles.statBody}>
                 <View style={styles.statLeft}>
                     <Text style={[styles.statLabel, { color: theme.textMuted ?? '#888' }]}>
@@ -145,7 +150,7 @@ function TLItem({ item, isLast, onToggle }) {
 
     const cardBg = isDone ? (isDark ? 'rgba(0,204,136,0.07)' : 'rgba(0,204,136,0.04)')
         : isMissed ? (isDark ? 'rgba(255,68,68,0.07)' : 'rgba(255,68,68,0.04)')
-            : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)');
+            : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff');
     const cardBord = isDone ? 'rgba(0,204,136,0.20)'
         : isMissed ? 'rgba(255,68,68,0.20)'
             : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)');
@@ -166,7 +171,12 @@ function TLItem({ item, isLast, onToggle }) {
             </View>
 
             {/* card */}
-            <View style={[styles.tlCard, { backgroundColor: cardBg, borderColor: cardBord }]}>
+            <View style={[styles.tlCard, {
+                backgroundColor: cardBg,
+                borderColor: cardBord,
+            }, !isDark && !isDone && !isMissed && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 3, elevation: 1
+            }]}>
                 {/* top row: time + type pill */}
                 <View style={styles.tlTopRow}>
                     <Text style={[styles.tlTime, { color: theme.textDim ?? '#555' }]}>{timeStr}</Text>
@@ -233,8 +243,8 @@ function TLItem({ item, isLast, onToggle }) {
 export default function OverviewSection({ refreshing }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
-    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
 
     const [ovData, setOvData] = useState(null);
     const [todayData, setTodayData] = useState(null);
@@ -363,7 +373,12 @@ export default function OverviewSection({ refreshing }) {
             )}
 
             {/* ── TODAY TIMELINE ── */}
-            <View style={[styles.tlWrap, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <View style={[styles.tlWrap, {
+                backgroundColor: glassBg,
+                borderColor: glassBord,
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
 
                 {/* header */}
                 <View style={styles.tlHead}>

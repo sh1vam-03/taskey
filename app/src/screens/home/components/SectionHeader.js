@@ -14,8 +14,8 @@ export default function SectionHeader({ title, icon }) {
     const cyan = theme.cyan ?? '#00d4ff';
 
     // Glass badge tokens — matches AppHeader icon pill
-    const badgeBg = isDark ? 'rgba(18,18,22,0.82)' : 'rgba(245,245,250,0.82)';
-    const badgeBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+    const badgeBg = isDark ? 'rgba(18,18,22,0.82)' : '#ffffff';
+    const badgeBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.05)';
 
     return (
         <View style={styles.wrap}>
@@ -30,8 +30,13 @@ export default function SectionHeader({ title, icon }) {
                             borderColor: badgeBorder,
                         },
                         Platform.select({
-                            ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.20, shadowRadius: 8 },
-                            android: { elevation: 4 },
+                            ios: {
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: isDark ? 0.20 : 0.04,
+                                shadowRadius: isDark ? 8 : 4
+                            },
+                            android: { elevation: isDark ? 4 : 2 },
                         }),
                     ]}>
                         <Icon name={icon} size={14} color={cyan} />
