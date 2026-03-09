@@ -8,6 +8,8 @@ import Button from '../../../components/common/Button';
 import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
 import Icon from 'react-native-vector-icons/Feather';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { format } from 'date-fns';
 
 export default function CreateTaskScreen({ navigation, route, visible, onClose, onCreated, hideDueDate, onScheduleRequested }) {
     // Props-based if used as component, route-based if used as screen
@@ -29,6 +31,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
     const [isCreatingCategory, setIsCreatingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     useEffect(() => {
         fetchCategories();
@@ -199,12 +202,39 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                     )}
 
                     {!hideDueDate && (
-                        <Input
-                            label="Due Date (YYYY-MM-DD)"
-                            placeholder="Optional due date"
-                            value={dueDate}
-                            onChangeText={setDueDate}
-                        />
+                        <View style={{ marginBottom: 18 }}>
+                            <Text style={[styles.label, { color: theme.text }]}>DUE DATE</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowDatePicker(true)}
+                                activeOpacity={0.7}
+                                style={[
+                                    styles.pickerTrigger,
+                                    {
+                                        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                    }
+                                ]}
+                            >
+                                <Icon name="calendar" size={18} color={dueDate ? cyan : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')} style={{ marginRight: 12 }} />
+                                <Text style={{ color: dueDate ? cyan : (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'), fontWeight: '600' }}>
+                                    {dueDate ? format(new Date(dueDate), 'PPP') : 'Optional due date'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={dueDate ? new Date(dueDate) : new Date()}
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    onChange={(event, selectedDate) => {
+                                        setShowDatePicker(false);
+                                        if (selectedDate) {
+                                            setDueDate(format(selectedDate, 'yyyy-MM-dd'));
+                                        }
+                                    }}
+                                />
+                            )}
+                        </View>
                     )}
 
                     <Text style={[styles.label, { color: theme.text }]}>Priority</Text>
@@ -344,4 +374,12 @@ const styles = StyleSheet.create({
     categoryChip: { paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderRadius: 16 },
     categoryText: {},
     categoryAddBtn: { paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderRadius: 16, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center' },
+    pickerTrigger: {
+        height: 52,
+        borderRadius: 16,
+        borderWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
 });

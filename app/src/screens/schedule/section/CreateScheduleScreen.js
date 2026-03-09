@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { format, parse } from 'date-fns';
 import { createSchedule } from '../../../api/schedule.api';
 import { getTasks } from '../../../api/task.api';
 import Button from '../../../components/common/Button';
@@ -20,7 +22,9 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
     const [weeklyDays, setWeeklyDays] = useState([]); // 0-6 array
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { theme } = useTheme();
+    const [pickerMode, setPickerMode] = useState(null); // 'date' | 'start' | 'end' | 'repeatUntil'
+    const { theme, isDark } = useTheme();
+    const cyan = theme.cyan ?? '#00d4ff';
 
     useEffect(() => {
         if (preselectedTaskId) {
@@ -95,7 +99,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                     <View style={styles.header}>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Schedule Task</Text>
                         <TouchableOpacity onPress={handleClose}>
-                            <Icon name="x" size={24} color={theme.text} />
+                            <Icon name="close" size={24} color={theme.text} />
                         </TouchableOpacity>
                     </View>
 
@@ -119,10 +123,75 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                             )}
                         </ScrollView>
 
-                        {/* Simplistic implementations. In a real app, use DateTimePicker */}
-                        <Input label="Date (YYYY-MM-DD)" value={date} onChangeText={setDate} />
-                        <Input label="Start Time (HH:MM)" value={startTime} onChangeText={setStartTime} />
-                        <Input label="End Time (HH:MM)" value={endTime} onChangeText={setEndTime} />
+                        {/* Native Pickers triggers */}
+                        <View style={{ gap: 12, marginBottom: 20 }}>
+                            <View>
+                                <Text style={[styles.label, { color: theme.text }]}>DATE</Text>
+                                <TouchableOpacity
+                                    onPress={() => setPickerMode('date')}
+                                    activeOpacity={0.7}
+                                    style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                >
+                                    <Icon name="calendar" size={18} color={cyan} style={{ marginRight: 12 }} />
+                                    <Text style={{ color: theme.text, fontWeight: '600' }}>
+                                        {format(new Date(date), 'PPP')}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.label, { color: theme.text }]}>START TIME</Text>
+                                    <TouchableOpacity
+                                        onPress={() => setPickerMode('start')}
+                                        activeOpacity={0.7}
+                                        style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                    >
+                                        <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
+                                        <Text style={{ color: theme.text, fontWeight: '600' }}>
+                                            {format(parse(startTime, 'HH:mm:ss', new Date()), 'hh:mm a')}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.label, { color: theme.text }]}>END TIME</Text>
+                                    <TouchableOpacity
+                                        onPress={() => setPickerMode('end')}
+                                        activeOpacity={0.7}
+                                        style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                    >
+                                        <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
+                                        <Text style={{ color: theme.text, fontWeight: '600' }}>
+                                            {format(parse(endTime, 'HH:mm:ss', new Date()), 'hh:mm a')}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+
+                        {pickerMode && (
+                            <DateTimePicker
+                                value={
+                                    pickerMode === 'date' ? new Date(date) :
+                                        pickerMode === 'repeatUntil' ? (repeatUntil ? new Date(repeatUntil) : new Date()) :
+                                            pickerMode === 'start' ? parse(startTime, 'HH:mm:ss', new Date()) :
+                                                parse(endTime, 'HH:mm:ss', new Date())
+                                }
+                                mode={(pickerMode === 'date' || pickerMode === 'repeatUntil') ? 'date' : 'time'}
+                                is24Hour={false}
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    setPickerMode(null);
+                                    if (selectedDate) {
+                                        if (pickerMode === 'date') setDate(format(selectedDate, 'yyyy-MM-dd'));
+                                        else if (pickerMode === 'repeatUntil') setRepeatUntil(format(selectedDate, 'yyyy-MM-dd'));
+                                        else if (pickerMode === 'start') setStartTime(format(selectedDate, 'HH:mm:ss'));
+                                        else setEndTime(format(selectedDate, 'HH:mm:ss'));
+                                    }
+                                }}
+                            />
+                        )}
 
                         <Text style={[styles.label, { color: theme.text }]}>Recurrence</Text>
                         <View style={styles.recurrenceRow}>
@@ -155,7 +224,19 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                         )}
 
                         {recurrence !== 'NONE' && (
-                            <Input label="Repeat Until (YYYY-MM-DD)" value={repeatUntil} onChangeText={setRepeatUntil} />
+                            <View style={{ marginTop: 12, marginBottom: 18 }}>
+                                <Text style={[styles.label, { color: theme.text }]}>REPEAT UNTIL</Text>
+                                <TouchableOpacity
+                                    onPress={() => setPickerMode('repeatUntil')}
+                                    activeOpacity={0.7}
+                                    style={[styles.pickerTrigger, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                                >
+                                    <Icon name="calendar-range" size={18} color={repeatUntil ? cyan : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')} style={{ marginRight: 12 }} />
+                                    <Text style={{ color: repeatUntil ? theme.text : (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'), fontWeight: '600' }}>
+                                        {repeatUntil ? format(new Date(repeatUntil), 'PPP') : 'Optional end date'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         )}
 
                         <Button
@@ -191,7 +272,15 @@ const styles = StyleSheet.create({
     sheetContainer: { borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, minHeight: '75%', paddingBottom: 40 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
     headerTitle: { fontSize: typography.fontSizes.xl, fontWeight: 'bold' },
-    label: { fontSize: typography.fontSizes.sm, marginBottom: 8, fontWeight: '500' },
+    label: { fontSize: typography.fontSizes.sm, marginBottom: 8, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
+    pickerTrigger: {
+        height: 52,
+        borderRadius: 16,
+        borderWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
     taskScroll: { flexDirection: 'row', marginBottom: 16 },
     taskChip: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderRadius: 8, marginRight: 8 },
     taskText: {},
