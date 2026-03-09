@@ -70,7 +70,8 @@ function buildPath(cx, W, H, depth, nw) {
 
 export default function CustomTabBar({ state, navigation }) {
     const insets = useSafeAreaInsets();
-    const { theme } = useTheme();
+    const { theme, isDark } = useTheme();
+
 
     const activeIdx = useSharedValue(state.index);
 
@@ -98,19 +99,38 @@ export default function CustomTabBar({ state, navigation }) {
     const labelMarginTop = DEPTH_FINAL - 4;
 
     // Glass colours — dark mode vs light mode
-    const isDark = (theme.bg ?? '#0a0a0a') < '#888';
     const cyan = theme.cyan ?? '#00d4ff';
     const glassFill = isDark ? 'rgba(12,12,14,0.96)' : '#ffffff';
     const glassStroke = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.04)';
     const circleBg = isDark ? 'rgba(28,28,32,0.98)' : 'rgba(255,255,255,1.0)';
     const circleBorder = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)';
 
+    const pillShadow = Platform.select({
+        ios: {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: isDark ? 4 : 10 },
+            shadowOpacity: isDark ? 0.18 : 0.04,
+            shadowRadius: isDark ? 16 : 12,
+        },
+        android: { elevation: isDark ? 12 : 3 },
+    });
+
+    const circleShadow = Platform.select({
+        ios: {
+            shadowColor: isDark ? cyan : '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDark ? 0.35 : 0.08,
+            shadowRadius: isDark ? 10 : 8,
+        },
+        android: { elevation: isDark ? 14 : 4 },
+    });
+
     return (
         <View style={[styles.outer, { marginBottom: Math.max(insets.bottom, 10) }]}>
             <View style={[styles.wrapper, { height: WRAPPER_H }]}>
 
                 {/* SVG pill bar — glassy */}
-                <View style={[styles.svgWrap, { top: BAR_Y }]} pointerEvents="none">
+                <View style={[styles.svgWrap, { top: BAR_Y }, pillShadow]} pointerEvents="none">
                     <Svg width={BAR_WIDTH} height={BAR_H}>
                         <AnimatedPath
                             animatedProps={pathAnim}
@@ -129,6 +149,7 @@ export default function CustomTabBar({ state, navigation }) {
                         backgroundColor: circleBg,
                         borderWidth: 1,
                         borderColor: circleBorder,
+                        ...circleShadow,
                     },
                 ]}>
                     <Icon name={activeTab.iconActive} size={22} color={cyan} />
@@ -202,15 +223,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: isDark ? 4 : 10 },
-                shadowOpacity: isDark ? 0.18 : 0.04,
-                shadowRadius: isDark ? 16 : 12,
-            },
-            android: { elevation: isDark ? 12 : 3 },
-        }),
     },
 
     circle: {
@@ -223,15 +235,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         zIndex: 20,
         overflow: 'hidden',
-        ...Platform.select({
-            ios: {
-                shadowColor: isDark ? cyan : '#000',
-                shadowOffset: { width: 0, height: isDark ? 4 : 4 },
-                shadowOpacity: isDark ? 0.35 : 0.08,
-                shadowRadius: isDark ? 10 : 8,
-            },
-            android: { elevation: isDark ? 14 : 4 },
-        }),
     },
 
     tabRow: {

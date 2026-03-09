@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import { colors } from '../theme/colors';
 
 // Screens
-import TasksScreen from '../screens/tasks/sections/TasksScreen';
+import TasksScreen from '../screens/tasks/TasksScreen';
 import ScheduleScreen from '../screens/schedule/section/ScheduleScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import TodayScreen from '../screens/today/TodayScreen';
