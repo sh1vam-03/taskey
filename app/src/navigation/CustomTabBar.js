@@ -127,16 +127,17 @@ export default function CustomTabBar({ state, navigation }) {
         android: { elevation: isDark ? 14 : 4 },
     });
 
-    // NO JS ANIM TO HIDE -- We use layout clipping
-    // When windowHeight shrinks, the bar's 'top' remains fixed outside the visible area.
-    const barTop = initialHeight - WRAPPER_H - Math.max(insets.bottom, 10);
+    // DYNAMIC OFFSET HIDING
+    // Instead of fixed 'top', we use 'bottom: 0' and translate the bar down by the amount the window shrunk.
+    // This keeps the bar at the physical bottom regardless of screen height variations.
+    const translateY = Math.max(0, initialHeight - windowHeight);
 
     return (
         <View style={[
             styles.outer,
-            { top: barTop }
+            { bottom: 0, transform: [{ translateY }] }
         ]}>
-            <View style={[styles.wrapper, { height: WRAPPER_H }]}>
+            <View style={[styles.wrapper, { height: WRAPPER_H, marginBottom: Math.max(insets.bottom, 10) }]}>
 
                 {/* SVG pill bar — glassy */}
                 <View style={[styles.svgWrap, { top: BAR_Y }, pillShadow]} pointerEvents="none">
