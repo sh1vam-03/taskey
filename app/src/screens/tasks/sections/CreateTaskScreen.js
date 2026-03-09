@@ -230,22 +230,20 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                                 loading={loading}
                                 style={{
                                     flex: 1,
-                                    backgroundColor: cyan + '1A',
-                                    borderColor: cyan + '65',
-                                    borderWidth: 1.5,
+                                    backgroundColor: cyan,
                                     height: 54,
                                     borderRadius: 18,
                                     ...Platform.select({
                                         ios: {
                                             shadowColor: cyan,
                                             shadowOffset: { width: 0, height: 8 },
-                                            shadowOpacity: 0.40,
+                                            shadowOpacity: 0.45,
                                             shadowRadius: 18,
                                         },
-                                        android: { elevation: 8 }
+                                        android: { elevation: 10 }
                                     })
                                 }}
-                                textStyle={{ color: cyan, fontWeight: '900', letterSpacing: 0.5 }}
+                                textStyle={{ color: '#000', fontWeight: '900', letterSpacing: 0.6 }}
                             />
                             <Button
                                 title="Create & Schedule"
