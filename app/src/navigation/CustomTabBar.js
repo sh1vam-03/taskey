@@ -7,7 +7,7 @@ import React, { useEffect } from 'react';
 import {
     View, Text, StyleSheet,
     TouchableOpacity, Dimensions, Platform,
-    Keyboard,
+    Keyboard, useWindowDimensions,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
@@ -73,29 +73,13 @@ export default function CustomTabBar({ state, navigation }) {
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
 
-
     const activeIdx = useSharedValue(state.index);
-    const keyboardVisible = useSharedValue(0);
+    const { height: windowHeight } = useWindowDimensions();
+    const [initialHeight] = React.useState(windowHeight);
 
     useEffect(() => {
         activeIdx.value = withSpring(state.index, SPRING);
     }, [state.index]);
-
-    useEffect(() => {
-        const showSubscription = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-            () => { keyboardVisible.value = withTiming(1, { duration: 200 }); }
-        );
-        const hideSubscription = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-            () => { keyboardVisible.value = withTiming(0, { duration: 200 }); }
-        );
-
-        return () => {
-            showSubscription.remove();
-            hideSubscription.remove();
-        };
-    }, []);
 
     // notch center tracks within INNER_WIDTH, offset by SIDE_PAD
     const notchCX = useDerivedValue(() =>
@@ -143,16 +127,14 @@ export default function CustomTabBar({ state, navigation }) {
         android: { elevation: isDark ? 14 : 4 },
     });
 
-    const hideStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: keyboardVisible.value * 120 }],
-        opacity: withTiming(1 - keyboardVisible.value, { duration: 150 }),
-    }));
+    // NO JS ANIM TO HIDE -- We use layout clipping
+    // When windowHeight shrinks, the bar's 'top' remains fixed outside the visible area.
+    const barTop = initialHeight - WRAPPER_H - Math.max(insets.bottom, 10);
 
     return (
-        <Animated.View style={[
+        <View style={[
             styles.outer,
-            { marginBottom: Math.max(insets.bottom, 10) },
-            hideStyle
+            { top: barTop }
         ]}>
             <View style={[styles.wrapper, { height: WRAPPER_H }]}>
 
@@ -227,14 +209,13 @@ export default function CustomTabBar({ state, navigation }) {
                 </View>
 
             </View>
-        </Animated.View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     outer: {
         position: 'absolute',
-        bottom: 0,
         width: SCREEN_WIDTH,
         alignItems: 'center',
         backgroundColor: 'transparent'
