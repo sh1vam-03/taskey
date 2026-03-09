@@ -1,0 +1,20 @@
+import client from './client';
+
+export const login = (email, password, remember) =>
+    client.post('/auth/login', { email, password, remember });
+
+export const register = (name, email, password) =>
+    client.post('/auth/signup', { name, email, password });
+
+export const verifyOtp = (email, code) =>
+    client.post('/auth/verify-otp', { email, code });
+
+export const refreshToken = (token) =>
+    client.post('/auth/refresh', { refreshToken: token });
+
+export const logout = () => client.post('/auth/logout');
+export const getMe = () => client.get('/auth/me');
+export const forgotPassword = (email) =>
+    client.post('/auth/forgot-password', { email });
+export const resetPassword = (email, code, password) =>
+    client.post('/auth/reset-password', { email, code, password });

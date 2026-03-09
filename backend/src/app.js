@@ -12,19 +12,7 @@ const app = express();
 app.use(morgan("dev"));
 app.set("trust proxy", 1);
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-
-        if (
-            origin.includes("localhost") ||
-            origin.includes("vercel.app") ||
-            origin.includes("tasktime.in")
-        ) {
-            return callback(null, true);
-        }
-
-        callback(new Error("Not allowed by CORS"));
-    },
+    origin: true, // Allow all origins during development to bypass CORS hurdles
     credentials: true
 }));
 app.use(express.json());

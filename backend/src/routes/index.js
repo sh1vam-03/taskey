@@ -19,6 +19,7 @@ import aiRoutes from "../ai/routes/ai.routes.js";
 import voiceRoutes from "../ai/routes/voice.routes.js";
 
 router.use("/api", healthRoutes);
+router.get("/api/ping", (req, res) => res.json({ success: true, message: "pong" }));
 router.use("/api/publicPages", publicPagesRoutes);
 router.use("/api/auth", authRoutes);
 router.use("/api/task", taskRoutes);

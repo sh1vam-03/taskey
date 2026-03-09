@@ -1,0 +1,361 @@
+/**
+ * ProfilePanel -- TASKTIME
+ * Premium glass bottom-sheet. Same visual language as AppHeader + CustomTabBar.
+ */
+
+import React, { useRef, useEffect } from 'react';
+import {
+    View, Text, StyleSheet, TouchableOpacity,
+    Modal, Pressable, Platform, Animated,
+    Dimensions,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuthStore } from '../../store/auth.store';
+import { useNavigation } from '@react-navigation/native';
+
+const { height: SCREEN_H } = Dimensions.get('window');
+
+/* ── Plan badge colours ─────────────────────────────────────────────────── */
+const PLAN_COLORS = {
+    FREE: { bg: 'rgba(255,255,255,0.10)', border: 'rgba(255,255,255,0.20)', text: 'rgba(255,255,255,0.70)' },
+    PRO: { bg: 'rgba(0,212,255,0.15)', border: 'rgba(0,212,255,0.35)', text: '#00d4ff' },
+    PREMIUM: { bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.35)', text: '#a855f7' },
+    TEAM: { bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.35)', text: '#eab308' },
+};
+
+/* ── Theme pill ─────────────────────────────────────────────────────────── */
+function ThemePill({ mode, icon, label, active, onPress, cyan }) {
+    const { isDark } = useTheme();
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.75}
+            style={[
+                styles.themePill,
+                active && {
+                    backgroundColor: cyan + (isDark ? '1E' : '16'),
+                    borderColor: cyan + '44',
+                },
+                !active && {
+                    borderColor: 'transparent',
+                },
+            ]}
+        >
+            <Icon name={icon} size={14} color={active ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.30)')} />
+            <Text style={[
+                styles.themePillTxt,
+                { color: active ? cyan : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.40)') },
+                active && { fontWeight: '800' },
+            ]}>
+                {label}
+            </Text>
+        </TouchableOpacity>
+    );
+}
+
+/* ── Action row ─────────────────────────────────────────────────────────── */
+function ActionRow({ iconName, label, onPress, color, isDark, cyan, showChevron = true }) {
+    const iconBg = color
+        ? color + '18'
+        : (isDark ? 'rgba(0,212,255,0.10)' : 'rgba(0,212,255,0.07)');
+    const iconBorder = color ? color + '30' : cyan + '28';
+    const textColor = color || (isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.80)');
+
+    return (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.75} style={styles.actionRow}>
+            <View style={[styles.actionIconPill, { backgroundColor: iconBg, borderColor: iconBorder }]}>
+                <Icon name={iconName} size={17} color={color || cyan} />
+            </View>
+            <Text style={[styles.actionLabel, { color: textColor }]}>{label}</Text>
+            {showChevron && (
+                <Icon name="chevron-right" size={16}
+                    color={isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.20)'} />
+            )}
+        </TouchableOpacity>
+    );
+}
+
+/* ── Main ───────────────────────────────────────────────────────────────── */
+export default function ProfilePanel({ visible, onClose }) {
+    const insets = useSafeAreaInsets();
+    const { theme, themeMode, toggleTheme, isDark } = useTheme();
+    const user = useAuthStore(s => s.user);
+    const logout = useAuthStore(s => s.logout);
+    const navigation = useNavigation();
+    const cyan = theme.cyan ?? '#00d4ff';
+
+    /* slide animation */
+    const slideY = useRef(new Animated.Value(SCREEN_H)).current;
+    useEffect(() => {
+        if (visible) {
+            Animated.spring(slideY, {
+                toValue: 0, speed: 18, bounciness: 3, useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(slideY, {
+                toValue: SCREEN_H, duration: 260, useNativeDriver: true,
+            }).start();
+        }
+    }, [visible]);
+
+    const navigateTo = (screen) => { onClose(); navigation.navigate(screen); };
+    const handleLogout = () => { onClose(); logout?.(); };
+
+    /* glass tokens */
+    const sheetBg = isDark ? 'rgba(10,10,14,0.97)' : 'rgba(250,250,255,0.97)';
+    const sheetBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const divBg = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    const themeBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+
+    /* avatar initials + plan */
+    const initials = (user?.name ?? 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const plan = (user?.plan ?? 'FREE').toUpperCase();
+    const planColor = PLAN_COLORS[plan] || PLAN_COLORS.FREE;
+
+    return (
+        <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+            {/* dim backdrop */}
+            <Pressable style={styles.backdrop} onPress={onClose} />
+
+            <Animated.View
+                style={[
+                    styles.sheet,
+                    {
+                        backgroundColor: sheetBg,
+                        borderColor: sheetBord,
+                        paddingBottom: insets.bottom + 20,
+                        transform: [{ translateY: slideY }],
+                        ...Platform.select({
+                            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.25, shadowRadius: 24 },
+                            android: { elevation: 20 },
+                        }),
+                    },
+                ]}
+            >
+                {/* drag handle */}
+                <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]} />
+
+                {/* ── PROFILE HEADER ── */}
+                <View style={styles.profileRow}>
+                    {/* Avatar with cyan ring glow */}
+                    <View style={styles.avatarWrap}>
+                        <View style={[styles.avatarRing, {
+                            borderColor: cyan + '55',
+                            ...Platform.select({
+                                ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.45, shadowRadius: 12 },
+                            }),
+                        }]}>
+                            <View style={[styles.avatar, { backgroundColor: cyan + '1A' }]}>
+                                <Text style={[styles.avatarTxt, { color: cyan }]}>{initials}</Text>
+                            </View>
+                        </View>
+                        {/* Online dot */}
+                        <View style={[styles.onlineDot, { backgroundColor: '#00cc88', borderColor: sheetBg }]} />
+                    </View>
+
+                    <View style={styles.userInfo}>
+                        <Text style={[styles.userName, { color: theme.text ?? '#fff' }]} numberOfLines={1}>
+                            {user?.name ?? 'User'}
+                        </Text>
+                        <Text style={[styles.userEmail, { color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)' }]} numberOfLines={1}>
+                            {user?.email ?? 'email@example.com'}
+                        </Text>
+
+                        {/* Plan badge */}
+                        <View style={[styles.planBadge, {
+                            backgroundColor: planColor.bg,
+                            borderColor: planColor.border,
+                        }]}>
+                            <View style={[styles.planDot, { backgroundColor: planColor.text }]} />
+                            <Text style={[styles.planTxt, { color: planColor.text }]}>{plan}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* ── DIVIDER ── */}
+                <View style={[styles.divider, { backgroundColor: divBg }]} />
+
+                {/* ── THEME TOGGLE ── */}
+                <View style={styles.section}>
+                    <Text style={[styles.sectionLabel, { color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)' }]}>
+                        APPEARANCE
+                    </Text>
+                    <View style={[styles.themeTrack, { backgroundColor: themeBg, borderColor: sheetBord }]}>
+                        <ThemePill mode="light" icon="white-balance-sunny" label="Light" active={themeMode === 'light'} onPress={() => toggleTheme('light')} cyan={cyan} />
+                        <ThemePill mode="dark" icon="weather-night" label="Dark" active={themeMode === 'dark'} onPress={() => toggleTheme('dark')} cyan={cyan} />
+                        <ThemePill mode="system" icon="laptop" label="System" active={themeMode === 'system'} onPress={() => toggleTheme('system')} cyan={cyan} />
+                    </View>
+                </View>
+
+                {/* ── DIVIDER ── */}
+                <View style={[styles.divider, { backgroundColor: divBg }]} />
+
+                {/* ── ACTION ROWS ── */}
+                <View style={styles.section}>
+                    <ActionRow iconName="credit-card-outline" label="Billing & Usage" onPress={() => navigateTo('Billing')} isDark={isDark} cyan={cyan} />
+                    <ActionRow iconName="cog-outline" label="Settings" onPress={() => navigateTo('Settings')} isDark={isDark} cyan={cyan} />
+                </View>
+
+                {/* ── DIVIDER ── */}
+                <View style={[styles.divider, { backgroundColor: divBg }]} />
+
+                {/* ── LOGOUT ── */}
+                <View style={[styles.section, { paddingBottom: 4 }]}>
+                    <ActionRow
+                        iconName="logout"
+                        label="Log Out"
+                        onPress={handleLogout}
+                        color="#ff4444"
+                        showChevron={false}
+                        isDark={isDark}
+                        cyan={cyan}
+                    />
+                </View>
+
+                {/* ── VERSION ── */}
+                <Text style={[styles.version, { color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.18)' }]}>
+                    TASKTIME · v1.0.0
+                </Text>
+            </Animated.View>
+        </Modal>
+    );
+}
+
+const styles = StyleSheet.create({
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+    },
+    sheet: {
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        borderTopWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        paddingHorizontal: 24,
+        paddingTop: 6,
+    },
+
+    /* handle */
+    handle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 10,
+        marginBottom: 22,
+    },
+
+    /* profile */
+    profileRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 22,
+    },
+    avatarWrap: {
+        position: 'relative',
+        marginRight: 16,
+    },
+    avatarRing: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        borderWidth: 1.5,
+        padding: 3,
+    },
+    avatar: {
+        flex: 1,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarTxt: {
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    onlineDot: {
+        position: 'absolute',
+        bottom: 2, right: 2,
+        width: 12, height: 12,
+        borderRadius: 6,
+        borderWidth: 2,
+    },
+
+    /* user info */
+    userInfo: { flex: 1 },
+    userName: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3, marginBottom: 2 },
+    userEmail: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+
+    /* plan badge */
+    planBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        borderRadius: 10,
+        borderWidth: 1,
+        paddingHorizontal: 9,
+        paddingVertical: 3,
+        gap: 5,
+    },
+    planDot: { width: 5, height: 5, borderRadius: 2.5 },
+    planTxt: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+
+    /* divider */
+    divider: { height: 1, marginVertical: 4 },
+
+    /* section */
+    section: { paddingVertical: 10 },
+    sectionLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 2.5, marginBottom: 12 },
+
+    /* theme track */
+    themeTrack: {
+        flexDirection: 'row',
+        borderRadius: 16,
+        borderWidth: 1,
+        padding: 4,
+        gap: 4,
+    },
+    themePill: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 6,
+    },
+    themePillTxt: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+
+    /* action rows */
+    actionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 13,
+        gap: 14,
+    },
+    actionIconPill: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
+
+    /* version */
+    version: {
+        textAlign: 'center',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 2,
+        marginTop: 18,
+        marginBottom: 4,
+    },
+});
