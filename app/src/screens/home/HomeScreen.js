@@ -145,7 +145,7 @@ export default function HomeScreen() {
                 <PerformanceSection refreshing={refreshing} />
 
                 {/* Tab bar spacer */}
-                <View style={{ height: 130 }} />
+                <View style={{ height: 150 }} />
             </ScrollView>
 
             {/* ── PROFILE PANEL ───────────────────────────────────── */}

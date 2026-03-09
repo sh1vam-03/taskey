@@ -556,7 +556,7 @@ export default function TasksScreen({ navigation }) {
                     />
                 )}
 
-                <View style={{ height: 130 }} />
+                <View style={{ height: 150 }} />
             </ScrollView>
 
             {/* ── FAB ── */}
@@ -567,7 +567,7 @@ export default function TasksScreen({ navigation }) {
                     styles.fab,
                     {
                         backgroundColor: cyan,
-                        bottom: insets.bottom + 88,
+                        bottom: insets.bottom + 105,
                         ...Platform.select({
                             ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 18 },
                             android: { elevation: 10 },

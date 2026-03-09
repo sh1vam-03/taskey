@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    list: { padding: 20, paddingBottom: 100 },
+    list: { padding: 20, paddingBottom: 150 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 100 },
     emptyText: { marginTop: 16, fontSize: 16 },
 });

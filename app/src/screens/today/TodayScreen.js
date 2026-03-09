@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: 4,
     },
-    scroll: { padding: 20, paddingBottom: 100 },
+    scroll: { padding: 20, paddingBottom: 150 },
     section: { marginBottom: 32 },
     sectionTitle: { fontSize: 13, fontWeight: '900', letterSpacing: 1.5, marginBottom: 16 },
     emptyText: { textAlign: 'center', marginTop: 20 },
