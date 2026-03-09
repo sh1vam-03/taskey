@@ -21,6 +21,7 @@ export default function TabNavigator() {
             tabBar={props => <CustomTabBar {...props} />}
             screenOptions={{
                 headerShown: false,
+                tabBarHideOnKeyboard: true,
             }}
         >
             <Tab.Screen name="Tasks" component={TasksScreen} />

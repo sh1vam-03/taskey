@@ -7,11 +7,12 @@ import React, { useEffect } from 'react';
 import {
     View, Text, StyleSheet,
     TouchableOpacity, Dimensions, Platform,
+    Keyboard,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
     useAnimatedProps, useAnimatedStyle,
-    useSharedValue, useDerivedValue, withSpring,
+    useSharedValue, useDerivedValue, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -74,10 +75,27 @@ export default function CustomTabBar({ state, navigation }) {
 
 
     const activeIdx = useSharedValue(state.index);
+    const keyboardVisible = useSharedValue(0);
 
     useEffect(() => {
         activeIdx.value = withSpring(state.index, SPRING);
     }, [state.index]);
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+            () => { keyboardVisible.value = withTiming(1, { duration: 200 }); }
+        );
+        const hideSubscription = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+            () => { keyboardVisible.value = withTiming(0, { duration: 200 }); }
+        );
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
 
     // notch center tracks within INNER_WIDTH, offset by SIDE_PAD
     const notchCX = useDerivedValue(() =>
@@ -125,8 +143,17 @@ export default function CustomTabBar({ state, navigation }) {
         android: { elevation: isDark ? 14 : 4 },
     });
 
+    const hideStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: keyboardVisible.value * 120 }],
+        opacity: withTiming(1 - keyboardVisible.value, { duration: 150 }),
+    }));
+
     return (
-        <View style={[styles.outer, { marginBottom: Math.max(insets.bottom, 10) }]}>
+        <Animated.View style={[
+            styles.outer,
+            { marginBottom: Math.max(insets.bottom, 10) },
+            hideStyle
+        ]}>
             <View style={[styles.wrapper, { height: WRAPPER_H }]}>
 
                 {/* SVG pill bar — glassy */}
@@ -200,7 +227,7 @@ export default function CustomTabBar({ state, navigation }) {
                 </View>
 
             </View>
-        </View>
+        </Animated.View>
     );
 }
 
