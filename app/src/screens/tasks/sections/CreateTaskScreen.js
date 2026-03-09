@@ -130,9 +130,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                         value={description}
                         onChangeText={setDescription}
                         multiline
-                        numberOfLines={3}
-                        style={{ minHeight: 80, textAlignVertical: 'top', color: theme.text }}
-                        placeholderTextColor={theme.textDim}
+                        numberOfLines={2}
                     />
 
                     {/* Category logic remains same */}

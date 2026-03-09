@@ -95,6 +95,9 @@ export default function Input({
                 {
                     backgroundColor: inputBg,
                     borderColor: borderColor,
+                    minHeight: props.multiline ? (props.numberOfLines ? props.numberOfLines * 24 + 20 : 80) : 52,
+                    height: props.multiline ? undefined : 52,
+                    alignItems: props.multiline ? 'flex-start' : 'center',
                     ...Platform.select({
                         ios: focused ? {
                             shadowColor: error ? '#ff4444' : cyan,
@@ -113,12 +116,15 @@ export default function Input({
                     onFocus={onFocus}
                     onBlur={onBlur}
                     placeholderTextColor={isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'}
+                    textAlignVertical={props.multiline ? 'top' : 'center'}
                     style={[
                         styles.input,
                         {
                             color: theme.text ?? '#fff',
                             paddingLeft: leftIcon ? 0 : 16,
                             paddingRight: rightIcon ? 0 : 16,
+                            paddingTop: props.multiline ? 12 : 0,
+                            paddingBottom: props.multiline ? 12 : 0,
                         },
                         style,
                     ]}
