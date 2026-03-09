@@ -100,8 +100,8 @@ export default function CustomTabBar({ state, navigation }) {
     // Glass colours — dark mode vs light mode
     const isDark = (theme.bg ?? '#0a0a0a') < '#888';
     const cyan = theme.cyan ?? '#00d4ff';
-    const glassFill = isDark ? 'rgba(12,12,14,0.96)' : 'rgba(255,255,255,0.98)';
-    const glassStroke = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
+    const glassFill = isDark ? 'rgba(12,12,14,0.96)' : '#ffffff';
+    const glassStroke = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.04)';
     const circleBg = isDark ? 'rgba(28,28,32,0.98)' : 'rgba(255,255,255,1.0)';
     const circleBorder = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)';
 
@@ -203,8 +203,13 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 16 },
-            android: { elevation: 12 },
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: isDark ? 4 : 10 },
+                shadowOpacity: isDark ? 0.18 : 0.04,
+                shadowRadius: isDark ? 16 : 12,
+            },
+            android: { elevation: isDark ? 12 : 3 },
         }),
     },
 
@@ -219,8 +224,13 @@ const styles = StyleSheet.create({
         zIndex: 20,
         overflow: 'hidden',
         ...Platform.select({
-            ios: { shadowColor: '#00d4ff', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10 },
-            android: { elevation: 14 },
+            ios: {
+                shadowColor: isDark ? cyan : '#000',
+                shadowOffset: { width: 0, height: isDark ? 4 : 4 },
+                shadowOpacity: isDark ? 0.35 : 0.08,
+                shadowRadius: isDark ? 10 : 8,
+            },
+            android: { elevation: isDark ? 14 : 4 },
         }),
     },
 

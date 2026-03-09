@@ -318,7 +318,12 @@ export default function OverviewSection({ refreshing }) {
 
     if (error) {
         return (
-            <View style={[styles.errBox, { borderColor: '#ff444430', backgroundColor: 'rgba(255,68,68,0.07)' }]}>
+            <View style={[styles.errBox, {
+                backgroundColor: isDark ? 'rgba(255,68,68,0.07)' : '#ffffff',
+                borderColor: isDark ? '#ff444430' : 'rgba(255,68,68,0.20)',
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
                 <Text style={{ color: '#ff4444', fontWeight: '700', marginBottom: 14 }}>Failed to load</Text>
                 <TouchableOpacity
                     onPress={() => { fetchOverview(); fetchToday(); }}

@@ -49,8 +49,9 @@ export default function HomeScreen() {
     }, []);
 
     // Same glass tokens as CustomTabBar / AppHeader
-    const glassFill = isDark ? 'rgba(18,18,22,0.82)' : 'rgba(245,245,250,0.82)';
-    const glassStroke = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
+    // Consistent glass tokens — matches AppHeader / Sections
+    const glassFill = isDark ? 'rgba(18,18,22,0.82)' : '#ffffff';
+    const glassStroke = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)';
 
     return (
         <View style={[styles.root, { backgroundColor: isDark ? (theme.bg ?? '#000') : (theme.surface ?? '#f8fafc') }]}>
@@ -83,8 +84,13 @@ export default function HomeScreen() {
                     styles.greetCard,
                     { backgroundColor: glassFill, borderColor: glassStroke },
                     Platform.select({
-                        ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.10, shadowRadius: 20 },
-                        android: { elevation: 6 },
+                        ios: {
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: isDark ? 6 : 10 },
+                            shadowOpacity: isDark ? 0.10 : 0.05,
+                            shadowRadius: isDark ? 20 : 15,
+                        },
+                        android: { elevation: isDark ? 6 : 4 },
                     }),
                 ]}>
                     {/* Ambient glow blobs */}
@@ -97,28 +103,29 @@ export default function HomeScreen() {
                     </Text>
 
                     {/* Gradient greeting text */}
-                    <Svg height={50} width={W - 80} style={{ marginTop: 2, marginBottom: 2 }}>
+                    <Svg height={50} width={W - 84} style={{ marginTop: 2, marginBottom: 2 }}>
                         <Defs>
                             <LinearGradient id="greetGrad" x1="0" y1="0" x2="1" y2="0">
-                                <Stop offset="0" stopColor={isDark ? '#ffffff' : '#111111'} stopOpacity="1" />
-                                <Stop offset="0.65" stopColor={cyan} stopOpacity="1" />
+                                <Stop offset="0" stopColor={isDark ? '#ffffff' : '#000000'} stopOpacity="1" />
+                                <Stop offset="0.45" stopColor={isDark ? '#ffffff' : '#111111'} stopOpacity="1" />
+                                <Stop offset="0.75" stopColor={cyan} stopOpacity="1" />
                                 <Stop offset="1" stopColor="#a855f7" stopOpacity="0.9" />
                             </LinearGradient>
                         </Defs>
                         <SvgText
                             fill="url(#greetGrad)"
-                            fontSize="27"
+                            fontSize="24"
                             fontWeight="900"
                             x="0"
                             y="36"
-                            letterSpacing="-0.5"
+                            letterSpacing="0"
                         >
                             {greeting} 👋
                         </SvgText>
                     </Svg>
 
                     {/* Accent divider */}
-                    <View style={[styles.greetDivider, { backgroundColor: cyan + '40' }]} />
+                    <View style={[styles.greetDivider, { backgroundColor: isDark ? cyan + '40' : cyan + '30' }]} />
                 </View>
 
                 {/* ── SECTION 1: OVERVIEW + TODAY TIMELINE ──────────── */}
@@ -167,7 +174,7 @@ const styles = StyleSheet.create({
         width: 150,
         height: 150,
         borderRadius: 75,
-        opacity: 0.07,
+        opacity: 0.05,
     },
     blob2: {
         position: 'absolute',
@@ -175,7 +182,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        opacity: 0.05,
+        opacity: 0.03,
     },
     dateLine: {
         fontSize: 10,
