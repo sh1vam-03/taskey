@@ -103,7 +103,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView>
+                    <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                         <Text style={[styles.label, { color: theme.text }]}>Select Task (Inbox ONLY)</Text>
@@ -269,7 +269,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
 
 const styles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    sheetContainer: { borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, minHeight: '75%', paddingBottom: 40 },
+    sheetContainer: { borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, paddingBottom: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
     headerTitle: { fontSize: typography.fontSizes.xl, fontWeight: 'bold' },
     label: { fontSize: typography.fontSizes.sm, marginBottom: 8, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },

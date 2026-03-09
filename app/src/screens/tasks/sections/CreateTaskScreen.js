@@ -117,7 +117,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                     </TouchableOpacity>
                 </View>
 
-                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}>
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}>
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                     <Input
@@ -337,7 +337,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'flex-end' },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
-    sheetContainer: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 24, minHeight: '75%', paddingBottom: 40 },
+    sheetContainer: { borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 24, paddingBottom: 20 },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
