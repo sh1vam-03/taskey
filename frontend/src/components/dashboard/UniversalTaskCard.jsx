@@ -25,7 +25,7 @@ const PRIORITY = {
         barGlow: 'shadow-[0_0_8px_rgba(245,158,11,0.3)]',
         badge: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
         icon: Minus,
-        label: 'MED',
+        label: 'MEDIUM',
     },
     LOW: {
         bar: 'bg-blue-500',
@@ -290,7 +290,7 @@ export default function UniversalTaskCard({
                     </span>
 
                     <span className="text-gray-400 border border-white/10 px-1.5 py-[2px]">
-                        {isScheduleType ? "SCHEDULED" : "TASK"}
+                        {isScheduleType ? "EVENT" : "TASK"}
                     </span>
 
                     {category && (

@@ -234,7 +234,7 @@ export default function AiSidebar({ isOpen, onClose }) {
                     <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 space-y-3 mx-4 mb-4">
                         {/* Section Label */}
                         <div className="px-1 text-[9px] font-mono text-gray-500 uppercase tracking-widest flex items-center justify-between">
-                            <span>Active Engines</span>
+                            <span>AI Model Status</span>
                             <div className="h-px w-12 bg-linear-to-r from-gray-500/50 to-transparent"></div>
                         </div>
 
@@ -254,7 +254,7 @@ export default function AiSidebar({ isOpen, onClose }) {
                                     className="w-full flex items-center justify-between px-2.5 py-2 hover:bg-white/5 transition-colors"
                                 >
                                     <span className="text-[11px] text-gray-300 font-medium flex items-center gap-2">
-                                        <Zap className="w-3.5 h-3.5 text-orange-400" /> Voice Pipeline
+                                        <Zap className="w-3.5 h-3.5 text-orange-400" /> Voice Engine
                                     </span>
                                     {isVoiceOpen ? (
                                         <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
@@ -271,11 +271,11 @@ export default function AiSidebar({ isOpen, onClose }) {
                                             <ModelBadge model={settings.voiceModel} onClick={openSettings} />
                                         </div>
                                         <div className="flex items-center justify-between px-1 border-l-2 border-transparent hover:border-white/10 pl-2 ml-1 transition-all">
-                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Vocalizer</span>
+                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Speech Output</span>
                                             <ModelBadge model={settings.ttsModel} onClick={openSettings} />
                                         </div>
                                         <div className="flex items-center justify-between px-1 border-l-2 border-transparent hover:border-white/10 pl-2 ml-1 transition-all">
-                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Listener</span>
+                                            <span className="text-[10px] text-gray-400 font-medium tracking-wide">Speech Input</span>
                                             <ModelBadge model={settings.sttModel} onClick={openSettings} />
                                         </div>
                                     </div>

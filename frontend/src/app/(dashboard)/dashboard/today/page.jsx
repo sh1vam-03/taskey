@@ -186,7 +186,7 @@ export default function TodayDashboardPage() {
                     <>
                         {/* Total Tasks */}
                         <Card
-                            title="Total Focus"
+                            title="Total Tasks"
                             icon={CheckSquare}
                             className="min-h-[140px]"
                         >
@@ -194,7 +194,7 @@ export default function TodayDashboardPage() {
                                 <div className="text-3xl font-bold text-white">{data?.stats?.total ?? 0}</div>
                             </div>
                             <p className="text-xs text-gray-500 font-mono mt-1">
-                                Scheduled Items
+                                Total Items
                             </p>
                         </Card>
 
