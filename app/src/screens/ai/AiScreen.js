@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
     KeyboardAvoidingView, Platform, Animated, Dimensions,
-    TouchableWithoutFeedback, Keyboard, StatusBar,
+    TouchableWithoutFeedback, Keyboard, StatusBar, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
@@ -31,10 +31,10 @@ function getGreeting() {
 }
 
 const QUICK_PROMPTS = [
-    { icon: 'calendar-check', label: 'Plan my day', prompt: 'Help me plan my day efficiently.' },
-    { icon: 'lightbulb-outline', label: 'Brainstorm', prompt: 'I need help brainstorming ideas.' },
-    { icon: 'format-list-checks', label: 'Create task list', prompt: 'Help me create a structured task list.' },
-    { icon: 'clock-fast', label: 'Prioritize tasks', prompt: 'Help me prioritize my tasks by urgency and importance.' },
+    { icon: 'calendar-check', label: 'What should I focus on?', sub: 'Check my tasks & schedule', prompt: 'What should I focus on?' },
+    { icon: 'target', label: 'Create a session for me', sub: 'Deep work or task focus', prompt: 'Create a session for me' },
+    { icon: 'star-four-points', label: 'What can you do?', sub: 'Explore AI capabilities', prompt: 'What can you do?' },
+    { icon: 'clock-outline', label: 'Analyze my time', sub: 'Review habit consistency', prompt: 'Analyze my time' },
 ];
 
 function MicPulse({ color }) {
@@ -64,6 +64,7 @@ function MicPulse({ color }) {
             ]),
         ]).start(() => loop());
         loop();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     return (
         <View style={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}>
@@ -288,12 +289,28 @@ export default function AiScreen() {
                     </View>
                 ) : (!messages || messages.length === 0) ? (
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-                        <View style={styles.emptyState}>
+                        <ScrollView
+                            contentContainerStyle={styles.emptyState}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
                             <View style={[styles.aiIcon, { borderColor: cyan + '40', backgroundColor: cyan + '12' }]}>
                                 <Icon name="star-four-points" size={28} color={cyan} />
                             </View>
-                            <Text style={[styles.greeting, { color: theme.text }]}>{getGreeting()}!</Text>
-                            <Text style={[styles.greetingSub, { color: mutedText }]}>How can I help you today?</Text>
+                            <Text style={[styles.greeting, { color: theme.text }]}>How can I help you today?</Text>
+                            <Text style={[styles.greetingSub, { color: mutedText }]}>
+                                Ask me anything about your tasks, schedule, or habits. I'm here to help you stay organized and productive.
+                            </Text>
+
+                            {/* Sarvam-M Alpha Banner */}
+                            {settings?.chatModel === 'sarvam-m' && (
+                                <View style={[styles.sarvamBanner, { backgroundColor: cyan + '10', borderColor: cyan + '30' }]}>
+                                    <Text style={{ fontSize: 10, fontWeight: '600', color: cyan, letterSpacing: 0.5, textAlign: 'center' }}>
+                                        📚 Alpha — Sarvam-M is knowledge-first. Experimental task support is active.
+                                    </Text>
+                                </View>
+                            )}
+
                             <View style={styles.quickGrid}>
                                 {QUICK_PROMPTS.map((qp, i) => (
                                     <TouchableOpacity
@@ -302,12 +319,19 @@ export default function AiScreen() {
                                         onPress={() => handleSend(qp.prompt)}
                                         activeOpacity={0.7}
                                     >
-                                        <Icon name={qp.icon} size={15} color={cyan} style={{ marginBottom: 6 }} />
-                                        <Text style={[styles.quickChipTxt, { color: theme.text }]}>{qp.label}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                            <View style={[styles.quickChipIcon, { backgroundColor: cyan + '18' }]}>
+                                                <Icon name={qp.icon} size={16} color={cyan} />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.quickChipTxt, { color: theme.text }]}>{qp.label}</Text>
+                                                <Text style={[styles.quickChipSub, { color: mutedText }]}>{qp.sub}</Text>
+                                            </View>
+                                        </View>
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                        </View>
+                        </ScrollView>
                     </TouchableWithoutFeedback>
                 ) : (
                     /* FIX keyboard dismiss: keyboardShouldPersistTaps="handled" */
@@ -321,6 +345,18 @@ export default function AiScreen() {
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         keyboardDismissMode="interactive"
+                        ListFooterComponent={
+                            isStreaming && (!messages.length || !messages[messages.length - 1]?.content) ? (
+                                <View style={styles.thinkingRow}>
+                                    <View style={styles.thinkingDots}>
+                                        <View style={[styles.thinkingDot, { backgroundColor: cyan }]} />
+                                        <View style={[styles.thinkingDot, { backgroundColor: cyan, opacity: 0.7 }]} />
+                                        <View style={[styles.thinkingDot, { backgroundColor: cyan, opacity: 0.4 }]} />
+                                    </View>
+                                    <Text style={[styles.thinkingTxt, { color: mutedText }]}>Thinking...</Text>
+                                </View>
+                            ) : null
+                        }
                     />
                 )}
 
@@ -383,6 +419,11 @@ export default function AiScreen() {
                             <Text style={[styles.streamTxt, { color: mutedText }]}>AI is responding…</Text>
                         </View>
                     )}
+
+                    {/* Disclaimer — matches web */}
+                    <Text style={[styles.disclaimer, { color: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)' }]}>
+                        AI can make mistakes. Please verify important information.
+                    </Text>
                 </View>
 
                 <AiSettingsModal
@@ -512,7 +553,7 @@ export default function AiScreen() {
                             <FlatList
                                 data={conversations}
                                 keyExtractor={item => item._id}
-                                contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 40, paddingTop: 4 }}
+                                contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 10, paddingTop: 4 }}
                                 showsVerticalScrollIndicator={false}
                                 keyboardShouldPersistTaps="handled"
                                 renderItem={({ item }) => {
@@ -595,6 +636,7 @@ export default function AiScreen() {
                                 }}
                             />
                         )}
+
                     </SafeAreaView>
                 )}
             </Animated.View>
@@ -624,13 +666,16 @@ const styles = StyleSheet.create({
     alphaTagSmTxt: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     stateTxt: { fontSize: 14, fontWeight: '500' },
-    emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+    emptyState: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 20 },
     aiIcon: { width: 60, height: 60, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-    greeting: { fontSize: 24, fontWeight: '700', textAlign: 'center', letterSpacing: -0.4 },
-    greetingSub: { fontSize: 14, fontWeight: '500', marginTop: 6, marginBottom: 28, textAlign: 'center' },
-    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, width: '100%' },
-    quickChip: { width: '47%', borderRadius: 16, borderWidth: 1, padding: 14, alignItems: 'center' },
-    quickChipTxt: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+    greeting: { fontSize: 22, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
+    greetingSub: { fontSize: 13, fontWeight: '500', marginTop: 6, marginBottom: 24, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+    sarvamBanner: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 16 },
+    quickGrid: { flexDirection: 'column', gap: 8, width: '100%' },
+    quickChip: { borderRadius: 16, borderWidth: 1, padding: 14 },
+    quickChipIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    quickChipTxt: { fontSize: 13, fontWeight: '600' },
+    quickChipSub: { fontSize: 11, fontWeight: '500', marginTop: 2 },
     chatContent: { padding: 16, paddingBottom: 24 },
     inputArea: { paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },
     modelChip: {
@@ -657,6 +702,10 @@ const styles = StyleSheet.create({
     streamRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingHorizontal: 2 },
     streamDot: { width: 6, height: 6, borderRadius: 3, marginRight: 8 },
     streamTxt: { fontSize: 12, fontWeight: '500' },
+    disclaimer: { textAlign: 'center', fontSize: 10, fontWeight: '600', marginTop: 8, letterSpacing: 0.3 },
+    thinkingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+    thinkingDots: { flexDirection: 'row', gap: 4 },
+    thinkingDot: { width: 5, height: 5, borderRadius: 2.5 },
     voiceOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.78)',
