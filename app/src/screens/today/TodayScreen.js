@@ -133,7 +133,7 @@ export default function TodayScreen() {
                         <Text style={[styles.pageSub, {
                             color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
                         }]}>
-                            {refreshing ? 'Refreshing…' : `${schedules.length} block${schedules.length !== 1 ? 's' : ''} active`}
+                            {refreshing ? 'Refreshing…' : `${schedules.length} event${schedules.length !== 1 ? 's' : ''} active`}
                         </Text>
                     </View>
                 </View>
@@ -142,11 +142,11 @@ export default function TodayScreen() {
                 {schedules.length === 0 && !refreshing ? (
                     <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 60 }}>
                         <EmptyState
-                            title="No operations today"
-                            description="Your temporal matrix is clear."
+                            title="No events today"
+                            description="Your schedule is clear for today."
                             icon="calendar-check"
                             action={{
-                                label: "Initialize Block",
+                                label: "Add Task",
                                 onPress: () => setIsCreateModalOpen(true)
                             }}
                         />
@@ -158,7 +158,7 @@ export default function TodayScreen() {
                                 <SectionLabel
                                     icon="play-circle-outline"
                                     iconColor={cyan}
-                                    label="CURRENT OPERATION"
+                                    label="CURRENT EVENT"
                                     count={1}
                                     isDark={isDark}
                                 />
@@ -171,7 +171,7 @@ export default function TodayScreen() {
                                 <SectionLabel
                                     icon="chevron-double-right"
                                     iconColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
-                                    label="UPCOMING BLOCKS"
+                                    label="UPCOMING EVENTS"
                                     count={upcomingTasks.length}
                                     isDark={isDark}
                                 />
