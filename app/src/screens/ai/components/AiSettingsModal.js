@@ -20,10 +20,10 @@ export default function AiSettingsModal({
     const insets = useSafeAreaInsets();
     const cyan = theme.cyan || '#00d4ff';
 
-    const surfaceBg  = isDark ? '#161616' : '#ffffff';
+    const surfaceBg = isDark ? '#161616' : '#ffffff';
     const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-    const textMuted   = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-    const glassBg     = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+    const textMuted = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
 
     const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
     const [isRendered, setIsRendered] = useState(false);
@@ -72,7 +72,7 @@ export default function AiSettingsModal({
                                 style={[
                                     styles.modelCard,
                                     {
-                                        borderColor:     isSelected ? cyan : borderColor,
+                                        borderColor: isSelected ? cyan : borderColor,
                                         backgroundColor: isSelected ? cyan + '18' : glassBg,
                                     }
                                 ]}
@@ -184,7 +184,7 @@ export default function AiSettingsModal({
                         )}
 
                         {settings && renderModelSection(
-                            'VOICE THINKING MODEL',
+                            'VOICE REASONING MODEL',
                             'LLM that processes your voice input',
                             settings.availableVoiceModels,
                             'voiceModel',
@@ -194,7 +194,7 @@ export default function AiSettingsModal({
                         )}
 
                         {settings && renderModelSection(
-                            'TEXT-TO-SPEECH (TTS)',
+                            'SPEECH OUTPUT (TTS)',
                             'Converts AI response to audio',
                             settings.availableTtsModels,
                             'ttsModel',
@@ -204,7 +204,7 @@ export default function AiSettingsModal({
                         )}
 
                         {settings && renderModelSection(
-                            'SPEECH-TO-TEXT (STT)',
+                            'SPEECH INPUT (STT)',
                             'Transcribes your voice input',
                             settings.availableSttModels,
                             'sttModel',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
         maxWidth: 380,
         height: '100%',
         ...Platform.select({
-            ios:     { shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.2, shadowRadius: 12 },
+            ios: { shadowColor: '#000', shadowOffset: { width: -4, height: 0 }, shadowOpacity: 0.2, shadowRadius: 12 },
             android: { elevation: 12 },
         }),
     },
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     headerTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-    headerSub:   { fontSize: 12, fontWeight: '500', marginTop: 3 },
+    headerSub: { fontSize: 12, fontWeight: '500', marginTop: 3 },
     closeBtn: {
         width: 34, height: 34, borderRadius: 10, borderWidth: 1,
         alignItems: 'center', justifyContent: 'center',
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12, paddingVertical: 8,
         borderRadius: 10, borderWidth: 1,
     },
-    planText:    { fontSize: 13, fontWeight: '700' },
+    planText: { fontSize: 13, fontWeight: '700' },
     planCredits: { fontSize: 12, fontWeight: '500', marginLeft: 6 },
     scrollContent: { paddingBottom: 40 },
     section: {

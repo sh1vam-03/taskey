@@ -336,7 +336,7 @@ export default function BehaviorSection({ refreshing }) {
             }),
             ]}>
                 <Text style={{ fontSize: 10, fontWeight: '900', letterSpacing: 2, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', textAlign: 'center', marginBottom: 8 }}>
-                    DAILY BEHAVIOR SCORE
+                    DAILY PROGRESS SCORE
                 </Text>
 
                 <ScoreRing score={score} loading={loading || detailsLoading} selectedDate={selectedDate} />

@@ -136,8 +136,8 @@ export default function HomeScreen() {
                 <SectionHeader title="Streaks & Habits" icon="fire" />
                 <StreaksSection refreshing={refreshing} />
 
-                {/* ── SECTION 3: BEHAVIOR SCORE ────────────────────── */}
-                <SectionHeader title="Behavior Score" icon="brain" />
+                {/* ── SECTION 3: PROGRESS INSIGHTS ────────────────── */}
+                <SectionHeader title="Progress Insights" icon="brain" />
                 <BehaviorSection refreshing={refreshing} />
 
                 {/* ── SECTION 4: PERFORMANCE ───────────────────────── */}

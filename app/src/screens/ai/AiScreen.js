@@ -297,7 +297,7 @@ export default function AiScreen() {
                             <View style={[styles.aiIcon, { borderColor: cyan + '40', backgroundColor: cyan + '12' }]}>
                                 <Icon name="star-four-points" size={28} color={cyan} />
                             </View>
-                            <Text style={[styles.greeting, { color: theme.text }]}>How can I help you today?</Text>
+                            <Text style={[styles.greeting, { color: theme.text }]}>How can I help you?</Text>
                             <Text style={[styles.greetingSub, { color: mutedText }]}>
                                 Ask me anything about your tasks, schedule, or habits. I'm here to help you stay organized and productive.
                             </Text>

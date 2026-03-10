@@ -120,7 +120,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                     ]}>
                         <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]} />
                         <View style={styles.header}>
-                            <Text style={[styles.headerTitle, { color: theme.text }]}>Schedule Task</Text>
+                            <Text style={[styles.headerTitle, { color: theme.text }]}>Create Event</Text>
                             <TouchableOpacity
                                 onPress={handleClose}
                                 activeOpacity={0.75}
@@ -285,7 +285,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                             )}
 
                             <Button
-                                title="Save Schedule"
+                                title="Save Event"
                                 onPress={handleSave}
                                 loading={loading}
                                 style={{

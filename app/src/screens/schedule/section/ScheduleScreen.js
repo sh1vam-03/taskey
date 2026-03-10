@@ -15,6 +15,9 @@ import CreateScheduleScreen from './CreateScheduleScreen';
 
 const { width: W } = Dimensions.get('window');
 
+// API returns event-count label
+const getEventLabel = (count) => `${count} event${count !== 1 ? 's' : ''} scheduled`;
+
 export default function ScheduleScreen() {
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
@@ -67,7 +70,7 @@ export default function ScheduleScreen() {
     };
 
     const totalLabel = useMemo(() => {
-        return `${schedules.length} event${schedules.length !== 1 ? 's' : ''} scheduled`;
+        return getEventLabel(schedules.length);
     }, [schedules]);
 
     const renderHeader = () => (
@@ -87,7 +90,7 @@ export default function ScheduleScreen() {
                     <Icon name="calendar-clock" size={18} color={cyan} />
                 </View>
                 <View>
-                    <Text style={[styles.pageTitle, { color: textColor }]}>SCHEDULE</Text>
+                    <Text style={[styles.pageTitle, { color: textColor }]}>EVENTS</Text>
                     <Text style={[styles.pageSub, {
                         color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
                     }]}>
@@ -159,11 +162,11 @@ export default function ScheduleScreen() {
                 ListEmptyComponent={
                     <View style={{ marginTop: -8 }}>
                         <EmptyState
-                            title="Nothing scheduled today"
-                            description="Add an event to your schedule."
+                            title="No events today"
+                            description="Stay on top of your events."
                             icon="clipboard-text-outline"
                             action={{
-                                label: "Add to Schedule",
+                                label: "Create Event",
                                 onPress: () => setIsModalOpen(true)
                             }}
                         />

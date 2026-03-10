@@ -218,23 +218,23 @@ export default function SettingsScreen({ navigation }) {
                     <ThemePill mode="system" icon="laptop" label="System" active={themeMode === 'system'} onPress={() => toggleTheme('system')} cyan={cyan} />
                 </View>
 
-                {/* PROFILE IDENTITY */}
-                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>PROFILE IDENTITY</Text>
+                {/* PROFILE DETAILS */}
+                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>PROFILE DETAILS</Text>
                 <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <SettingItem icon="user" label="Display Name" type="link" subtext={user?.name || 'User'} onPress={() => setEditModal(true)} />
-                    <SettingItem icon="mail" label="Neural ID" type="info" subtext={user?.email} disabled />
+                    <SettingItem icon="mail" label="Account Email" type="info" subtext={user?.email} disabled />
                     <SettingItem icon="calendar" label="Joined Date" type="info" subtext={joinedDate} disabled />
                 </View>
 
-                {/* AI INTERFACE */}
-                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>AI INTERFACE</Text>
+                {/* AI ASSISTANT */}
+                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>AI ASSISTANT</Text>
                 <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <SettingItem icon="message-square" label="Response Style" type="info" subtext="Professional" disabled />
                     <SettingItem icon="mic" label="Voice Mode Auto-Start" type="toggle" value={false} disabled />
                 </View>
 
-                {/* SYSTEM ALERTS */}
-                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>SYSTEM ALERTS</Text>
+                {/* NOTIFICATIONS */}
+                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>NOTIFICATIONS</Text>
                 <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                     <SettingItem icon="clock" label="Daily Briefing" type="toggle" value={false} disabled />
                     <SettingItem icon="zap" label="Streak Reminders" type="toggle" value={false} disabled />

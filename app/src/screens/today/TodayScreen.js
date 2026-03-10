@@ -143,7 +143,7 @@ export default function TodayScreen() {
                     <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 60 }}>
                         <EmptyState
                             title="No events today"
-                            description="Your schedule is clear for today."
+                            description="Your events are clear for today."
                             icon="calendar-check"
                             action={{
                                 label: "Add Task",

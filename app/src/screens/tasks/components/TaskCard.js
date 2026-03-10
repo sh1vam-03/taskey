@@ -232,7 +232,7 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
                                         borderColor: 'rgba(168,85,247,0.26)',
                                     }]}>
                                         <Icon name="calendar-clock" size={8} color="#a855f7" />
-                                        <Text style={[styles.chipTxt, { color: '#a855f7' }]}>SCHEDULED</Text>
+                                        <Text style={[styles.chipTxt, { color: '#a855f7' }]}>EVENT</Text>
                                     </View>
                                 )}
                             </View>

@@ -44,7 +44,7 @@ const SPRING = { damping: 26, stiffness: 280, mass: 0.38 };
 
 const TABS = [
     { name: 'Tasks', iconActive: 'format-list-checks', iconInactive: 'format-list-checkbox', label: 'Tasks' },
-    { name: 'Schedule', iconActive: 'calendar-clock', iconInactive: 'calendar-clock-outline', label: 'Schedule' },
+    { name: 'Schedule', iconActive: 'calendar-clock', iconInactive: 'calendar-clock-outline', label: 'Events' },
     { name: 'Home', iconActive: 'view-dashboard', iconInactive: 'view-dashboard-outline', label: 'Home' },
     { name: 'Today', iconActive: 'calendar-today', iconInactive: 'calendar-today', label: 'Today' },
     { name: 'AI', iconActive: 'star-four-points', iconInactive: 'star-four-points-outline', label: 'AI' },

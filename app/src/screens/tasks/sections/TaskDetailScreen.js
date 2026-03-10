@@ -108,7 +108,7 @@ export default function TaskDetailScreen({ route, navigation }) {
                 {schedule && (
                     <View style={styles.section}>
                         <Text style={[styles.sectionLabel, { color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }]}>
-                            SCHEDULE
+                            EVENT
                         </Text>
                         <View style={[styles.infoBox, { backgroundColor: glassBg, borderColor: glassBord }]}>
                             <Icon name="calendar-clock" size={18} color={cyan} />

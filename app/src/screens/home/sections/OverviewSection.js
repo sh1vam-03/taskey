@@ -186,7 +186,7 @@ function TLItem({ item, isLast, onToggle }) {
                             size={9} color={typeColor}
                         />
                         <Text style={[styles.tlTypeText, { color: typeColor }]}>
-                            {isTask ? 'TASK' : 'SCHEDULED'}
+                            {isTask ? 'TASK' : 'EVENT'}
                         </Text>
                     </View>
                 </View>
@@ -362,7 +362,7 @@ export default function OverviewSection({ refreshing }) {
                         ringMax={Math.max(ovData?.todayTasks ?? 1, 1)}
                     />
                     <StatCard
-                        label="Score"
+                        label="Behavior Score"
                         value={ovData?.behaviorScore ?? 0}
                         color="#a855f7"
                         ring
@@ -392,7 +392,7 @@ export default function OverviewSection({ refreshing }) {
                             <Icon name="calendar-today" size={13} color={cyan} />
                         </View>
                         <Text style={[styles.tlHeadTitle, { color: theme.text ?? '#fff' }]}>
-                            Today's Schedule
+                            Today's Events
                         </Text>
                     </View>
                     {!loadTl && (
