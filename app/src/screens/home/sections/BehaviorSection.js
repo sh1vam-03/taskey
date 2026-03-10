@@ -28,32 +28,42 @@ import { useTheme } from '../../../context/ThemeContext';
 /* ─── Animated score ring ─────────────────────────────────────────────────── */
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-function ScoreRing({ score = 0, size = 150, strokeWidth = 11 }) {
+function ScoreRing({ score = 0, size = 160, strokeWidth = 14, loading = false, selectedDate }) {
     const { isDark } = useTheme();
     const anim = useRef(new Animated.Value(0)).current;
+
+    // Animate score changes
+    useEffect(() => {
+        if (!loading) {
+            Animated.timing(anim, {
+                toValue: score, duration: 1100, useNativeDriver: true,
+            }).start();
+        } else {
+            anim.setValue(0);
+        }
+    }, [score, loading, anim]);
+
     const radius = (size - strokeWidth) / 2;
     const circ = radius * 2 * Math.PI;
-
-    useEffect(() => {
-        Animated.timing(anim, {
-            toValue: score, duration: 1100, useNativeDriver: true,
-        }).start();
-    }, [score]);
-
     const offset = anim.interpolate({ inputRange: [0, 100], outputRange: [circ, 0] });
 
     const ringColor =
-        score >= 80 ? '#00cc88'
-            : score >= 60 ? '#00d4ff'
-                : score >= 40 ? '#ffaa00'
-                    : '#ff4444';
+        score >= 80 ? '#22c55e' // text-green-500
+            : score >= 60 ? '#06b6d4' // text-cyan-500
+                : score >= 40 ? '#eab308' // text-yellow-500
+                    : '#ef4444'; // text-red-500
 
-    // ✅ FIX: track stroke respects isDark
-    const trackStroke = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.04)';
-    const labelColor = isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.35)';
+    const trackStroke = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    const labelColor = isDark ? 'rgba(255,255,255,0.50)' : 'rgba(0,0,0,0.50)';
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const isToday = selectedDate === todayStr;
+    const d = new Date(selectedDate);
+    // e.g. "Oct 12"
+    const dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return (
-        <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' }}>
+        <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginVertical: 12 }}>
             <Svg width={size} height={size}>
                 <G rotation="-90" origin={`${size / 2},${size / 2}`}>
                     <Circle
@@ -62,30 +72,54 @@ function ScoreRing({ score = 0, size = 150, strokeWidth = 11 }) {
                         strokeWidth={strokeWidth}
                         fill="transparent"
                     />
-                    <AnimatedCircle
-                        cx={size / 2} cy={size / 2} r={radius}
-                        stroke={ringColor}
-                        strokeWidth={strokeWidth}
-                        fill="transparent"
-                        strokeDasharray={circ}
-                        strokeDashoffset={offset}
-                        strokeLinecap="round"
-                    />
+                    {!loading && (
+                        <AnimatedCircle
+                            cx={size / 2} cy={size / 2} r={radius}
+                            stroke={ringColor}
+                            strokeWidth={strokeWidth}
+                            fill="transparent"
+                            strokeDasharray={circ}
+                            strokeDashoffset={offset}
+                            strokeLinecap="round"
+                        />
+                    )}
                 </G>
             </Svg>
-            <View style={StyleSheet.absoluteFill}>
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 38, fontWeight: '900', color: ringColor }}>
-                        {Math.round(score)}
-                    </Text>
-                    <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 1.5, color: labelColor, marginTop: 2 }}>
-                        TODAY'S SCORE
-                    </Text>
-                </View>
+
+            <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+                {loading ? (
+                    <View style={{ alignItems: 'center' }}>
+                        <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 1, color: '#06b6d4', opacity: 0.8 }}>CALCULATING...</Text>
+                    </View>
+                ) : (
+                    <View style={{ alignItems: 'center' }}>
+                        <Text style={{ fontSize: 44, fontWeight: '900', color: ringColor, letterSpacing: -1 }}>
+                            {Math.round(score)}
+                        </Text>
+                        <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                            <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 1, color: labelColor, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                                {isToday ? "TODAY'S SCORE" : `SCORE FOR ${dateFormatted.toUpperCase()}`}
+                            </Text>
+                        </View>
+                    </View>
+                )}
             </View>
         </View>
     );
 }
+
+/* ─── Date Parsing Helpers ─────────────────────────────────────────────────── */
+const parseDateString = (str) => {
+    if (!str) return new Date();
+    const [y, m, d] = str.split('-');
+    return new Date(y, m - 1, d);
+};
+const formatToDateString = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
 
 /* ─── Mini area chart (7-day behavior history) ────────────────────────────── */
 function MiniAreaChart({ data, color, height = 100 }) {
@@ -126,16 +160,25 @@ function MiniAreaChart({ data, color, height = 100 }) {
     );
 }
 
-/* ─── 7-day pill strip ────────────────────────────────────────────────────── */
+/* ─── 5-day pill strip ────────────────────────────────────────────────────── */
 function DayStrip({ selectedDate, onSelect }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
-    const today = new Date();
+    const today = parseDateString(formatToDateString(new Date()));
 
-    const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - (6 - i));
-        const str = d.toLocaleDateString('en-CA');
+    const selected = parseDateString(selectedDate);
+
+    // Calculate 5-day window centered on selectedDate, clamped to Today
+    let endWindow = new Date(selected);
+    endWindow.setDate(selected.getDate() + 2);
+    if (endWindow > today) {
+        endWindow = new Date(today);
+    }
+
+    const days = Array.from({ length: 5 }, (_, i) => {
+        const d = new Date(endWindow);
+        d.setDate(endWindow.getDate() - (4 - i));
+        const str = formatToDateString(d);
         return {
             str,
             day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
@@ -192,13 +235,16 @@ export default function BehaviorSection({ refreshing }) {
     const [explanation, setExplanation] = useState('');
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [detailsLoading, setDetailsLoading] = useState(false);
     const [sheetVisible, setSheetVisible] = useState(false);
+    const [chartPeriod, setChartPeriod] = useState(7); // default 7 days like web
 
     const fetchAll = async () => {
         setLoading(true);
+        setDetailsLoading(true);
         try {
             const [sum, log, explain, latest] = await Promise.all([
-                getBehaviorSummary(7).then(r => r.data?.data || r.data),
+                getBehaviorSummary(chartPeriod).then(r => r.data?.data || r.data),
                 getBehaviorLog(todayStr).then(r => r.data?.data || r.data).catch(() => null),
                 getBehaviorExplanation(todayStr).then(r => r.data?.data || r.data).catch(() => ({ explanation: '' })),
                 getLatestBehaviorLog().then(r => r.data?.data || r.data).catch(() => null),
@@ -211,10 +257,24 @@ export default function BehaviorSection({ refreshing }) {
                 setExplanation(explain?.explanation || '');
             }
         } catch { /* silent */ }
-        finally { setLoading(false); }
+        finally { setLoading(false); setDetailsLoading(false); }
     };
 
+    // Re-fetch summary when chart period changes
+    useEffect(() => {
+        if (!summary) return;
+        const updateSummary = async () => {
+            try {
+                const sum = await getBehaviorSummary(chartPeriod).then(r => r.data?.data || r.data);
+                setSummary(sum);
+            } catch { /* silent */ }
+        };
+        updateSummary();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chartPeriod]);
+
     const loadDay = async (date) => {
+        setDetailsLoading(true);
         try {
             const [log, explain] = await Promise.all([
                 getBehaviorLog(date).then(r => r.data?.data || r.data).catch(() => null),
@@ -223,12 +283,30 @@ export default function BehaviorSection({ refreshing }) {
             setDayDetails(log);
             setExplanation(explain?.explanation || '');
         } catch { /* silent */ }
+        finally { setDetailsLoading(false); }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchAll(); }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (refreshing) fetchAll(); }, [refreshing]);
 
     const handleDaySelect = (date) => { setSelectedDate(date); loadDay(date); };
+
+    const handleNextDay = () => {
+        const next = parseDateString(selectedDate);
+        next.setDate(next.getDate() + 1);
+        const today = parseDateString(formatToDateString(new Date()));
+        if (next <= today) {
+            handleDaySelect(formatToDateString(next));
+        }
+    };
+
+    const handlePrevDay = () => {
+        const prev = parseDateString(selectedDate);
+        prev.setDate(prev.getDate() - 1);
+        handleDaySelect(formatToDateString(prev));
+    };
 
     const onSave = async (payload) => {
         try {
@@ -241,6 +319,7 @@ export default function BehaviorSection({ refreshing }) {
     const score = dayDetails?.behaviorScore || 0;
     const hasToday = !!todayLog;
     const history = summary?.history || [];
+
 
     return (
         <View>
@@ -256,28 +335,26 @@ export default function BehaviorSection({ refreshing }) {
                 android: { elevation: isDark ? 3 : 4 },
             }),
             ]}>
-                <ScoreRing score={score} />
+                <Text style={{ fontSize: 10, fontWeight: '900', letterSpacing: 2, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', textAlign: 'center', marginBottom: 8 }}>
+                    DAILY BEHAVIOR SCORE
+                </Text>
 
-                {explanation ? (
-                    <View style={[styles.explainBox, {
-                        backgroundColor: isDark ? 'rgba(234,179,8,0.06)' : 'rgba(234,179,8,0.04)',
-                        borderColor: isDark ? 'rgba(234,179,8,0.20)' : 'rgba(234,179,8,0.18)',
+                <ScoreRing score={score} loading={loading || detailsLoading} selectedDate={selectedDate} />
+
+                <View style={[styles.explainBox, {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+                    borderColor: glassBord,
+                }]}>
+                    <Icon name="lightbulb-outline" size={14} color="#eab308"
+                        style={{ marginRight: 8, marginTop: 1 }} />
+                    <Text style={[styles.explainTxt, {
+                        color: isDark ? 'rgba(255,255,255,0.70)' : 'rgba(0,0,0,0.70)',
+                        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                        fontSize: 11,
                     }]}>
-                        <Icon name="lightbulb-outline" size={14} color="#eab308"
-                            style={{ marginRight: 8, marginTop: 1 }} />
-                        <Text style={[styles.explainTxt, {
-                            color: isDark ? 'rgba(255,255,255,0.60)' : 'rgba(0,0,0,0.55)',
-                        }]}>
-                            {explanation}
-                        </Text>
-                    </View>
-                ) : (
-                    <Text style={[styles.explainEmpty, {
-                        color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.30)',
-                    }]}>
-                        {loading ? 'Loading score…' : 'Log your activity to see your score.'}
+                        {loading || detailsLoading ? "Analyzing your activity..." : (explanation || 'No activity data provided for this day.')}
                     </Text>
-                )}
+                </View>
 
                 {/* Log / Update pill button */}
                 <TouchableOpacity
@@ -306,72 +383,84 @@ export default function BehaviorSection({ refreshing }) {
                 </TouchableOpacity>
             </View>
 
-            {/* ── 7-day behavior trend chart ── */}
-            {history.length > 1 && (
-                <View style={[styles.card, {
-                    backgroundColor: glassBg,
-                    borderColor: glassBord,
-                }, !isDark && {
-                    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
-                }]}>
-                    <Text style={[styles.cardMicro, {
-                        color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)',
-                    }]}>
-                        7-DAY BEHAVIOR TREND
+            {/* ── 7/30-day behavior trend chart ── */}
+            <View style={[styles.card, {
+                backgroundColor: glassBg,
+                borderColor: glassBord,
+            }, !isDark && {
+                shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
+            }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <Text style={[styles.cardMicro, { marginBottom: 0, color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)' }]}>
+                        {chartPeriod}-DAY PROGRESS
                     </Text>
-                    <MiniAreaChart data={history} color={cyan} height={100} />
+                    <View style={{ flexDirection: 'row', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderRadius: 6, padding: 2 }}>
+                        <TouchableOpacity onPress={() => setChartPeriod(7)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, backgroundColor: chartPeriod === 7 ? cyan : 'transparent' }}>
+                            <Text style={{ fontSize: 10, fontWeight: 'bold', color: chartPeriod === 7 ? (isDark ? '#000' : '#fff') : (isDark ? '#aaa' : '#555') }}>7D</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setChartPeriod(30)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, backgroundColor: chartPeriod === 30 ? '#a855f7' : 'transparent' }}>
+                            <Text style={{ fontSize: 10, fontWeight: 'bold', color: chartPeriod === 30 ? '#fff' : (isDark ? '#aaa' : '#555') }}>30D</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            )}
+
+                {!history || history.length < 2 ? (
+                    <View style={{ height: 100, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', letterSpacing: 1 }}>NOT ENOUGH DATA YET</Text>
+                    </View>
+                ) : (
+                    <MiniAreaChart data={history} color={chartPeriod === 7 ? cyan : '#a855f7'} height={100} />
+                )}
+            </View>
 
             {/* ── Sleep + Exercise mini-cards (square, no top bar) ── */}
             <View style={styles.miniRow}>
                 {/* Sleep */}
                 <View style={[styles.miniCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
-                    {/* accent on icon badge only */}
-                    <View style={[styles.miniIconBadge, {
-                        backgroundColor: '#a855f7' + (isDark ? '20' : '16'),
-                        borderColor: '#a855f7' + '38',
-                    }]}>
-                        <Icon name="weather-night" size={16} color="#a855f7" />
-                    </View>
-                    <Text style={[styles.miniLabel, {
-                        color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)',
-                    }]}>
-                        SLEEP
-                    </Text>
-                    <View style={styles.miniValRow}>
-                        <Text style={[styles.miniValue, { color: theme.text ?? '#fff' }]}>
-                            {dayDetails?.sleepHours ?? '—'}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Text style={styles.webMiniLabel}>
+                            SLEEP DURATION
                         </Text>
-                        <Text style={[styles.miniUnit, {
-                            color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
-                        }]}>hrs</Text>
+                        <Icon name="clock-outline" size={14} color="#a855f7" />
+                    </View>
+
+                    <View style={styles.miniValRow}>
+                        {detailsLoading ? (
+                            <Text style={[styles.miniValue, { color: theme.text ?? '#fff', fontSize: 20 }]}>...</Text>
+                        ) : (
+                            <>
+                                <Text style={[styles.miniValue, { color: theme.text ?? '#fff' }]}>
+                                    {dayDetails?.sleepHours ?? '—'}
+                                </Text>
+                                <Text style={[styles.miniUnit, { color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)' }]}>hrs</Text>
+                            </>
+                        )}
                     </View>
                 </View>
 
                 {/* Exercise */}
                 <View style={[styles.miniCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
-                    <View style={[styles.miniIconBadge, {
-                        backgroundColor: (dayDetails?.exercise ? '#00cc88' : cyan) + (isDark ? '20' : '16'),
-                        borderColor: (dayDetails?.exercise ? '#00cc88' : cyan) + '38',
-                    }]}>
-                        <Icon
-                            name={dayDetails?.exercise ? 'check-circle' : 'run'}
-                            size={16}
-                            color={dayDetails?.exercise ? '#00cc88' : cyan}
-                        />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Text style={styles.webMiniLabel}>
+                            EXERCISE
+                        </Text>
+                        <Icon name="chart-bell-curve" size={14} color={cyan} />
                     </View>
-                    <Text style={[styles.miniLabel, {
-                        color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)',
-                    }]}>
-                        EXERCISE
-                    </Text>
-                    <Text style={[styles.miniExStatus, {
-                        color: dayDetails?.exercise ? '#00cc88'
-                            : (isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.35)'),
-                    }]}>
-                        {dayDetails?.exercise ? 'DONE' : 'NO LOG'}
-                    </Text>
+                    <View style={styles.miniValRow}>
+                        {detailsLoading ? (
+                            <Text style={[styles.miniValue, { color: theme.text ?? '#fff', fontSize: 20 }]}>...</Text>
+                        ) : (
+                            dayDetails?.exercise ? (
+                                <Text style={[styles.miniExStatus, { color: '#00cc88', flexDirection: 'row', alignItems: 'center' }]}>
+                                    <Icon name="check-circle" size={18} color="#00cc88" style={{ marginRight: 2 }} /> DONE
+                                </Text>
+                            ) : (
+                                <Text style={[styles.miniExStatus, { color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)' }]}>
+                                    NO RECORD
+                                </Text>
+                            )
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -382,11 +471,32 @@ export default function BehaviorSection({ refreshing }) {
             }, !isDark && {
                 shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2
             }]}>
-                <Text style={[styles.cardMicro, {
-                    color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)',
-                }]}>
-                    BROWSE DAYS
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <Text style={[styles.cardMicro, {
+                        color: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.40)', marginBottom: 0
+                    }]}>
+                        BROWSE DAYS
+                    </Text>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderRadius: 20 }}>
+                        <TouchableOpacity onPress={handlePrevDay} style={{ padding: 6 }}>
+                            <Icon name="chevron-left" size={18} color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} />
+                        </TouchableOpacity>
+
+                        <Text style={{ fontSize: 11, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: isDark ? '#fff' : '#000', paddingHorizontal: 4 }}>
+                            {new Date(parseDateString(selectedDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </Text>
+
+                        <TouchableOpacity
+                            onPress={handleNextDay}
+                            style={{ padding: 6, opacity: selectedDate >= formatToDateString(new Date()) ? 0.3 : 1 }}
+                            disabled={selectedDate >= formatToDateString(new Date())}
+                        >
+                            <Icon name="chevron-right" size={18} color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 <DayStrip selectedDate={selectedDate} onSelect={handleDaySelect} />
             </View>
 
@@ -448,6 +558,15 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         marginTop: 4,
         gap: 8,
+    },
+    webMiniLabel: {
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+        color: '#888',
+        flexWrap: 'wrap',
+        flex: 1,
     },
     logBtnTxt: {
         fontSize: 14,
