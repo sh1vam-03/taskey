@@ -67,7 +67,7 @@ export default function ScheduleScreen() {
     };
 
     const totalLabel = useMemo(() => {
-        return `${schedules.length} block${schedules.length !== 1 ? 's' : ''} scheduled`;
+        return `${schedules.length} event${schedules.length !== 1 ? 's' : ''} scheduled`;
     }, [schedules]);
 
     const renderHeader = () => (
@@ -159,11 +159,11 @@ export default function ScheduleScreen() {
                 ListEmptyComponent={
                     <View style={{ marginTop: -8 }}>
                         <EmptyState
-                            title="No operations scheduled"
-                            description="Initialize your first temporal block."
+                            title="Nothing scheduled today"
+                            description="Add an event to your schedule."
                             icon="clipboard-text-outline"
                             action={{
-                                label: "Initialize Block",
+                                label: "Add to Schedule",
                                 onPress: () => setIsModalOpen(true)
                             }}
                         />

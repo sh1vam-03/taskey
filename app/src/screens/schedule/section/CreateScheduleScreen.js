@@ -133,7 +133,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
                             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                            <Text style={[styles.label, { color: theme.text }]}>Select Task (Inbox ONLY)</Text>
+                            <Text style={[styles.label, { color: theme.text }]}>Select a Task</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.taskScroll}>
                                 {tasks.length > 0 ? tasks.map(t => (
                                     <TouchableOpacity
@@ -152,7 +152,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         </Text>
                                     </TouchableOpacity>
                                 )) : (
-                                    <Text style={[styles.emptyTasksText, { color: theme.textDim }]}>No inbox tasks available.</Text>
+                                    <Text style={[styles.emptyTasksText, { color: theme.textDim }]}>No tasks available to schedule.</Text>
                                 )}
                             </ScrollView>
 

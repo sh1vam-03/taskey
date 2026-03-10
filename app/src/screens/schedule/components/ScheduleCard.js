@@ -55,7 +55,7 @@ export default function ScheduleCard({ schedule, onToggleComplete, isToday = fal
                         ]}
                         numberOfLines={1}
                     >
-                        {schedule.task?.title || 'Unknown Objective'}
+                        {schedule.task?.title || 'Untitled Task'}
                     </Text>
                     <TouchableOpacity
                         onPress={onToggleComplete}
@@ -83,7 +83,7 @@ export default function ScheduleCard({ schedule, onToggleComplete, isToday = fal
                             styles.badgeText,
                             { color: isToday ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)') }
                         ]}>
-                            {isToday ? 'LIVE' : (schedule.task?.category?.name || 'TEMPORAL')}
+                            {isToday ? 'NOW' : (schedule.task?.category?.name || 'GENERAL')}
                         </Text>
                     </View>
 
