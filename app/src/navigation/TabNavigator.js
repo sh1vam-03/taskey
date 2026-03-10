@@ -18,6 +18,8 @@ const Tab = createBottomTabNavigator();
 export default function TabNavigator() {
     return (
         <Tab.Navigator
+            initialRouteName="Home"
+            backBehavior="initialRoute"
             tabBar={props => <CustomTabBar {...props} />}
             screenOptions={{
                 headerShown: false,
