@@ -102,7 +102,8 @@ export default function TodayScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.scroll,
-                    { paddingTop: insets.top + 16 },
+                    { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 150 },
+                    schedules.length === 0 && { flexGrow: 1 }
                 ]}
                 refreshControl={
                     <RefreshControl
@@ -139,7 +140,7 @@ export default function TodayScreen() {
 
                 {/* ── SECTIONS ── */}
                 {schedules.length === 0 && !refreshing ? (
-                    <View style={{ marginTop: 60 }}>
+                    <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 60 }}>
                         <EmptyState
                             title="No operations today"
                             description="Your temporal matrix is clear."
@@ -182,7 +183,6 @@ export default function TodayScreen() {
                     </View>
                 )}
 
-                <View style={{ height: 150 }} />
             </ScrollView>
 
             {/* ── FAB ── */}
