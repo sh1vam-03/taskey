@@ -6,7 +6,6 @@ import TabNavigator from './TabNavigator';
 import CalendarScreen from '../screens/calendar/CalendarScreen';
 import BillingScreen from '../screens/profile/BillingScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
-import ChatScreen from '../screens/ai/sections/ChatScreen';
 import CreateTaskScreen from '../screens/tasks/sections/CreateTaskScreen';
 import TaskDetailScreen from '../screens/tasks/sections/TaskDetailScreen';
 
@@ -19,7 +18,6 @@ export default function MainNavigator() {
             <Stack.Screen name="Calendar" component={CalendarScreen} />
             <Stack.Screen name="Billing" component={BillingScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
             <Stack.Screen
                 name="CreateTask"
                 component={CreateTaskScreen}

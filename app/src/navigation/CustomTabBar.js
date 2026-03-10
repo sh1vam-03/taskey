@@ -3,7 +3,7 @@
  * Clean pill bar with smooth curved notch and floating circle.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet,
     TouchableOpacity, Dimensions, Platform,
@@ -77,9 +77,20 @@ export default function CustomTabBar({ state, navigation }) {
     const { height: windowHeight } = useWindowDimensions();
     const [initialHeight] = React.useState(windowHeight);
 
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
     useEffect(() => {
         activeIdx.value = withSpring(state.index, SPRING);
-    }, [state.index]);
+    }, [state.index, activeIdx]);
+
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+        return () => {
+            keyboardDidHideListener.remove();
+            keyboardDidShowListener.remove();
+        };
+    }, []);
 
     // notch center tracks within INNER_WIDTH, offset by SIDE_PAD
     const notchCX = useDerivedValue(() =>
@@ -131,6 +142,14 @@ export default function CustomTabBar({ state, navigation }) {
     // Instead of fixed 'top', we use 'bottom: 0' and translate the bar down by the amount the window shrunk.
     // This keeps the bar at the physical bottom regardless of screen height variations.
     const translateY = Math.max(0, initialHeight - windowHeight);
+
+    // Check if the current route is AI, or if keyboard is open—hide the tab bar completely
+    const currentRouteName = state.routes[state.index]?.name;
+    const isKeyboardActive = isKeyboardVisible || translateY > 50;
+
+    if (currentRouteName === 'AI' || isKeyboardActive) {
+        return <View style={{ height: 0, width: 0, overflow: 'hidden' }} />;
+    }
 
     return (
         <View style={[

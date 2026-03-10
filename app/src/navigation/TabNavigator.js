@@ -9,7 +9,7 @@ import TasksScreen from '../screens/tasks/TasksScreen';
 import ScheduleScreen from '../screens/schedule/section/ScheduleScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import TodayScreen from '../screens/today/TodayScreen';
-import ConversationsScreen from '../screens/ai/sections/ConversationsScreen';
+import AiScreen from '../screens/ai/AiScreen';
 
 import CustomTabBar from './CustomTabBar';
 
@@ -28,7 +28,7 @@ export default function TabNavigator() {
             <Tab.Screen name="Schedule" component={ScheduleScreen} />
             <Tab.Screen name="Home" component={HomeScreen} />
             <Tab.Screen name="Today" component={TodayScreen} />
-            <Tab.Screen name="AI" component={ConversationsScreen} />
+            <Tab.Screen name="AI" component={AiScreen} />
         </Tab.Navigator>
     );
 }

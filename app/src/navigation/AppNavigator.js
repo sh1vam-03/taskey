@@ -6,7 +6,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import TasksScreen from '../screens/tasks/TasksScreen';
 import ScheduleScreen from '../screens/schedule/ScheduleScreen';
-import AiChatScreen from '../screens/ai/AiChatScreen';
+import AiScreen from '../screens/ai/AiScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import BehaviorScreen from '../screens/behavior/BehaviorScreen';
 import TaskDetailScreen from '../screens/tasks/TaskDetailScreen';
@@ -42,7 +42,7 @@ function TabNavigator() {
             <Tab.Screen name="Dashboard" component={DashboardScreen} />
             <Tab.Screen name="Tasks" component={TasksScreen} />
             <Tab.Screen name="Schedule" component={ScheduleScreen} />
-            <Tab.Screen name="AiChat" component={AiChatScreen} />
+            <Tab.Screen name="AiChat" component={AiScreen} />
             <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
     );

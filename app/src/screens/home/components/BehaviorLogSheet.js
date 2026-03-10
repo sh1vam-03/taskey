@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../context/ThemeContext';
 import Button from '../../../components/common/Button';
+import Input from '../../../components/common/Input';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -52,16 +53,6 @@ function MoodBtn({ type, icon, label, color, selected, onPress }) {
     );
 }
 
-/* ─── Field label ─────────────────────────────────────────────────────────── */
-function FieldLabel({ text, isDark }) {
-    return (
-        <Text style={[styles.fieldLabel, {
-            color: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.32)',
-        }]}>
-            {text}
-        </Text>
-    );
-}
 
 /* ─── Main component ──────────────────────────────────────────────────────── */
 export default function BehaviorLogSheet({
@@ -178,7 +169,7 @@ export default function BehaviorLogSheet({
 
                                 {/* ── MOOD ── */}
                                 <View style={styles.section}>
-                                    <FieldLabel text="HOW DO YOU FEEL?" isDark={isDark} />
+                                    <Text style={[styles.fieldLabel, { color: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.32)' }]}>HOW DO YOU FEEL?</Text>
                                     <View style={styles.moodRow}>
                                         <MoodBtn type="HAPPY" icon="emoticon-happy-outline" label="HAPPY" color="#00cc88" selected={mood === 'HAPPY'} onPress={() => setMood('HAPPY')} />
                                         <MoodBtn type="NEUTRAL" icon="emoticon-neutral-outline" label="OKAY" color={cyan} selected={mood === 'NEUTRAL'} onPress={() => setMood('NEUTRAL')} />
@@ -188,35 +179,40 @@ export default function BehaviorLogSheet({
 
                                 {/* ── SLEEP + EXERCISE ── */}
                                 <View style={[styles.section, styles.twoCol]}>
-                                    {/* Sleep */}
                                     <View style={styles.halfCol}>
-                                        <FieldLabel text="SLEEP HOURS" isDark={isDark} />
-                                        <View style={[styles.inputWrap, { backgroundColor: inputBg, borderColor: inputBord }]}>
-                                            <Icon name="weather-night" size={16}
-                                                color={isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.28)'}
-                                                style={{ marginLeft: 14 }}
-                                            />
-                                            <TextInput
-                                                value={sleepHours}
-                                                onChangeText={setSleepHours}
-                                                keyboardType="decimal-pad"
-                                                placeholderTextColor={isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.22)'}
-                                                placeholder="7.5"
-                                                style={[styles.input, { color: theme.text ?? '#fff' }]}
-                                            />
-                                        </View>
+                                        <Input
+                                            label="SLEEP HOURS"
+                                            leftIcon="weather-night"
+                                            value={sleepHours}
+                                            onChangeText={setSleepHours}
+                                            keyboardType="decimal-pad"
+                                            placeholder="7.5"
+                                            containerStyle={{ marginBottom: 0 }}
+                                        />
                                     </View>
 
                                     {/* Exercise toggle */}
                                     <View style={styles.halfCol}>
-                                        <FieldLabel text="EXERCISE" isDark={isDark} />
+                                        <Text style={[styles.fieldLabel, { color: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.32)' }]}>EXERCISE</Text>
                                         <TouchableOpacity
                                             onPress={() => setExercise(!exercise)}
                                             activeOpacity={0.75}
-                                            style={[styles.inputWrap, {
-                                                backgroundColor: exercise ? cyan + '14' : inputBg,
-                                                borderColor: exercise ? cyan + '55' : inputBord,
-                                            }]}
+                                            style={[
+                                                styles.inputWrap,
+                                                {
+                                                    backgroundColor: exercise ? cyan + (isDark ? '1E' : '14') : inputBg,
+                                                    borderColor: exercise ? cyan + '55' : inputBord,
+                                                    ...Platform.select({
+                                                        ios: exercise ? {
+                                                            shadowColor: cyan,
+                                                            shadowOffset: { width: 0, height: 0 },
+                                                            shadowOpacity: 0.22,
+                                                            shadowRadius: 8,
+                                                        } : {},
+                                                        android: exercise ? { elevation: 4 } : {},
+                                                    }),
+                                                }
+                                            ]}
                                         >
                                             <Icon
                                                 name={exercise ? 'check-circle' : 'circle-outline'}
@@ -237,18 +233,13 @@ export default function BehaviorLogSheet({
 
                                 {/* ── NOTES ── */}
                                 <View style={styles.section}>
-                                    <FieldLabel text="NOTES (OPTIONAL)" isDark={isDark} />
-                                    <TextInput
+                                    <Input
+                                        label="NOTES (OPTIONAL)"
                                         value={notes}
                                         onChangeText={setNotes}
                                         multiline
                                         placeholder="Anything important about today?"
-                                        placeholderTextColor={isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.22)'}
-                                        style={[styles.textArea, {
-                                            color: theme.text ?? '#fff',
-                                            backgroundColor: inputBg,
-                                            borderColor: inputBord,
-                                        }]}
+                                        style={{ minHeight: 100 }}
                                     />
                                 </View>
 
@@ -352,7 +343,6 @@ const styles = StyleSheet.create({
     },
     moodLabel: { fontSize: 9, letterSpacing: 0.8 },
 
-    /* inputs */
     inputWrap: {
         height: 52,
         borderRadius: 16,
@@ -360,26 +350,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    input: {
-        flex: 1,
-        height: '100%',
-        fontSize: 16,
-        fontWeight: '600',
-        paddingHorizontal: 12,
-    },
     exLabel: { fontSize: 13, fontWeight: '700', marginLeft: 10 },
 
-    /* textarea */
-    textArea: {
-        minHeight: 100,
-        borderRadius: 18,
-        borderWidth: 1,
-        padding: 16,
-        fontSize: 14,
-        fontWeight: '500',
-        textAlignVertical: 'top',
-        lineHeight: 20,
-    },
 
     /* actions */
     actions: {
