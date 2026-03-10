@@ -157,15 +157,17 @@ export default function ScheduleScreen() {
                     />
                 )}
                 ListEmptyComponent={
-                    <EmptyState
-                        title="No operations scheduled"
-                        description="Initialize your first temporal block."
-                        icon="clipboard-text-outline"
-                        action={{
-                            label: "Initialize Block",
-                            onPress: () => setIsModalOpen(true)
-                        }}
-                    />
+                    <View style={{ marginTop: -8 }}>
+                        <EmptyState
+                            title="No operations scheduled"
+                            description="Initialize your first temporal block."
+                            icon="clipboard-text-outline"
+                            action={{
+                                label: "Initialize Block",
+                                onPress: () => setIsModalOpen(true)
+                            }}
+                        />
+                    </View>
                 }
             />
 
