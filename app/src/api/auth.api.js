@@ -18,3 +18,11 @@ export const forgotPassword = (email) =>
     client.post('/auth/forgot-password', { email });
 export const resetPassword = (email, code, password) =>
     client.post('/auth/reset-password', { email, code, password });
+
+export const logoutAll = () => client.post('/auth/logout-all');
+export const deleteAccount = (otp) => client.delete('/auth/me', { data: { otp } });
+export const updateProfile = (data) => client.put('/auth/me', data);
+export const changePassword = (oldPassword, newPassword, otp) =>
+    client.post('/auth/change-password', { oldPassword, newPassword, otp });
+export const requestSecurityOtp = (password = null) =>
+    client.post('/auth/request-security-otp', { password });
