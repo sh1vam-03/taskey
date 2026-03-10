@@ -24,7 +24,7 @@ export const PRIORITY_CONFIG = {
     MEDIUM: {
         color: '#eab308',
         icon: 'minus',
-        label: 'MED',
+        label: 'MEDIUM',
         bg: (d) => d ? 'rgba(234,179,8,0.14)' : 'rgba(234,179,8,0.10)',
         border: 'rgba(234,179,8,0.40)',
     },
@@ -38,7 +38,7 @@ export const PRIORITY_CONFIG = {
     CRITICAL: {
         color: '#ff4444',
         icon: 'alert',
-        label: 'CRIT',
+        label: 'CRITICAL',
         bg: (d) => d ? 'rgba(255,68,68,0.14)' : 'rgba(255,68,68,0.10)',
         border: 'rgba(255,68,68,0.40)',
     },

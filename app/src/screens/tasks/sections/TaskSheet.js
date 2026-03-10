@@ -247,7 +247,7 @@ export default function TaskSheet({
                                         {taskToEdit ? 'Edit Task' : 'New Task'}
                                     </Text>
                                     <Text style={[styles.sheetSub, { color: textMuted }]}>
-                                        {taskToEdit ? 'Update task details' : 'Add a new objective'}
+                                        {taskToEdit ? 'Update task details' : 'Add a new task'}
                                     </Text>
                                 </View>
                                 <TouchableOpacity

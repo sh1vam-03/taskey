@@ -131,7 +131,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                     <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]} />
                     <View style={styles.header}>
                         <Text style={[styles.headerTitle, { color: theme.text, fontWeight: '900', letterSpacing: -0.3 }]}>
-                            {route?.params?.task ? 'Update Objective' : 'New Objective'}
+                            {route?.params?.task ? 'Update Task' : 'New Task'}
                         </Text>
                         <TouchableOpacity
                             onPress={handleClose}
@@ -146,15 +146,15 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                         <Input
-                            label="Objective Title *"
-                            placeholder="e.g. System Audit"
+                            label="Task Title *"
+                            placeholder="e.g. Project Kickoff"
                             value={title}
                             onChangeText={setTitle}
                         />
 
                         <Input
                             label="Description"
-                            placeholder="Add tactical details..."
+                            placeholder="Add more details..."
                             value={description}
                             onChangeText={setDescription}
                             multiline

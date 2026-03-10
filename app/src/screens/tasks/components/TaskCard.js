@@ -118,7 +118,7 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
                     }]}
                 >
                     <Icon name="trash-can-outline" size={17} color="#ff4444" />
-                    <Text style={[styles.actionTxt, { color: '#ff4444' }]}>DEL</Text>
+                    <Text style={[styles.actionTxt, { color: '#ff4444' }]}>DELETE</Text>
                 </TouchableOpacity>
             </View>
 
@@ -232,7 +232,7 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
                                         borderColor: 'rgba(168,85,247,0.26)',
                                     }]}>
                                         <Icon name="calendar-clock" size={8} color="#a855f7" />
-                                        <Text style={[styles.chipTxt, { color: '#a855f7' }]}>SCHED</Text>
+                                        <Text style={[styles.chipTxt, { color: '#a855f7' }]}>SCHEDULED</Text>
                                     </View>
                                 )}
                             </View>

@@ -46,7 +46,7 @@ export default function TaskDetailScreen({ route, navigation }) {
                 >
                     <Icon name="chevron-left" size={24} color={textColor} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: textColor }]}>Objective Details</Text>
+                <Text style={[styles.headerTitle, { color: textColor }]}>Task Details</Text>
                 <TouchableOpacity
                     onPress={() => navigation.navigate('CreateTask', { task })}
                     style={[styles.editBtn, { backgroundColor: cyan + '18', borderColor: cyan + '33' }]}

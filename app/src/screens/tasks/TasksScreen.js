@@ -311,8 +311,8 @@ export default function TasksScreen({ navigation }) {
 
     /* total count label */
     const totalLabel = meta?.totalCount != null
-        ? `${meta.totalCount} objective${meta.totalCount !== 1 ? 's' : ''}`
-        : tasks.length > 0 ? `${tasks.length} tasks` : 'All objectives';
+        ? `${meta.totalCount} task${meta.totalCount !== 1 ? 's' : ''}`
+        : tasks.length > 0 ? `${tasks.length} tasks` : 'All tasks';
 
     return (
         <View style={[styles.root, { backgroundColor: theme.bg ?? '#0a0a0a' }]}>
@@ -349,7 +349,7 @@ export default function TasksScreen({ navigation }) {
                         <Icon name="format-list-checks" size={18} color={cyan} />
                     </View>
                     <View>
-                        <Text style={[styles.pageTitle, { color: textColor }]}>TASK</Text>
+                        <Text style={[styles.pageTitle, { color: textColor }]}>TASKS</Text>
                         <Text style={[styles.pageSub, {
                             color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
                         }]}>
@@ -485,23 +485,23 @@ export default function TasksScreen({ navigation }) {
                     <SkeletonList />
                 ) : tasks.length === 0 ? (
                     <EmptyState
-                        title={isFiltering ? 'No matches found' : 'Queue is empty'}
-                        description={isFiltering ? 'Try adjusting your filters or search.' : 'Initialize your first objective.'}
+                        title={isFiltering ? 'No matches found' : 'No tasks yet'}
+                        description={isFiltering ? 'Try adjusting your filters or search.' : 'Add your first task to get started.'}
                         icon={isFiltering ? 'magnify-close' : 'clipboard-text-outline'}
                         action={!isFiltering ? {
-                            label: 'Initialize Task',
+                            label: 'Add Task',
                             onPress: () => navigation.navigate('CreateTask')
                         } : null}
                     />
                 ) : (
                     <View>
-                        {/* Scheduled Operations */}
+                        {/* Scheduled Tasks */}
                         {scheduled.length > 0 && (
                             <View style={styles.group}>
                                 <SectionLabel
                                     icon="calendar-clock"
                                     iconColor={cyan}
-                                    label="SCHEDULED OPERATIONS"
+                                    label="SCHEDULED TASKS"
                                     count={scheduled.length}
                                     isDark={isDark}
                                 />
@@ -517,13 +517,13 @@ export default function TasksScreen({ navigation }) {
                             </View>
                         )}
 
-                        {/* Inbox / Backlog */}
+                        {/* Unscheduled Tasks */}
                         {unscheduled.length > 0 && (
                             <View style={styles.group}>
                                 <SectionLabel
                                     icon="inbox-full"
                                     iconColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
-                                    label="INBOX · BACKLOG"
+                                    label="UNSCHEDULED TASKS"
                                     count={unscheduled.length}
                                     isDark={isDark}
                                 />
