@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import RazorpayCheckout from 'react-native-razorpay';
-import { subscribe, createTopUp, verifyTopUp } from '../../api/billing.api';
+import { subscribe, createTopUp, verifyTopUp, getUsage, getHistory, getSubscription, cancelSubscription, downgradePlan } from '../../api/billing.api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { useTheme } from '../../context/ThemeContext';
@@ -19,6 +19,8 @@ const PLANS = [
         badge: null,
         monthlyPrice: 0,
         yearlyPrice: 0,
+        monthlyCredits: '10 credits (trial)',
+        yearlyCredits: '10 credits (trial)',
         desc: 'Perfect for manual productivity tracking.',
         features: [
             { label: '200 tasks / month', included: true },
@@ -36,6 +38,8 @@ const PLANS = [
         badge: 'MOST POPULAR',
         monthlyPrice: 29,
         yearlyPrice: 299,
+        monthlyCredits: '300 AI credits / month',
+        yearlyCredits: '3,600 AI credits / year',
         desc: 'Best for professionals who want AI-powered productivity.',
         features: [
             { label: '300 tasks / month', included: true },
@@ -53,6 +57,8 @@ const PLANS = [
         badge: 'BEST VALUE',
         monthlyPrice: 79,
         yearlyPrice: 799,
+        monthlyCredits: '900 AI credits / month',
+        yearlyCredits: '10,800 AI credits / year',
         desc: 'For power users who want a complete AI productivity partner.',
         features: [
             { label: '1,000 tasks / month', included: true },
@@ -74,9 +80,38 @@ const TOP_UPS = [
 export default function BillingScreen({ navigation }) {
     const [loadingTopUp, setLoadingTopUp] = useState(false);
     const [loadingPlan, setLoadingPlan] = useState(null);
+    const [usage, setUsage] = useState(null);
+    const [history, setHistory] = useState([]);
+    const [subscription, setSubscription] = useState(null);
     const [isYearly, setIsYearly] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const { theme, isDark } = useTheme();
     const user = useAuthStore(s => s.user);
+
+    const loadData = async () => {
+        try {
+            const [subRes, usageRes, histRes] = await Promise.all([
+                getSubscription(),
+                getUsage(),
+                getHistory()
+            ]);
+            setSubscription(subRes.data.data);
+            setUsage(usageRes.data.data);
+            setHistory(histRes.data.data || []);
+        } catch (err) {
+            console.log('Error loading billing data:', err);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    };
 
     const currentPlanId = user?.plan || 'FREE';
     const cyan = theme.cyan ?? '#00d4ff';
@@ -124,6 +159,42 @@ export default function BillingScreen({ navigation }) {
         } finally { setLoadingTopUp(null); }
     };
 
+    const handleCancel = () => {
+        Alert.alert(
+            'Cancel Subscription',
+            'Are you sure you want to cancel? Your access will remain active until the end of the current billing cycle.',
+            [
+                { text: 'No', style: 'cancel' },
+                {
+                    text: 'Confirm Cancellation',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await cancelSubscription();
+                            Alert.alert('Success', 'Cancellation scheduled. Access remains until cycle end.');
+                            loadData();
+                        } catch (err) {
+                            Alert.alert('Error', 'Cancellation failed. Please try again.');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleDowngrade = async (newPlanId) => {
+        try {
+            setLoadingPlan(newPlanId);
+            await downgradePlan(newPlanId);
+            Alert.alert('Success', `Plan downgraded to ${newPlanId.replace('_', ' ')}. Effective next cycle.`);
+            loadData();
+        } catch (err) {
+            Alert.alert('Error', 'Downgrade failed. Please try again.');
+        } finally {
+            setLoadingPlan(null);
+        }
+    };
+
     const openRazorpay = (data, onSuccess) => {
         const options = {
             description: 'TASKTIME Billing',
@@ -142,6 +213,12 @@ export default function BillingScreen({ navigation }) {
             .catch(err => Alert.alert('Error', `Payment failed: ${err.description || 'Unknown error'}`));
     };
 
+    const isNearLimit = currentPlanId === 'FREE' && usage && (
+        (usage.taskCount / usage.limits.task > 0.8) ||
+        (usage.scheduleCount / usage.limits.schedule > 0.8) ||
+        (usage.behaviorCount / usage.limits.behavior > 0.8)
+    );
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
             <View style={styles.header}>
@@ -152,7 +229,10 @@ export default function BillingScreen({ navigation }) {
                 <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={cyan} />}
+            >
 
                 {/* ── CURRENT PLAN SUMMARY ── */}
                 <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -163,38 +243,91 @@ export default function BillingScreen({ navigation }) {
                                     <Icon name="zap" size={16} color="#eab308" />
                                 </View>
                                 <Text style={[styles.summaryTitle, { color: theme.text }]}>
-                                    Current Plan: <Text style={{ color: cyan }}>{currentPlanId.replace('_', '+')}</Text>
+                                    Current Plan: <Text style={{ color: cyan }}>{currentPlanId === 'PRO_PLUS' ? 'Pro+' : currentPlanId === 'PRO' ? 'Pro' : 'Free'}</Text>
                                 </Text>
                             </View>
                             <Text style={[styles.summaryDesc, { color: theme.textDim }]}>
                                 {currentPlanId === 'FREE' ? 'Upgrade to unlock AI-powered productivity.' : 'Pro capabilities active.'}
                             </Text>
+
+                            {/* Credit Pill */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
+                                <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: cyan + '15', borderWidth: 1, borderColor: cyan + '25', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <MaterialIcon name="lightning-bolt" size={12} color={cyan} />
+                                    <Text style={{ fontSize: 11, fontWeight: '900', color: cyan, fontFamily: 'monospace' }}>
+                                        {user?.aiCreditBalance || 0} AI CREDITS
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
+
+                        {currentPlanId !== 'FREE' && (
+                            <TouchableOpacity onPress={handleCancel}>
+                                <Text style={{ color: '#ff4444', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
-                    <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} />
-
-                    <View style={styles.creditsRow}>
-                        <MaterialIcon name="lightning-bolt" size={24} color={cyan} />
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                            <Text style={[styles.creditsLabel, { color: theme.textDim }]}>AI CREDITS AVAILABLE</Text>
-                            <Text style={[styles.creditsValue, { color: theme.text }]}>{user?.aiCreditBalance || 0}</Text>
+                    {/* Limit Warning */}
+                    {isNearLimit && (
+                        <View style={{ marginTop: 16, p: 12, borderRadius: 12, backgroundColor: 'rgba(249, 115, 22, 0.1)', borderWidth: 1, borderColor: 'rgba(249, 115, 22, 0.2)', flexDirection: 'row', gap: 10, padding: 12 }}>
+                            <Icon name="alert-triangle" size={16} color="#f97316" />
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 13, fontWeight: '800', color: '#f97316' }}>Limit Approaching</Text>
+                                <Text style={{ fontSize: 11, color: theme.textDim, marginTop: 2 }}>You are reaching the capacity of your current plan.</Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
+
+                    {subscription?.nextBillingAt && (
+                        <>
+                            <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} />
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ fontSize: 10, color: theme.textDim, fontWeight: '700' }}>BILLING CYCLE: {subscription.billingCycle}</Text>
+                                <Text style={{ fontSize: 10, color: theme.textDim, fontWeight: '700' }}>RENEWAL: {new Date(subscription.nextBillingAt).toLocaleDateString()}</Text>
+                            </View>
+                        </>
+                    )}
                 </View>
 
-                {/* ── TOP UP CREDITS ── */}
-                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>TOP UP AI CREDITS</Text>
-                <View style={styles.topUpGrid}>
-                    {TOP_UPS.map(pkg => (
-                        <View key={pkg.id} style={[styles.topUpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                            <MaterialIcon name="lightning-bolt" size={20} color={cyan} style={{ marginBottom: 8, opacity: 0.8 }} />
-                            <Text style={[styles.topUpCredits, { color: theme.text }]}>{pkg.credits}</Text>
-                            <Text style={[styles.topUpCreditsLabel, { color: theme.textDim }]}>credits</Text>
-                            <Text style={[styles.topUpPrice, { color: theme.text }]}>₹{pkg.price}</Text>
-                            <Button title="Buy" size="sm" variant="outline" loading={loadingTopUp === pkg.id} onPress={() => handleTopUp(pkg.id)} style={{ marginTop: 12, width: '100%' }} />
-                        </View>
-                    ))}
+                {/* ── USAGE CARDS ── */}
+                <View style={styles.usageRow}>
+                    <UsageCard
+                        label="Tasks"
+                        count={usage?.taskCount}
+                        limit={usage?.limits?.task}
+                        icon={<Icon name="check-circle" size={16} color={cyan} />}
+                        color={cyan}
+                        theme={theme}
+                        isDark={isDark}
+                    />
+                    <UsageCard
+                        label="Schedules"
+                        count={usage?.scheduleCount}
+                        limit={usage?.limits?.schedule}
+                        icon={<Icon name="trending-up" size={16} color="#6366f1" />}
+                        color="#6366f1"
+                        theme={theme}
+                        isDark={isDark}
+                    />
+                    <UsageCard
+                        label="Logs"
+                        count={usage?.behaviorCount}
+                        limit={usage?.limits?.behavior}
+                        icon={<Icon name="shield" size={16} color="#a855f7" />}
+                        color="#a855f7"
+                        theme={theme}
+                        isDark={isDark}
+                    />
+                    <UsageCard
+                        label="Credits"
+                        count={user?.aiCreditBalance || 0}
+                        limit={subscription?.usageLimit}
+                        icon={<MaterialIcon name="lightning-bolt" size={16} color={cyan} />}
+                        color={cyan}
+                        theme={theme}
+                        isDark={isDark}
+                    />
                 </View>
 
                 <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', marginVertical: 32 }]} />
@@ -214,8 +347,14 @@ export default function BillingScreen({ navigation }) {
 
                 {PLANS.map(plan => {
                     const isCurrent = currentPlanId === plan.id;
+                    const planRank = { 'FREE': 0, 'PRO': 1, 'PRO_PLUS': 2 };
+                    const currentRank = planRank[currentPlanId] || 0;
+                    const planRankValue = planRank[plan.id];
+                    const isDowngrade = planRankValue < currentRank;
+
                     const price = plan.monthlyPrice === 0 ? '₹0' : (isYearly ? `₹${plan.yearlyPrice}` : `₹${plan.monthlyPrice}`);
                     const period = plan.monthlyPrice === 0 ? '' : (isYearly ? '/yr' : '/mo');
+                    const credits = isYearly ? plan.yearlyCredits : plan.monthlyCredits;
 
                     return (
                         <View key={plan.id} style={[styles.planCard, { backgroundColor: theme.surface, borderColor: isCurrent ? cyan : theme.border }]}>
@@ -242,6 +381,14 @@ export default function BillingScreen({ navigation }) {
                                 <Text style={[styles.perMonth, { color: theme.textDim }]}>{period}</Text>
                             </View>
 
+                            {/* Credits Pill */}
+                            <View style={{ marginBottom: 16 }}>
+                                <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4, backgroundColor: cyan + '10', borderWidth: 1, borderColor: cyan + '20', flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                                    <MaterialIcon name="lightning-bolt" size={12} color={cyan} />
+                                    <Text style={{ fontSize: 10, fontWeight: '900', color: cyan, fontFamily: 'monospace' }}>{credits.toUpperCase()}</Text>
+                                </View>
+                            </View>
+
                             {isYearly && plan.monthlyPrice > 0 && (
                                 <Text style={{ fontSize: 10, color: theme.textDim, fontFamily: 'monospace', marginBottom: 12 }}>
                                     ≈ ₹{Math.round(plan.yearlyPrice / 12)}/mo · Save ₹{plan.monthlyPrice * 12 - plan.yearlyPrice}
@@ -266,9 +413,9 @@ export default function BillingScreen({ navigation }) {
                             </View>
 
                             <Button
-                                title={isCurrent ? '✓ Current Plan' : `Upgrade to ${plan.name}`}
+                                title={isCurrent ? '✓ Current Plan' : (isDowngrade ? `Downgrade to ${plan.name}` : `Upgrade to ${plan.name}`)}
                                 variant={isCurrent ? 'ghost' : (plan.id === 'PRO' ? 'primary' : 'outline')}
-                                onPress={() => handleSubscribe(plan.id)}
+                                onPress={() => isDowngrade ? handleDowngrade(plan.id) : handleSubscribe(plan.id)}
                                 loading={loadingPlan === plan.id}
                                 disabled={isCurrent || plan.id === 'FREE'}
                                 style={{ marginTop: 24 }}
@@ -277,11 +424,100 @@ export default function BillingScreen({ navigation }) {
                     );
                 })}
 
+                {/* AI Credits Note */}
+                <View style={[styles.infoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <MaterialIcon name="robot" size={20} color={cyan} style={{ opacity: 0.5 }} />
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.infoTxt, { color: theme.textDim }]}>
+                            <Text style={{ color: theme.text, fontWeight: 'bold' }}>AI credits</Text> are used for chat, voice, and web search. Most users never run out. Top up anytime.
+                        </Text>
+                    </View>
+                </View>
+
+                {/* ── TOP UP CREDITS ── */}
+                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>TOP UP AI CREDITS</Text>
+                <View style={styles.topUpGrid}>
+                    {TOP_UPS.map(pkg => (
+                        <View key={pkg.id} style={[styles.topUpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                            <MaterialIcon name="lightning-bolt" size={20} color={cyan} style={{ marginBottom: 8, opacity: 0.8 }} />
+                            <Text style={[styles.topUpCredits, { color: theme.text }]}>{pkg.credits}</Text>
+                            <Text style={[styles.topUpCreditsLabel, { color: theme.textDim }]}>credits</Text>
+                            <Text style={[styles.topUpPrice, { color: theme.text }]}>₹{pkg.price}</Text>
+                            <Button title="Buy" size="sm" variant="outline" loading={loadingTopUp === pkg.id} onPress={() => handleTopUp(pkg.id)} style={{ marginTop: 12, width: '100%' }} />
+                        </View>
+                    ))}
+                </View>
+
+                {/* ── BILLING HISTORY ── */}
+                <View style={styles.historySection}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <Icon name="file-text" size={20} color={theme.textDim} />
+                        <Text style={[styles.summaryTitle, { color: theme.text, fontSize: 16 }]}>Billing History</Text>
+                    </View>
+
+                    <View style={[styles.historyTable, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', borderColor: theme.border }]}>
+                        <View style={[styles.historyHeader, { borderBottomColor: theme.border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }]}>
+                            <Text style={[styles.historyLabel, { flex: 1 }]}>DATE</Text>
+                            <Text style={[styles.historyLabel, { flex: 2 }]}>DESC</Text>
+                            <Text style={[styles.historyLabel, { flex: 1, textAlign: 'right' }]}>AMT</Text>
+                        </View>
+
+                        {history.length === 0 ? (
+                            <View style={{ padding: 24, alignItems: 'center' }}>
+                                <Text style={{ fontSize: 12, color: theme.textDim, fontFamily: 'monospace' }}>No payment history found.</Text>
+                            </View>
+                        ) : history.map(item => (
+                            <View key={item.id} style={[styles.historyRow, { borderBottomColor: theme.border }]}>
+                                <Text style={[styles.historyTxt, { flex: 1, color: theme.textDim }]}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                                <View style={{ flex: 2 }}>
+                                    <Text style={[styles.historyTxt, { color: theme.text, fontWeight: '700' }]} numberOfLines={1}>
+                                        {item.purpose.replace('_', ' ')}
+                                    </Text>
+                                    <View style={[styles.statusBadge, {
+                                        alignSelf: 'flex-start', marginTop: 4,
+                                        borderColor: item.status === 'PAID' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                        backgroundColor: item.status === 'PAID' ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)'
+                                    }]}>
+                                        <Text style={[styles.statusTxt, { color: item.status === 'PAID' ? '#22c55e' : '#ef4444' }]}>{item.status}</Text>
+                                    </View>
+                                </View>
+                                <Text style={[styles.historyTxt, { flex: 1, textAlign: 'right', color: theme.text, fontWeight: '900' }]}>₹{item.amount / 100}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
                 <View style={{ alignItems: 'center', marginVertical: 32 }}>
                     <Text style={{ fontSize: 10, color: theme.textDim, fontWeight: '700', letterSpacing: 2 }}>TASKTIME SECURE PAYMENTS</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+function UsageCard({ label, count = 0, limit, icon, color, theme, isDark }) {
+    const isUnlimited = limit === null || limit === undefined;
+    const percentage = isUnlimited ? 0 : Math.min((count / limit) * 100, 100);
+
+    const barColor = percentage > 85 ? '#ef4444' : color;
+
+    return (
+        <View style={[styles.usageCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.usageHeader}>
+                <View style={[styles.usageIcon, { backgroundColor: color + '15' }]}>{icon}</View>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.usageLabel, { color: theme.textDim }]}>{label.toUpperCase()}</Text>
+                    <Text style={[styles.usageValue, { color: theme.text }]}>
+                        {count}{!isUnlimited && <Text style={{ fontSize: 13, opacity: 0.5 }}>/{limit}</Text>}
+                    </Text>
+                </View>
+            </View>
+            {!isUnlimited && (
+                <View style={styles.usageProgressBg}>
+                    <View style={[styles.usageProgressFill, { width: `${percentage}%`, backgroundColor: barColor }]} />
+                </View>
+            )}
+        </View>
     );
 }
 
@@ -331,4 +567,28 @@ const styles = StyleSheet.create({
     featureRow: { flexDirection: 'row', alignItems: 'center' },
     featureIcon: { marginRight: 10 },
     featureText: { fontSize: 12, fontFamily: 'monospace' },
+
+    /* usage cards */
+    usageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+    usageCard: { flex: 1, minWidth: '47%', borderRadius: 16, borderWidth: 1, padding: 16 },
+    usageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    usageIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    usageLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+    usageValue: { fontSize: 18, fontWeight: '900', fontFamily: 'monospace' },
+    usageProgressBg: { height: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' },
+    usageProgressFill: { height: '100%', borderRadius: 2 },
+
+    /* info card */
+    infoCard: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 32, flexDirection: 'row', gap: 12 },
+    infoTxt: { fontSize: 11, fontFamily: 'monospace', lineHeight: 16 },
+
+    /* history */
+    historySection: { marginTop: 40 },
+    historyTable: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+    historyHeader: { flexDirection: 'row', padding: 12, borderBottomWidth: 1 },
+    historyLabel: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)' },
+    historyRow: { flexDirection: 'row', padding: 12, borderBottomWidth: 1, alignItems: 'center' },
+    historyTxt: { fontSize: 12, fontFamily: 'monospace' },
+    statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
+    statusTxt: { fontSize: 9, fontWeight: '900' },
 });

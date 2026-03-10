@@ -3,7 +3,7 @@
  * Premium glass bottom-sheet. Same visual language as AppHeader + CustomTabBar.
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
     Modal, Pressable, Platform, Animated,
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/auth.store';
 import { useNavigation } from '@react-navigation/native';
+import { getSettings } from '../../api/ai.api';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -67,6 +68,18 @@ export default function ProfilePanel({ visible, onClose }) {
             Animated.timing(slideY, {
                 toValue: SCREEN_H, duration: 260, useNativeDriver: true,
             }).start();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [visible]);
+
+    /* fetch AI credits */
+    const [creditBalance, setCreditBalance] = useState(0);
+    useEffect(() => {
+        if (visible) {
+            getSettings().then((res) => {
+                const d = res?.data?.data ?? res?.data ?? {};
+                setCreditBalance(d.creditBalance ?? 0);
+            }).catch((err) => { console.log('ProfilePanel credits fetch err:', err?.message); });
         }
     }, [visible]);
 
@@ -141,6 +154,27 @@ export default function ProfilePanel({ visible, onClose }) {
                             <Text style={[styles.planTxt, { color: planColor.text }]}>{plan}</Text>
                         </View>
                     </View>
+                </View>
+
+                {/* ── AI CREDITS ── */}
+                <View style={[styles.creditsRow, {
+                    backgroundColor: isDark ? 'rgba(0,212,255,0.06)' : 'rgba(0,212,255,0.04)',
+                    borderColor: cyan + '25',
+                }]}>
+                    <View style={[styles.creditsIcon, { backgroundColor: cyan + '18' }]}>
+                        <Icon name="lightning-bolt" size={16} color={cyan} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)' }}>
+                            AI CREDITS
+                        </Text>
+                        <Text style={{ fontSize: 18, fontWeight: '900', color: cyan, letterSpacing: -0.5, marginTop: 1 }}>
+                            {creditBalance}
+                        </Text>
+                    </View>
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                        AVAILABLE
+                    </Text>
                 </View>
 
                 {/* ── DIVIDER ── */}
@@ -261,6 +295,17 @@ const styles = StyleSheet.create({
 
     /* divider */
     divider: { height: 1, marginVertical: 4 },
+
+    /* credits */
+    creditsRow: {
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        padding: 14, borderRadius: 16, borderWidth: 1,
+        marginBottom: 6, marginTop: 2,
+    },
+    creditsIcon: {
+        width: 36, height: 36, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
 
     /* section */
     section: { paddingVertical: 10 },
