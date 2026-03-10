@@ -89,7 +89,7 @@ function ScoreRing({ score = 0, size = 160, strokeWidth = 14, loading = false, s
             <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
                 {loading ? (
                     <View style={{ alignItems: 'center' }}>
-                        <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 1, color: '#06b6d4', opacity: 0.8 }}>CALCULATING...</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 1, color: '#06b6d4', opacity: 0.8 }}>ANALYZING...</Text>
                     </View>
                 ) : (
                     <View style={{ alignItems: 'center' }}>
@@ -378,7 +378,7 @@ export default function BehaviorSection({ refreshing }) {
                         color={hasToday ? cyan : '#000'}
                     />
                     <Text style={[styles.logBtnTxt, { color: hasToday ? cyan : '#000' }]}>
-                        {hasToday ? 'Update Activity' : "Log Today's Activity"}
+                        {hasToday ? 'Update Progress' : "Log Today's Progress"}
                     </Text>
                 </TouchableOpacity>
             </View>

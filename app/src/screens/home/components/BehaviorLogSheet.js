@@ -147,12 +147,12 @@ export default function BehaviorLogSheet({
                             <View style={styles.header}>
                                 <View>
                                     <Text style={[styles.sheetTitle, { color: theme.text ?? '#fff' }]}>
-                                        {currentLog ? 'Update Activity' : 'Log Today\'s Activity'}
+                                        {currentLog ? 'Update Progress' : 'Log Today\'s Progress'}
                                     </Text>
                                     <Text style={[styles.sheetSub, {
                                         color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
                                     }]}>
-                                        Track your mood, sleep & exercise
+                                        Share how your day is going
                                     </Text>
                                 </View>
                                 <TouchableOpacity
@@ -181,7 +181,7 @@ export default function BehaviorLogSheet({
                                 <View style={[styles.section, styles.twoCol]}>
                                     <View style={styles.halfCol}>
                                         <Input
-                                            label="SLEEP HOURS"
+                                            label="SLEEP (HRS)"
                                             leftIcon="weather-night"
                                             value={sleepHours}
                                             onChangeText={setSleepHours}
@@ -246,7 +246,7 @@ export default function BehaviorLogSheet({
                                 {/* ── ACTIONS ── */}
                                 <View style={styles.actions}>
                                     <Button
-                                        title={currentLog ? 'Update' : 'Save Activity'}
+                                        title={currentLog ? 'Update' : 'Save Progress'}
                                         onPress={handleSave}
                                         style={{
                                             flex: 1,

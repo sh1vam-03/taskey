@@ -392,12 +392,12 @@ export default function OverviewSection({ refreshing }) {
                             <Icon name="calendar-today" size={13} color={cyan} />
                         </View>
                         <Text style={[styles.tlHeadTitle, { color: theme.text ?? '#fff' }]}>
-                            TODAY'S FOCUS
+                            Today's Schedule
                         </Text>
                     </View>
                     {!loadTl && (
                         <View style={[styles.countChip, { backgroundColor: cyan + '14', borderColor: cyan + '30' }]}>
-                            <Text style={[styles.countText, { color: cyan }]}>{totItems} items</Text>
+                            <Text style={[styles.countText, { color: cyan }]}>{totItems} total</Text>
                         </View>
                     )}
                 </View>
