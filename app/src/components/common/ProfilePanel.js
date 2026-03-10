@@ -25,36 +25,6 @@ const PLAN_COLORS = {
     TEAM: { bg: 'rgba(234,179,8,0.15)', border: 'rgba(234,179,8,0.35)', text: '#eab308' },
 };
 
-/* ── Theme pill ─────────────────────────────────────────────────────────── */
-function ThemePill({ mode, icon, label, active, onPress, cyan }) {
-    const { isDark } = useTheme();
-    return (
-        <TouchableOpacity
-            onPress={onPress}
-            activeOpacity={0.75}
-            style={[
-                styles.themePill,
-                active && {
-                    backgroundColor: cyan + (isDark ? '1E' : '16'),
-                    borderColor: cyan + '44',
-                },
-                !active && {
-                    borderColor: 'transparent',
-                },
-            ]}
-        >
-            <Icon name={icon} size={14} color={active ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.30)')} />
-            <Text style={[
-                styles.themePillTxt,
-                { color: active ? cyan : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.40)') },
-                active && { fontWeight: '800' },
-            ]}>
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
-}
-
 /* ── Action row ─────────────────────────────────────────────────────────── */
 function ActionRow({ iconName, label, onPress, color, isDark, cyan, showChevron = true }) {
     const iconBg = color
@@ -80,7 +50,7 @@ function ActionRow({ iconName, label, onPress, color, isDark, cyan, showChevron 
 /* ── Main ───────────────────────────────────────────────────────────────── */
 export default function ProfilePanel({ visible, onClose }) {
     const insets = useSafeAreaInsets();
-    const { theme, themeMode, toggleTheme, isDark } = useTheme();
+    const { theme, isDark } = useTheme();
     const user = useAuthStore(s => s.user);
     const logout = useAuthStore(s => s.logout);
     const navigation = useNavigation();
@@ -107,7 +77,6 @@ export default function ProfilePanel({ visible, onClose }) {
     const sheetBg = isDark ? 'rgba(10,10,14,0.97)' : 'rgba(250,250,255,0.97)';
     const sheetBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
     const divBg = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
-    const themeBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
 
     /* avatar initials + plan */
     const initials = (user?.name ?? 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -171,21 +140,6 @@ export default function ProfilePanel({ visible, onClose }) {
                             <View style={[styles.planDot, { backgroundColor: planColor.text }]} />
                             <Text style={[styles.planTxt, { color: planColor.text }]}>{plan}</Text>
                         </View>
-                    </View>
-                </View>
-
-                {/* ── DIVIDER ── */}
-                <View style={[styles.divider, { backgroundColor: divBg }]} />
-
-                {/* ── THEME TOGGLE ── */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionLabel, { color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)' }]}>
-                        APPEARANCE
-                    </Text>
-                    <View style={[styles.themeTrack, { backgroundColor: themeBg, borderColor: sheetBord }]}>
-                        <ThemePill mode="light" icon="white-balance-sunny" label="Light" active={themeMode === 'light'} onPress={() => toggleTheme('light')} cyan={cyan} />
-                        <ThemePill mode="dark" icon="weather-night" label="Dark" active={themeMode === 'dark'} onPress={() => toggleTheme('dark')} cyan={cyan} />
-                        <ThemePill mode="system" icon="laptop" label="System" active={themeMode === 'system'} onPress={() => toggleTheme('system')} cyan={cyan} />
                     </View>
                 </View>
 
@@ -311,26 +265,6 @@ const styles = StyleSheet.create({
     /* section */
     section: { paddingVertical: 10 },
     sectionLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 2.5, marginBottom: 12 },
-
-    /* theme track */
-    themeTrack: {
-        flexDirection: 'row',
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 4,
-        gap: 4,
-    },
-    themePill: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: 12,
-        borderWidth: 1,
-        gap: 6,
-    },
-    themePillTxt: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
 
     /* action rows */
     actionRow: {

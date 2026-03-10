@@ -2,8 +2,39 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
 import { typography } from '../../theme/typography';
+
+/* ── Theme pill ─────────────────────────────────────────────────────────── */
+function ThemePill({ mode, icon, label, active, onPress, cyan }) {
+    const { isDark } = useTheme();
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.75}
+            style={[
+                styles.themePill,
+                active && {
+                    backgroundColor: cyan + (isDark ? '1E' : '16'),
+                    borderColor: cyan + '44',
+                },
+                !active && {
+                    borderColor: 'transparent',
+                },
+            ]}
+        >
+            <MaterialIcon name={icon} size={14} color={active ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.30)')} />
+            <Text style={[
+                styles.themePillTxt,
+                { color: active ? cyan : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.40)') },
+                active && { fontWeight: '800' },
+            ]}>
+                {label}
+            </Text>
+        </TouchableOpacity>
+    );
+}
 
 const SettingItem = ({ icon, label, value, onValueChange, type = 'toggle', onPress }) => {
     const { theme } = useTheme();
@@ -34,8 +65,10 @@ const SettingItem = ({ icon, label, value, onValueChange, type = 'toggle', onPre
 export default function SettingsScreen({ navigation }) {
     const [notifications, setNotifications] = useState(true);
     const [aiAutoSync, setAiAutoSync] = useState(true);
-    const [darkMode, setDarkMode] = useState(true);
-    const { theme } = useTheme();
+    const { theme, themeMode, toggleTheme, isDark } = useTheme();
+    const cyan = theme.cyan ?? '#00d4ff';
+    const sheetBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const themeBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -56,12 +89,13 @@ export default function SettingsScreen({ navigation }) {
                         value={notifications}
                         onValueChange={setNotifications}
                     />
-                    <SettingItem
-                        icon="moon"
-                        label="Dark Mode"
-                        value={darkMode}
-                        onValueChange={setDarkMode}
-                    />
+                </View>
+
+                <Text style={[styles.sectionTitle, { color: theme.cyan }]}>APPEARANCE</Text>
+                <View style={[styles.themeTrack, { backgroundColor: themeBg, borderColor: sheetBord, marginHorizontal: 4, marginBottom: 12 }]}>
+                    <ThemePill mode="light" icon="sun" label="Light" active={themeMode === 'light'} onPress={() => toggleTheme('light')} cyan={cyan} />
+                    <ThemePill mode="dark" icon="moon" label="Dark" active={themeMode === 'dark'} onPress={() => toggleTheme('dark')} cyan={cyan} />
+                    <ThemePill mode="system" icon="monitor" label="System" active={themeMode === 'system'} onPress={() => toggleTheme('system')} cyan={cyan} />
                 </View>
 
                 <Text style={[styles.sectionTitle, { color: theme.cyan }]}>AI & Productivity</Text>
@@ -145,6 +179,24 @@ const styles = StyleSheet.create({
         marginRight: 16,
     },
     settingLabel: { flex: 1, fontSize: 15 },
+    themeTrack: {
+        flexDirection: 'row',
+        borderRadius: 16,
+        borderWidth: 1,
+        padding: 4,
+        gap: 4,
+    },
+    themePill: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 6,
+    },
+    themePillTxt: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
     dangerZone: {
         marginTop: 40,
         padding: 16,

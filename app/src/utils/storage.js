@@ -11,5 +11,11 @@ export const Storage = {
     getUser: () => { const u = storage.getString('user'); return u ? JSON.parse(u) : null; },
     setThemeMode: (m) => storage.set('themeMode', m),
     getThemeMode: () => storage.getString('themeMode') ?? 'system',
-    clear: () => storage.clearAll(),
+    clear: () => {
+        const currentTheme = storage.getString('themeMode');
+        storage.clearAll();
+        if (currentTheme) {
+            storage.set('themeMode', currentTheme);
+        }
+    },
 };
