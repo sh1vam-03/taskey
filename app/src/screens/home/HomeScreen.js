@@ -120,7 +120,7 @@ export default function HomeScreen() {
                             y="36"
                             letterSpacing="0"
                         >
-                            {greeting} 👋
+                            {greeting}
                         </SvgText>
                     </Svg>
 

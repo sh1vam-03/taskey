@@ -90,7 +90,7 @@ export default function ScheduleScreen() {
                     <Icon name="calendar-clock" size={18} color={cyan} />
                 </View>
                 <View>
-                    <Text style={[styles.pageTitle, { color: textColor }]}>EVENTS</Text>
+                    <Text style={[styles.pageTitle, { color: textColor }]}>SCHEDULE</Text>
                     <Text style={[styles.pageSub, {
                         color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
                     }]}>
