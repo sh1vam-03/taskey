@@ -72,10 +72,11 @@ export default function CalendarScreen({ navigation }) {
     const handleToggleCompletion = async (item) => {
         try {
             const isCompleted = item.status === 'COMPLETED';
+            const dateStr = format(selectedDate, 'yyyy-MM-dd');
             if (item.type === 'SCHEDULE') {
-                isCompleted ? await undoCompleteSchedule(item.id) : await completeSchedule(item.id);
+                isCompleted ? await undoCompleteSchedule(item.id, dateStr) : await completeSchedule(item.id, dateStr);
             } else {
-                isCompleted ? await undoCompleteTask(item.id) : await completeTask(item.id);
+                isCompleted ? await undoCompleteTask(item.id, dateStr) : await completeTask(item.id, dateStr);
             }
             fetchData(true);
         } catch (err) {

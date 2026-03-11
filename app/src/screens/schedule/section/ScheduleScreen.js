@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getDayCalendar, completeSchedule } from '../../../api/schedule.api';
+import { getDayCalendar, completeSchedule, undoCompleteSchedule } from '../../../api/schedule.api';
 import ScheduleCard from '../components/ScheduleCard';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { useTheme } from '../../../context/ThemeContext';
@@ -62,7 +62,11 @@ export default function ScheduleScreen() {
 
     const handleToggleComplete = async (schedule) => {
         try {
-            await completeSchedule(schedule._id);
+            const isCompleted = schedule.status === 'COMPLETED';
+            const dateStr = format(selectedDate, 'yyyy-MM-dd');
+            isCompleted
+                ? await undoCompleteSchedule(schedule._id, dateStr)
+                : await completeSchedule(schedule._id, dateStr);
             fetchSchedule(selectedDate);
         } catch (e) {
             console.error(e);

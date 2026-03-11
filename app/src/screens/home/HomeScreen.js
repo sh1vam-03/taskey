@@ -4,7 +4,7 @@
  * AppHeader floats above · 4 sections flow in one ScrollView · ProfilePanel slides in.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
     RefreshControl, Dimensions, Platform,
@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../../context/ThemeContext';
+import { triggerBehaviorUpdate } from '../../api/behavior.api';
 import AppHeader, { HEADER_HEIGHT } from '../../components/common/AppHeader';
 import ProfilePanel from '../../components/common/ProfilePanel';
 import SectionHeader from './components/SectionHeader';
@@ -40,6 +41,11 @@ export default function HomeScreen() {
             : hour < 12 ? 'Good morning'
                 : hour < 17 ? 'Good afternoon'
                     : 'Good evening';
+
+    useEffect(() => {
+        // Fire-and-forget to update daily behavior score silently
+        triggerBehaviorUpdate().catch(() => { });
+    }, []);
 
     const fullDate = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
 

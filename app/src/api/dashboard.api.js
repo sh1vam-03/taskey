@@ -9,6 +9,18 @@ export const getOverview = (date) => {
     return API.get(`/dashboard/overview${date ? `?date=${date}` : ''}`);
 };
 
+export const getToday = (date) => {
+    return API.get(`/dashboard/today${date ? `?date=${date}` : ''}`);
+};
+
+export const getWeekly = () => {
+    return API.get('/dashboard/weekly');
+};
+
+export const getMonthly = () => {
+    return API.get('/dashboard/monthly');
+};
+
 export const getStreaks = (date) => {
     return API.get(`/dashboard/streaks${date ? `?date=${date}` : ''}`);
 };

@@ -16,8 +16,8 @@ export const logout = () => client.post('/auth/logout');
 export const getMe = () => client.get('/auth/me');
 export const forgotPassword = (email) =>
     client.post('/auth/forgot-password', { email });
-export const resetPassword = (email, code, password) =>
-    client.post('/auth/reset-password', { email, code, password });
+export const resetPassword = (token, password) =>
+    client.post('/auth/reset-password', { token, password });
 
 export const logoutAll = () => client.post('/auth/logout-all');
 export const deleteAccount = (otp) => client.delete('/auth/me', { data: { otp } });

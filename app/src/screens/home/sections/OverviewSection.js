@@ -16,8 +16,9 @@ import {
 } from 'react-native';
 import Svg, { Circle, G, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getOverview } from '../../../api/dashboard.api';
-import API from '../../../api/client';
+import { getOverview, getToday } from '../../../api/dashboard.api';
+import { completeTask, undoCompleteTask } from '../../../api/task.api';
+import { completeSchedule, undoCompleteSchedule } from '../../../api/schedule.api';
 import { useTheme } from '../../../context/ThemeContext';
 
 const { width: W } = Dimensions.get('window');
@@ -266,7 +267,7 @@ export default function OverviewSection({ refreshing }) {
         setLoadTl(true);
         try {
             const date = new Date().toLocaleDateString('en-CA');
-            const { data: r } = await API.get(`/dashboard/today?date=${date}`);
+            const { data: r } = await getToday(date);
             setTodayData(r.data || r);
         } catch { /* silent */ }
         finally { setLoadTl(false); }
@@ -290,14 +291,14 @@ export default function OverviewSection({ refreshing }) {
         try {
             if (item.type === 'TASK') {
                 willComplete
-                    ? await API.post(`/taskCompletion/${item.id}/complete`, { date })
-                    : await API.delete(`/taskCompletion/${item.id}/completed`, { data: { date } });
+                    ? await completeTask(item.id, date)
+                    : await undoCompleteTask(item.id, date);
             } else {
                 willComplete
-                    ? await API.post(`/schedule/${item.id}/complete`, { date })
-                    : await API.post(`/schedule/${item.id}/undo-complete`, { date });
+                    ? await completeSchedule(item.id, date)
+                    : await undoCompleteSchedule(item.id, date);
             }
-            const { data: r } = await API.get(`/dashboard/today?date=${date}`);
+            const { data: r } = await getToday(date);
             setTodayData(r.data || r);
         } catch { fetchToday(); }
     }, []);

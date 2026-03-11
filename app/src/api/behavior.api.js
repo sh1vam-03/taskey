@@ -24,3 +24,7 @@ export const getBehaviorExplanation = (date) => {
 export const saveBehaviorLog = (data) => {
     return API.post('/behavior', data);
 };
+
+export const triggerBehaviorUpdate = () => {
+    return API.post('/behavior');
+};

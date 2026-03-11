@@ -33,7 +33,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         try {
             await forgotPassword(email);
             setOk('Reset link sent. Check your inbox.');
-            setTimeout(() => navigation.navigate('Login'), 1600);
+            setTimeout(() => navigation.navigate('ResetPassword', { email }), 1200);
         } catch (err) {
             setError(err.response?.data?.message || 'Could not send reset code. Try again.');
         } finally {

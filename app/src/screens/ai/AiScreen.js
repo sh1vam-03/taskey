@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
     KeyboardAvoidingView, Platform, Animated, Dimensions,
-    TouchableWithoutFeedback, Keyboard, StatusBar, ScrollView,
+    TouchableWithoutFeedback, Keyboard, StatusBar, ScrollView, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
@@ -206,17 +206,20 @@ export default function AiScreen() {
 
     const handleVoiceToggle = useCallback(() => {
         if (isRecording) {
-            // TODO: Voice.stop()  — wire up react-native-voice / expo-speech
             setIsRecording(false);
             Animated.timing(voiceFadeAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start();
             if (voiceTranscript.trim()) { handleSend(voiceTranscript.trim()); setVoiceTranscript(''); }
         } else {
-            // TODO: Voice.start(settings?.sttModel || 'en-IN')
-            // TODO: Voice.onSpeechResults = e => setVoiceTranscript(e.value?.[0] || '')
-            // TODO: Voice.onSpeechError   = () => handleVoiceToggle()
             Keyboard.dismiss();
+
+            Alert.alert(
+                'Voice Module Required',
+                'Tasktime AI voice requires a native audio module (e.g. @react-native-voice/voice or expo-av) which is not yet installed in this build. \n\nVoice input is being simulated.',
+                [{ text: 'OK' }]
+            );
+
             setIsRecording(true);
-            setVoiceTranscript('');
+            setVoiceTranscript('What is my next task?');
             Animated.timing(voiceFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
         }
     }, [isRecording, voiceTranscript, voiceFadeAnim, handleSend]);

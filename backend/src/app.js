@@ -12,7 +12,30 @@ const app = express();
 app.use(morgan("dev"));
 app.set("trust proxy", 1);
 app.use(cors({
-    origin: true, // Allow all origins during development to bypass CORS hurdles
+    origin: function (origin, callback) {
+        // Allow mobile apps (no origin) 
+        if (!origin) return callback(null, true);
+
+        // Fetch allowed origins from environment variable, falling back to local/common ones
+        const allowedOrigins = process.env.ALLOWED_ORIGINS
+            ? process.env.ALLOWED_ORIGINS.split(',')
+            : [
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "https://tasktime.in",
+                "https://tasktime-sh1vam-03.vercel.app"
+            ];
+
+        // Check if the current origin is in the allowed list, or if it's a Vercel preview deployment
+        if (
+            allowedOrigins.includes(origin) ||
+            origin.includes("vercel.app")
+        ) {
+            return callback(null, true);
+        }
+
+        callback(new Error("Not allowed by CORS"));
+    },
     credentials: true
 }));
 app.use(express.json());
