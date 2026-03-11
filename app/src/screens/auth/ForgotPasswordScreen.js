@@ -93,8 +93,8 @@ export default function ForgotPasswordScreen({ navigation }) {
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    kav: { flex: 1, justifyContent: 'center' },
-    inner: { paddingHorizontal: 26 },
+    kav: { flex: 1 },
+    inner: { flex: 1, paddingHorizontal: 26, justifyContent: 'flex-start', paddingTop: 60 },
     header: { marginBottom: 28 },
     title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
     sub: { fontSize: 15, color: C.sub, lineHeight: 23 },

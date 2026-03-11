@@ -270,7 +270,7 @@ const bgS = StyleSheet.create({
 });
 
 const logoS = StyleSheet.create({
-    row: { alignItems: 'center', paddingTop: 16, marginBottom: 8 },
+    row: { alignItems: 'center', paddingTop: 60, marginBottom: 4 },
 });
 
 const inS = StyleSheet.create({
