@@ -66,8 +66,8 @@ export default function LoginScreen({ navigation }) {
                     >
                         <Animated.View style={style}>
 
-                            <View style={[s.logoRow, { alignItems: 'flex-start' }]}>
-                                <Svg height={45} width={200} style={{ marginBottom: 12 }}>
+                            <View style={[s.logoRow, { alignItems: 'center' }]}>
+                                <Svg height={45} width={300} style={{ marginBottom: 12 }}>
                                     <Defs>
                                         <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
                                             <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
@@ -79,8 +79,9 @@ export default function LoginScreen({ navigation }) {
                                         fill="url(#loginGrad)"
                                         fontSize="36"
                                         fontWeight="900"
-                                        x="0"
+                                        x="150"
                                         y="36"
+                                        textAnchor="middle"
                                         letterSpacing="8"
                                     >
                                         TASKTIME
@@ -88,9 +89,9 @@ export default function LoginScreen({ navigation }) {
                                 </Svg>
                             </View>
 
-                            <View style={s.header}>
-                                <Text style={s.title}>Welcome back</Text>
-                                <Text style={s.sub}>Login to access your TASKTIME account</Text>
+                            <View style={[s.header, { alignItems: 'center' }]}>
+                                <Text style={[s.title, { textAlign: 'center' }]}>Welcome back</Text>
+                                <Text style={[s.sub, { textAlign: 'center' }]}>Login to access your TASKTIME account</Text>
                             </View>
 
                             <ErrMsg msg={error} />
@@ -126,7 +127,7 @@ export default function LoginScreen({ navigation }) {
                                 <Text style={s.forgotTxt}>Forgot password?</Text>
                             </TouchableOpacity>
 
-                            <Btn label="Sign in" onPress={handle} loading={loading} />
+                            <Btn label="Log in" onPress={handle} loading={loading} />
 
                             <View style={s.footer}>
                                 <Text style={s.footerTxt}>
