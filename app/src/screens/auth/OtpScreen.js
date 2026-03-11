@@ -1,148 +1,178 @@
+/**
+ * OtpScreen.js
+ */
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity } from 'react-native';
+import {
+    View, Text, StyleSheet, Animated,
+    KeyboardAvoidingView, Platform, TextInput, TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Button from '../../components/common/Button';
-import { useTheme } from '../../context/ThemeContext';
-import { typography } from '../../theme/typography';
+import { AuthBg, Logo, Btn, ErrMsg, BackArrow, C, RADIUS } from './_authShared';
 import { verifyOtp } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 
 export default function OtpScreen({ route, navigation }) {
-    const email = route.params?.email || '';
-    const [code, setCode] = useState(['', '', '', '', '', '']);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [cooldown, setCooldown] = useState(30);
-    const inputsRef = useRef([]);
-    const setAuth = useAuthStore(state => state.setAuth);
-    const { theme } = useTheme();
+    const email     = route.params?.email || '';
+    const [digits,  setDigits]   = useState(['', '', '', '', '', '']);
+    const [loading, setLoading]  = useState(false);
+    const [error,   setError]    = useState('');
+    const [timer,   setTimer]    = useState(59);
 
+    const refs   = useRef([]);
+    const fAnims = useRef([0,1,2,3,4,5].map(() => new Animated.Value(0))).current;
+    const setAuth = useAuthStore(s => s.setAuth);
+
+    /* Entrance */
+    const anim = useRef(new Animated.Value(0)).current;
     useEffect(() => {
-        let timer;
-        if (cooldown > 0) {
-            timer = setInterval(() => setCooldown(c => c - 1), 1000);
-        }
-        return () => clearInterval(timer);
-    }, [cooldown]);
-
-    const handleChange = (text, index) => {
-        const newCode = [...code];
-        newCode[index] = text;
-        setCode(newCode);
-
-        if (text && index < 5) {
-            inputsRef.current[index + 1].focus();
-        }
+        Animated.timing(anim, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+        setTimeout(() => refs.current[0]?.focus(), 500);
+    }, []);
+    const animStyle = {
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
     };
 
-    const handleKeyPress = (e, index) => {
-        if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
-            inputsRef.current[index - 1].focus();
-        }
+    /* Countdown */
+    useEffect(() => {
+        if (timer <= 0) return;
+        const t = setTimeout(() => setTimer(n => n - 1), 1000);
+        return () => clearTimeout(t);
+    }, [timer]);
+
+    /* Box focus animation */
+    const focusBox = (i, on) =>
+        Animated.timing(fAnims[i], { toValue: on ? 1 : 0, duration: 150, useNativeDriver: false }).start();
+
+    /* Handle digit entry */
+    const onType = (text, i) => {
+        const d = [...digits];
+        d[i] = text.replace(/\D/g, '');
+        setDigits(d);
+        if (text && i < 5) refs.current[i + 1]?.focus();
     };
 
-    const handleVerify = async () => {
-        const otp = code.join('');
-        if (otp.length < 6) return setError('Please enter complete OTP');
+    const onKey = (e, i) => {
+        if (e.nativeEvent.key === 'Backspace' && !digits[i] && i > 0)
+            refs.current[i - 1]?.focus();
+    };
 
+    const verify = async () => {
+        const otp = digits.join('');
+        if (otp.length < 6) return setError('Enter the complete 6-digit code.');
         setError('');
         setLoading(true);
         try {
-            const { data: response } = await verifyOtp(email, otp);
-            setAuth(response.data.user, response.data.accessToken, response.data.refreshToken);
+            const { data: res } = await verifyOtp(email, otp);
+            setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
         } catch (err) {
-            setError(err.response?.data?.message || 'Verification failed');
+            setError(err.response?.data?.message || 'Invalid or expired code. Please try again.');
+            setDigits(['', '', '', '', '', '']);
+            setTimeout(() => refs.current[0]?.focus(), 60);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <KeyboardAvoidingView
-                style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
-                <View style={styles.content}>
-                    <Text style={[styles.title, { color: theme.cyan }]}>Verification</Text>
-                    <Text style={[styles.subtitle, { color: theme.text }]}>Enter the 6-digit code sent to{'\n'}{email}</Text>
+        <View style={s.root}>
+            <AuthBg />
+            <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <Animated.View style={[s.inner, animStyle]}>
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                        <View style={s.logoRow}><Logo size="md" /></View>
 
-                    <View style={styles.codeContainer}>
-                        {code.map((digit, index) => (
-                            <TextInput
-                                key={index}
-                                ref={el => inputsRef.current[index] = el}
-                                style={[styles.codeInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-                                keyboardType="number-pad"
-                                maxLength={1}
-                                value={digit}
-                                onChangeText={(text) => handleChange(text, index)}
-                                onKeyPress={(e) => handleKeyPress(e, index)}
-                                placeholderTextColor={theme.textDim}
-                                selectTextOnFocus
-                            />
-                        ))}
-                    </View>
+                        <BackArrow onPress={() => navigation.goBack()} />
 
-                    <Button
-                        title="Verify"
-                        onPress={handleVerify}
-                        loading={loading}
-                        style={[styles.verifyBtn, { backgroundColor: theme.cyan, shadowColor: theme.cyan }]}
-                    />
-
-                    <View style={styles.footer}>
-                        <Text style={[styles.footerText, { color: theme.textDim }]}>Didn't receive code? </Text>
-                        <TouchableOpacity onPress={() => setCooldown(30)} disabled={cooldown > 0}>
-                            <Text style={[styles.resendText, { color: theme.cyan }, cooldown > 0 && { color: theme.textDim }]}>
-                                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend'}
+                        <View style={s.header}>
+                            <Text style={s.title}>Check your email</Text>
+                            <Text style={s.sub}>
+                                We sent a 6-digit code to{'\n'}
+                                <Text style={{ color: C.text, fontWeight: '600' }}>{email}</Text>
                             </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                        </View>
+
+                        <ErrMsg msg={error} />
+
+                        {/* ── OTP digit boxes ── */}
+                        <View style={s.boxes}>
+                            {digits.map((d, i) => {
+                                const bc = fAnims[i].interpolate({
+                                    inputRange: [0, 1], outputRange: [C.border, C.focus],
+                                });
+                                const bg = fAnims[i].interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [C.dim6, 'rgba(0,212,255,0.06)'],
+                                });
+                                return (
+                                    <Animated.View key={i} style={[s.box, { borderColor: bc, backgroundColor: bg }]}>
+                                        <TextInput
+                                            ref={el => refs.current[i] = el}
+                                            style={[s.digit, { color: d ? C.cyan : C.text }]}
+                                            keyboardType="number-pad"
+                                            maxLength={1}
+                                            value={d}
+                                            onChangeText={t => onType(t, i)}
+                                            onKeyPress={e => onKey(e, i)}
+                                            onFocus={() => focusBox(i, true)}
+                                            onBlur={() => focusBox(i, false)}
+                                            selectTextOnFocus
+                                            selectionColor={C.focus}
+                                        />
+                                    </Animated.View>
+                                );
+                            })}
+                        </View>
+
+                        <Btn label="Verify email" onPress={verify} loading={loading} />
+
+                        {/* Resend */}
+                        <View style={s.resend}>
+                            <Text style={s.resendTxt}>Didn't get the code? </Text>
+                            <TouchableOpacity
+                                disabled={timer > 0}
+                                onPress={() => { if (!timer) setTimer(59); }}
+                            >
+                                <Text style={[s.resendAction, { color: timer > 0 ? C.muted : C.cyan }]}>
+                                    {timer > 0 ? `Resend in ${timer}s` : 'Resend'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    </Animated.View>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    keyboardView: { flex: 1 },
-    content: { flex: 1, padding: 32, justifyContent: 'center' },
-    title: {
-        fontSize: 30,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 12
+const s = StyleSheet.create({
+    root:    { flex: 1, backgroundColor: C.bg },
+    inner:   { flex: 1, paddingHorizontal: 26, paddingBottom: 32, justifyContent: 'center' },
+    logoRow: { marginBottom: 28 },
+    header:  { marginBottom: 28 },
+    title:   { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
+    sub:     { fontSize: 15, color: C.sub, lineHeight: 23 },
+    boxes: {
+        flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24,
     },
-    subtitle: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 40,
-        lineHeight: 24
+    box: {
+        width: 46, height: 56, borderRadius: 12, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center',
     },
-    errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 16 },
-    codeContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 40 },
-    codeInput: {
-        width: 45,
-        height: 56,
-        borderWidth: 1,
-        borderRadius: 12,
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
+    digit: {
+        fontSize: 24, fontWeight: '800', textAlign: 'center',
+        width: '100%', height: '100%',
+        textAlignVertical: 'center',
+        padding: 0, includeFontPadding: false,
     },
-    verifyBtn: {
-        height: 60,
-        borderRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+    resend: {
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20,
     },
-    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
-    footerText: {},
-    resendText: { fontWeight: 'bold' },
+    resendTxt:    { fontSize: 14, color: C.muted },
+    resendAction: { fontSize: 14, fontWeight: '600' },
 });

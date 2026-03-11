@@ -1,149 +1,160 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+/**
+ * LoginScreen.js
+ */
+import React, { useState, useRef, useEffect } from 'react';
+import {
+    View, Text, StyleSheet, Animated,
+    KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+    AuthBg, Input, Btn, ErrMsg,
+    C, RADIUS,
+} from './_authShared';
+import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/Feather';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import { useTheme } from '../../context/ThemeContext';
-import { typography } from '../../theme/typography';
 import { login } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const setAuth = useAuthStore(state => state.setAuth);
-    const { theme } = useTheme();
 
-    const handleLogin = async () => {
+    const setAuth = useAuthStore(s => s.setAuth);
+
+    const anim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        Animated.timing(anim, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+    }, []);
+    const style = {
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+    };
+
+    const handle = async () => {
         setError('');
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) return setError('Please enter a valid email address');
-        if (!password) return setError('Password is required');
-
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+            return setError('Enter a valid email address.');
+        if (!password)
+            return setError('Password is required.');
         setLoading(true);
         try {
-            const { data: response } = await login(email, password, false);
-            setAuth(response.data.user, response.data.accessToken, response.data.refreshToken);
+            const { data: res } = await login(email, password, false);
+            setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed');
+            setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <KeyboardAvoidingView
-                style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
-                <View style={styles.content}>
-                    <Text style={[styles.title, { color: theme.cyan }]}>Login here</Text>
-                    <Text style={[styles.subtitle, { color: theme.text }]}>Welcome back you've{'\n'}been missed!</Text>
-
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                    <Input
-                        placeholder="Email"
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        containerStyle={styles.input}
-                    />
-
-                    <Input
-                        placeholder="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        containerStyle={styles.input}
-                    />
-
-                    <TouchableOpacity
-                        style={styles.forgotPass}
-                        onPress={() => navigation.navigate('ForgotPassword')}
+        <View style={s.root}>
+            <AuthBg />
+            <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <ScrollView
+                        contentContainerStyle={s.scroll}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
                     >
-                        <Text style={[styles.forgotPassText, { color: theme.cyan }]}>Forgot your password?</Text>
-                    </TouchableOpacity>
+                        <Animated.View style={style}>
 
-                    <Button
-                        title="Sign in"
-                        onPress={handleLogin}
-                        loading={loading}
-                        style={[styles.signInBtn, { backgroundColor: theme.cyan, shadowColor: theme.cyan }]}
-                    />
+                            <View style={[s.logoRow, { alignItems: 'flex-start' }]}>
+                                <Svg height={45} width={200} style={{ marginBottom: 12 }}>
+                                    <Defs>
+                                        <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+                                            <Stop offset="0.5" stopColor="#e0e0e0" stopOpacity="1" />
+                                            <Stop offset="1" stopColor="#888888" stopOpacity="1" />
+                                        </LinearGradient>
+                                    </Defs>
+                                    <SvgText
+                                        fill="url(#loginGrad)"
+                                        fontSize="36"
+                                        fontWeight="900"
+                                        x="0"
+                                        y="36"
+                                        letterSpacing="8"
+                                    >
+                                        TASKTIME
+                                    </SvgText>
+                                </Svg>
+                            </View>
 
-                    <TouchableOpacity
-                        style={styles.createAccount}
-                        onPress={() => navigation.navigate('Register')}
-                    >
-                        <Text style={[styles.createAccountText, { color: theme.textDim }]}>Create new account</Text>
-                    </TouchableOpacity>
+                            <View style={s.header}>
+                                <Text style={s.title}>Welcome back</Text>
+                                <Text style={s.sub}>Login to access your TASKTIME account</Text>
+                            </View>
 
-                    <View style={styles.socialSection}>
-                        <Text style={[styles.orText, { color: theme.cyan }]}>Or continue with</Text>
-                        <View style={styles.socialIcons}>
-                            <TouchableOpacity style={[styles.socialIcon, { backgroundColor: theme.surface }]}>
-                                <Icon name="chrome" size={24} color={theme.text} />
+                            <ErrMsg msg={error} />
+
+                            <Input
+                                label="EMAIL ADDRESS"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChangeText={setEmail}
+                                iconLeft="mail"
+                                keyboard="email-address"
+                                capitalize="none"
+                                returnKey="next"
+                            />
+
+                            <Input
+                                label="Password"
+                                placeholder="Your password"
+                                value={password}
+                                onChangeText={setPassword}
+                                iconLeft="lock"
+                                secure={!showPass}
+                                iconRight={showPass ? 'eye-off' : 'eye'}
+                                onIconRight={() => setShowPass(v => !v)}
+                                returnKey="done"
+                                onSubmit={handle}
+                            />
+
+                            <TouchableOpacity
+                                style={s.forgot}
+                                onPress={() => navigation.navigate('ForgotPassword')}
+                            >
+                                <Text style={s.forgotTxt}>Forgot password?</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.socialIcon, { backgroundColor: theme.surface }]}>
-                                <Icon name="facebook" size={24} color={theme.text} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.socialIcon, { backgroundColor: theme.surface }]}>
-                                <Icon name="apple" size={24} color={theme.text} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+
+                            <Btn label="Sign in" onPress={handle} loading={loading} />
+
+                            <View style={s.footer}>
+                                <Text style={s.footerTxt}>
+                                    Don't have an account?{' '}
+                                    <Text style={s.footerLink} onPress={() => navigation.navigate('Register')}>
+                                        CREATE ACCOUNT
+                                    </Text>
+                                </Text>
+                            </View>
+
+                        </Animated.View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    keyboardView: { flex: 1 },
-    content: { flex: 1, padding: 32, justifyContent: 'center' },
-    title: {
-        fontSize: 30,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 12
-    },
-    subtitle: {
-        fontSize: 20,
-        fontWeight: '600',
-        textAlign: 'center',
-        marginBottom: 40,
-        lineHeight: 28
-    },
-    errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 16 },
-    input: { marginBottom: 20 },
-    forgotPass: { alignSelf: 'flex-end', marginBottom: 32 },
-    forgotPassText: { fontWeight: 'bold' },
-    signInBtn: {
-        height: 60,
-        borderRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    createAccount: { marginTop: 24, alignSelf: 'center' },
-    createAccountText: { fontWeight: '600' },
-    socialSection: { marginTop: 48, alignItems: 'center' },
-    orText: { fontWeight: '600', marginBottom: 24 },
-    socialIcons: { flexDirection: 'row', gap: 16 },
-    socialIcon: {
-        width: 50,
-        height: 44,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    }
+const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, justifyContent: 'center' },
+    logoRow: { paddingTop: 16, marginBottom: 36 },
+    header: { marginBottom: 28 },
+    title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 6 },
+    sub: { fontSize: 15, color: C.sub },
+    forgot: { alignSelf: 'flex-end', marginTop: 4, marginBottom: 16 },
+    forgotTxt: { fontSize: 13, color: C.cyan, fontWeight: '600' },
+    footer: { marginTop: 32, alignItems: 'center' },
+    footerTxt: { fontSize: 13, color: C.sub, fontWeight: '500' },
+    footerLink: { color: C.cyan, fontWeight: '700' },
 });

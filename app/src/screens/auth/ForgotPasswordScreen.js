@@ -1,75 +1,103 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+/**
+ * ForgotPasswordScreen.js
+ */
+import React, { useState, useRef, useEffect } from 'react';
+import {
+    View, Text, StyleSheet, Animated,
+    KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Feather';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import { useTheme } from '../../context/ThemeContext';
-import { typography } from '../../theme/typography';
+import { AuthBg, Logo, Input, Btn, ErrMsg, OkMsg, BackArrow, C } from './_authShared';
 import { forgotPassword } from '../../api/auth.api';
 
 export default function ForgotPasswordScreen({ navigation }) {
-    const [email, setEmail] = useState('');
+    const [email,   setEmail]   = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const { theme } = useTheme();
+    const [error,   setError]   = useState('');
+    const [ok,      setOk]      = useState('');
 
-    const handleForgot = async () => {
-        setError('');
-        setSuccess('');
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) return setError('Please enter a valid email address');
+    const anim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        Animated.timing(anim, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+    }, []);
+    const animStyle = {
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+    };
 
+    const handle = async () => {
+        setError(''); setOk('');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+            return setError('Enter a valid email address.');
         setLoading(true);
         try {
             await forgotPassword(email);
-            setSuccess('Reset code sent to your email.');
-            setTimeout(() => {
-                navigation.navigate('ResetPassword', { email });
-            }, 1500);
+            setOk('Reset code sent. Check your inbox.');
+            setTimeout(() => navigation.navigate('ResetPassword', { email }), 1600);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to send reset code');
+            setError(err.response?.data?.message || 'Could not send reset code. Try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Icon name="arrow-left" size={24} color={theme.text} />
-                </TouchableOpacity>
+        <View style={s.root}>
+            <AuthBg />
+            <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+                <KeyboardAvoidingView
+                    style={s.kav}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <Animated.View style={[s.inner, animStyle]}>
 
-                <Text style={[styles.title, { color: theme.cyan }]}>Forgot Password</Text>
-                <Text style={[styles.subtitle, { color: theme.textDim }]}>Enter your email to receive a reset code.</Text>
+                        <View style={s.logoRow}><Logo size="md" /></View>
 
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                {success ? <Text style={styles.successText}>{success}</Text> : null}
+                        <BackArrow onPress={() => navigation.goBack()} />
 
-                <Input
-                    label="Email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    leftIcon={<Icon name="mail" size={20} color={theme.textDim} />}
-                />
+                        <View style={s.header}>
+                            <Text style={s.title}>Forgot password?</Text>
+                            <Text style={s.sub}>
+                                Enter your account email and we'll send you a 6-digit reset code.
+                            </Text>
+                        </View>
 
-                <Button title="Send Reset Code" onPress={handleForgot} loading={loading} style={{ marginTop: 24 }} />
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                        <ErrMsg msg={error} />
+                        <OkMsg  msg={ok}    />
+
+                        <Input
+                            label="Email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            iconLeft="mail"
+                            keyboard="email-address"
+                            capitalize="none"
+                            autoFocus
+                            returnKey="done"
+                            onSubmit={handle}
+                        />
+
+                        <Btn
+                            label="Send reset code"
+                            onPress={handle}
+                            loading={loading}
+                            disabled={!!ok}
+                        />
+
+                    </Animated.View>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    content: { flex: 1, justifyContent: 'center', padding: 24 },
-    backButton: { position: 'absolute', top: 24, left: 24, zIndex: 10 },
-    title: { fontSize: typography.fontSizes.xl, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
-    subtitle: { fontSize: typography.fontSizes.md, textAlign: 'center', marginBottom: 32 },
-    errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 16 },
-    successText: { color: '#10b981', textAlign: 'center', marginBottom: 16 },
+const s = StyleSheet.create({
+    root:    { flex: 1, backgroundColor: C.bg },
+    kav:     { flex: 1, justifyContent: 'center' },
+    inner:   { paddingHorizontal: 26, paddingBottom: 24 },
+    logoRow: { marginBottom: 28 },
+    header:  { marginBottom: 28 },
+    title:   { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
+    sub:     { fontSize: 15, color: C.sub, lineHeight: 23 },
 });

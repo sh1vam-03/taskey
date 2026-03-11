@@ -1,107 +1,167 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
+/**
+ * ResetPasswordScreen.js
+ */
+import React, { useState, useRef, useEffect } from 'react';
+import {
+    View, Text, StyleSheet, Animated,
+    KeyboardAvoidingView, Platform, ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import { useTheme } from '../../context/ThemeContext';
-import { typography } from '../../theme/typography';
+import { AuthBg, Logo, Input, Btn, ErrMsg, OkMsg, BackArrow, C, RADIUS } from './_authShared';
 import { resetPassword } from '../../api/auth.api';
 
 export default function ResetPasswordScreen({ route, navigation }) {
-    const defaultEmail = route.params?.email || '';
-    const [code, setCode] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+    const email = route.params?.email || '';
+
+    const [code,    setCode]    = useState('');
+    const [pass,    setPass]    = useState('');
+    const [confirm, setConfirm] = useState('');
+    const [showPass,setShowPass]= useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-    const { theme } = useTheme();
+    const [error,   setError]   = useState('');
+    const [ok,      setOk]      = useState('');
 
-    const handleReset = async () => {
-        setError('');
-        setSuccess('');
+    const anim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        Animated.timing(anim, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+    }, []);
+    const animStyle = {
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+    };
 
-        if (!code) return setError('Please enter the reset code');
-        if (password.length < 8) return setError('Password must be at least 8 characters long');
-        if (!/[A-Z]/.test(password) && !/[0-9]/.test(password)) return setError('Password must include at least one uppercase letter or number');
-        if (password !== confirmPassword) return setError('Passwords do not match');
+    /* Live requirements */
+    const reqs = [
+        { ok: pass.length >= 8,               label: 'At least 8 characters'  },
+        { ok: /[A-Z]/.test(pass),              label: 'One uppercase letter'   },
+        { ok: /[0-9]/.test(pass),              label: 'One number'             },
+        { ok: pass === confirm && pass !== '', label: 'Passwords match'        },
+    ];
+
+    const handle = async () => {
+        setError(''); setOk('');
+        if (!code)                return setError('Enter the reset code from your email.');
+        if (pass.length < 8)      return setError('Password must be at least 8 characters.');
+        if (pass !== confirm)     return setError('Passwords do not match.');
+        if (!/[A-Z]/.test(pass) && !/[0-9]/.test(pass))
+            return setError('Password must include an uppercase letter or number.');
 
         setLoading(true);
         try {
-            await resetPassword(defaultEmail, code, password);
-            setSuccess('Password reset successfully!');
-            setTimeout(() => {
-                navigation.navigate('Login');
-            }, 1500);
+            await resetPassword(email, code, pass);
+            setOk('Password updated successfully!');
+            setTimeout(() => navigation.navigate('Login'), 1600);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to reset password');
+            setError(err.response?.data?.message || 'Failed to reset password. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-            <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Icon name="arrow-left" size={24} color={theme.text} />
-                    </TouchableOpacity>
+        <View style={s.root}>
+            <AuthBg />
+            <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <ScrollView
+                        contentContainerStyle={s.scroll}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                    >
+                        <Animated.View style={animStyle}>
 
-                    <Text style={[styles.title, { color: theme.cyan }]}>Reset Password</Text>
-                    <Text style={[styles.subtitle, { color: theme.textDim }]}>Enter the code sent to {defaultEmail}</Text>
+                            <View style={s.logoRow}><Logo size="md" /></View>
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                    {success ? <Text style={styles.successText}>{success}</Text> : null}
+                            <BackArrow onPress={() => navigation.goBack()} />
 
-                    <Input
-                        label="Reset Code"
-                        placeholder="Enter 6-digit code"
-                        value={code}
-                        onChangeText={setCode}
-                        keyboardType="number-pad"
-                        leftIcon={<Icon name="key" size={20} color={theme.textDim} />}
-                    />
+                            <View style={s.header}>
+                                <Text style={s.title}>Reset password</Text>
+                                <Text style={s.sub}>
+                                    Enter the code sent to{' '}
+                                    <Text style={{ color: C.text, fontWeight: '600' }}>{email}</Text>
+                                </Text>
+                            </View>
 
-                    <Input
-                        label="New Password"
-                        placeholder="Create a new password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        leftIcon={<Icon name="lock" size={20} color={theme.textDim} />}
-                        rightIcon={
-                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                <Icon name={showPassword ? "eye" : "eye-off"} size={20} color={theme.textDim} />
-                            </TouchableOpacity>
-                        }
-                    />
+                            <ErrMsg msg={error} />
+                            <OkMsg  msg={ok}    />
 
-                    <Input
-                        label="Confirm Password"
-                        placeholder="Confirm your new password"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry={!showPassword}
-                        leftIcon={<Icon name="lock" size={20} color={theme.textDim} />}
-                    />
+                            <Input
+                                label="Reset code"
+                                placeholder="6-digit code"
+                                value={code}
+                                onChangeText={setCode}
+                                iconLeft="hash"
+                                keyboard="number-pad"
+                                returnKey="next"
+                            />
 
-                    <Button title="Reset Password" onPress={handleReset} loading={loading} style={{ marginTop: 24 }} />
-                </ScrollView>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                            <Input
+                                label="New password"
+                                placeholder="Create a strong password"
+                                value={pass}
+                                onChangeText={setPass}
+                                iconLeft="lock"
+                                secure={!showPass}
+                                iconRight={showPass ? 'eye-off' : 'eye'}
+                                onIconRight={() => setShowPass(v => !v)}
+                                returnKey="next"
+                            />
+
+                            <Input
+                                label="Confirm new password"
+                                placeholder="Repeat password"
+                                value={confirm}
+                                onChangeText={setConfirm}
+                                iconLeft="lock"
+                                secure={!showPass}
+                                returnKey="done"
+                                onSubmit={handle}
+                            />
+
+                            {/* Requirements — only shown while typing */}
+                            {pass.length > 0 && (
+                                <View style={[s.reqBox, { borderColor: C.border, backgroundColor: C.dim6 }]}>
+                                    {reqs.map((r, i) => (
+                                        <View key={i} style={s.reqRow}>
+                                            <Icon
+                                                name={r.ok ? 'check' : 'circle'}
+                                                size={12}
+                                                color={r.ok ? C.success : C.muted}
+                                                style={{ marginRight: 9, flexShrink: 0 }}
+                                            />
+                                            <Text style={[s.reqTxt, { color: r.ok ? C.success : C.muted }]}>
+                                                {r.label}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+
+                            <Btn label="Reset password" onPress={handle} loading={loading} />
+
+                        </Animated.View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    content: { flex: 1 },
-    scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 60 },
-    backButton: { position: 'absolute', top: 0, left: 0, zIndex: 10 },
-    title: { fontSize: typography.fontSizes.xl, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
-    subtitle: { fontSize: typography.fontSizes.md, textAlign: 'center', marginBottom: 32 },
-    errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 16 },
-    successText: { color: '#10b981', textAlign: 'center', marginBottom: 16 },
+const s = StyleSheet.create({
+    root:    { flex: 1, backgroundColor: C.bg },
+    scroll:  { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, paddingTop: 16 },
+    logoRow: { marginBottom: 28 },
+    header:  { marginBottom: 28 },
+    title:   { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
+    sub:     { fontSize: 15, color: C.sub, lineHeight: 23 },
+    reqBox: {
+        borderRadius: RADIUS.md, borderWidth: 1,
+        padding: 16, marginBottom: 4, gap: 10,
+    },
+    reqRow: { flexDirection: 'row', alignItems: 'center' },
+    reqTxt: { fontSize: 13, fontWeight: '500' },
 });
