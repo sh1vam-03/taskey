@@ -8,9 +8,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    AuthBg, Logo, Input, Btn, GhostBtn, ErrMsg,
+    AuthBg, Input, Btn, ErrMsg,
     C, RADIUS,
 } from './_authShared';
+import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/Feather';
 import { register } from '../../api/auth.api';
 
@@ -80,11 +81,32 @@ export default function RegisterScreen({ navigation }) {
                     >
                         <Animated.View style={style}>
 
-                            <View style={s.logoRow}><Logo size="md" /></View>
+                            <View style={[s.logoRow, { alignItems: 'center' }]}>
+                                <Svg height={45} width={300} style={{ marginBottom: 12 }}>
+                                    <Defs>
+                                        <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+                                            <Stop offset="0.5" stopColor="#e0e0e0" stopOpacity="1" />
+                                            <Stop offset="1" stopColor="#888888" stopOpacity="1" />
+                                        </LinearGradient>
+                                    </Defs>
+                                    <SvgText
+                                        fill="url(#loginGrad)"
+                                        fontSize="36"
+                                        fontWeight="900"
+                                        x="150"
+                                        y="36"
+                                        textAnchor="middle"
+                                        letterSpacing="8"
+                                    >
+                                        TASKTIME
+                                    </SvgText>
+                                </Svg>
+                            </View>
 
-                            <View style={s.header}>
-                                <Text style={s.title}>Create account</Text>
-                                <Text style={s.sub}>Start managing tasks with AI</Text>
+                            <View style={[s.header, { alignItems: 'center' }]}>
+                                <Text style={[s.title, { textAlign: 'center' }]}>Create Your Account</Text>
+                                <Text style={[s.sub, { textAlign: 'center' }]}>Sign up to start organizing your life with TASKTIME</Text>
                             </View>
 
                             <ErrMsg msg={error} />
@@ -99,7 +121,7 @@ export default function RegisterScreen({ navigation }) {
                             />
 
                             <Input
-                                label="Email"
+                                label="EMAIL ADDRESS"
                                 placeholder="you@example.com"
                                 value={email}
                                 onChangeText={setEmail}
@@ -154,10 +176,14 @@ export default function RegisterScreen({ navigation }) {
 
                             <Btn label="Create account" onPress={handle} loading={loading} />
 
-                            <GhostBtn
-                                label="Log in instead"
-                                onPress={() => navigation.navigate('Login')}
-                            />
+                            <View style={s.footer}>
+                                <Text style={s.footerTxt}>
+                                    Already have an account?{' '}
+                                    <Text style={s.footerLink} onPress={() => navigation.navigate('Login')}>
+                                        LOG IN
+                                    </Text>
+                                </Text>
+                            </View>
 
                         </Animated.View>
                     </ScrollView>
@@ -169,7 +195,7 @@ export default function RegisterScreen({ navigation }) {
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    scroll: { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, paddingTop: 16 },
+    scroll: { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, justifyContent: 'center' },
     logoRow: { marginBottom: 36 },
     header: { marginBottom: 28 },
     title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 6 },
@@ -181,4 +207,7 @@ const s = StyleSheet.create({
     bars: { flex: 1, flexDirection: 'row', gap: 5 },
     bar: { flex: 1, height: 2, borderRadius: 1 },
     strengthTxt: { fontSize: 11, fontWeight: '700', minWidth: 38 },
+    footer: { marginTop: 32, alignItems: 'center' },
+    footerTxt: { fontSize: 13, color: C.sub, fontWeight: '500' },
+    footerLink: { color: C.cyan, fontWeight: '700' },
 });

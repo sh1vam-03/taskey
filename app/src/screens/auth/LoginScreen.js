@@ -149,7 +149,7 @@ export default function LoginScreen({ navigation }) {
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     scroll: { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, justifyContent: 'center' },
-    logoRow: { paddingTop: 16, marginBottom: 36 },
+    logoRow: { marginBottom: 36 },
     header: { marginBottom: 28 },
     title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 6 },
     sub: { fontSize: 15, color: C.sub },

@@ -105,7 +105,7 @@ const s = StyleSheet.create({
 
     logoRow: { paddingTop: 18, marginBottom: 0 },
 
-    body: { flex: 1, justifyContent: 'center', paddingVertical: 24 },
+    body: { flex: 1, justifyContent: 'center' },
 
     headlineBlock: { marginBottom: 32 },
     headline: {

@@ -8,19 +8,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import { AuthBg, Logo, Input, Btn, ErrMsg, OkMsg, BackArrow, C, RADIUS } from './_authShared';
+import { AuthBg, Input, Btn, ErrMsg, OkMsg, BackArrow, C, RADIUS } from './_authShared';
+import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { resetPassword } from '../../api/auth.api';
 
 export default function ResetPasswordScreen({ route, navigation }) {
     const email = route.params?.email || '';
 
-    const [code,    setCode]    = useState('');
-    const [pass,    setPass]    = useState('');
+    const [code, setCode] = useState('');
+    const [pass, setPass] = useState('');
     const [confirm, setConfirm] = useState('');
-    const [showPass,setShowPass]= useState(false);
+    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error,   setError]   = useState('');
-    const [ok,      setOk]      = useState('');
+    const [error, setError] = useState('');
+    const [ok, setOk] = useState('');
 
     const anim = useRef(new Animated.Value(0)).current;
     useEffect(() => {
@@ -33,17 +34,17 @@ export default function ResetPasswordScreen({ route, navigation }) {
 
     /* Live requirements */
     const reqs = [
-        { ok: pass.length >= 8,               label: 'At least 8 characters'  },
-        { ok: /[A-Z]/.test(pass),              label: 'One uppercase letter'   },
-        { ok: /[0-9]/.test(pass),              label: 'One number'             },
-        { ok: pass === confirm && pass !== '', label: 'Passwords match'        },
+        { ok: pass.length >= 8, label: 'At least 8 characters' },
+        { ok: /[A-Z]/.test(pass), label: 'One uppercase letter' },
+        { ok: /[0-9]/.test(pass), label: 'One number' },
+        { ok: pass === confirm && pass !== '', label: 'Passwords match' },
     ];
 
     const handle = async () => {
         setError(''); setOk('');
-        if (!code)                return setError('Enter the reset code from your email.');
-        if (pass.length < 8)      return setError('Password must be at least 8 characters.');
-        if (pass !== confirm)     return setError('Passwords do not match.');
+        if (!code) return setError('Enter the reset code from your email.');
+        if (pass.length < 8) return setError('Password must be at least 8 characters.');
+        if (pass !== confirm) return setError('Passwords do not match.');
         if (!/[A-Z]/.test(pass) && !/[0-9]/.test(pass))
             return setError('Password must include an uppercase letter or number.');
 
@@ -74,20 +75,41 @@ export default function ResetPasswordScreen({ route, navigation }) {
                     >
                         <Animated.View style={animStyle}>
 
-                            <View style={s.logoRow}><Logo size="md" /></View>
+                            <View style={[s.logoRow, { alignItems: 'center' }]}>
+                                <Svg height={45} width={300} style={{ marginBottom: 12 }}>
+                                    <Defs>
+                                        <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+                                            <Stop offset="0.5" stopColor="#e0e0e0" stopOpacity="1" />
+                                            <Stop offset="1" stopColor="#888888" stopOpacity="1" />
+                                        </LinearGradient>
+                                    </Defs>
+                                    <SvgText
+                                        fill="url(#loginGrad)"
+                                        fontSize="36"
+                                        fontWeight="900"
+                                        x="150"
+                                        y="36"
+                                        textAnchor="middle"
+                                        letterSpacing="8"
+                                    >
+                                        TASKTIME
+                                    </SvgText>
+                                </Svg>
+                            </View>
 
                             <BackArrow onPress={() => navigation.goBack()} />
 
-                            <View style={s.header}>
-                                <Text style={s.title}>Reset password</Text>
-                                <Text style={s.sub}>
+                            <View style={[s.header, { alignItems: 'center' }]}>
+                                <Text style={[s.title, { textAlign: 'center' }]}>Reset password</Text>
+                                <Text style={[s.sub, { textAlign: 'center' }]}>
                                     Enter the code sent to{' '}
                                     <Text style={{ color: C.text, fontWeight: '600' }}>{email}</Text>
                                 </Text>
                             </View>
 
                             <ErrMsg msg={error} />
-                            <OkMsg  msg={ok}    />
+                            <OkMsg msg={ok} />
 
                             <Input
                                 label="Reset code"
@@ -152,12 +174,12 @@ export default function ResetPasswordScreen({ route, navigation }) {
 }
 
 const s = StyleSheet.create({
-    root:    { flex: 1, backgroundColor: C.bg },
-    scroll:  { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, paddingTop: 16 },
+    root: { flex: 1, backgroundColor: C.bg },
+    scroll: { flexGrow: 1, paddingHorizontal: 26, justifyContent: 'center' },
     logoRow: { marginBottom: 28 },
-    header:  { marginBottom: 28 },
-    title:   { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
-    sub:     { fontSize: 15, color: C.sub, lineHeight: 23 },
+    header: { marginBottom: 28 },
+    title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
+    sub: { fontSize: 15, color: C.sub, lineHeight: 23 },
     reqBox: {
         borderRadius: RADIUS.md, borderWidth: 1,
         padding: 16, marginBottom: 4, gap: 10,

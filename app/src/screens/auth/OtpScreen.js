@@ -7,19 +7,20 @@ import {
     KeyboardAvoidingView, Platform, TextInput, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthBg, Logo, Btn, ErrMsg, BackArrow, C, RADIUS } from './_authShared';
+import { AuthBg, Btn, ErrMsg, BackArrow, C, RADIUS } from './_authShared';
+import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { verifyOtp } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 
 export default function OtpScreen({ route, navigation }) {
-    const email     = route.params?.email || '';
-    const [digits,  setDigits]   = useState(['', '', '', '', '', '']);
-    const [loading, setLoading]  = useState(false);
-    const [error,   setError]    = useState('');
-    const [timer,   setTimer]    = useState(59);
+    const email = route.params?.email || '';
+    const [digits, setDigits] = useState(['', '', '', '', '', '']);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [timer, setTimer] = useState(59);
 
-    const refs   = useRef([]);
-    const fAnims = useRef([0,1,2,3,4,5].map(() => new Animated.Value(0))).current;
+    const refs = useRef([]);
+    const fAnims = useRef([0, 1, 2, 3, 4, 5].map(() => new Animated.Value(0))).current;
     const setAuth = useAuthStore(s => s.setAuth);
 
     /* Entrance */
@@ -84,13 +85,34 @@ export default function OtpScreen({ route, navigation }) {
                 >
                     <Animated.View style={[s.inner, animStyle]}>
 
-                        <View style={s.logoRow}><Logo size="md" /></View>
+                        <View style={[s.logoRow, { alignItems: 'center' }]}>
+                            <Svg height={45} width={300} style={{ marginBottom: 12 }}>
+                                <Defs>
+                                    <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+                                        <Stop offset="0.5" stopColor="#e0e0e0" stopOpacity="1" />
+                                        <Stop offset="1" stopColor="#888888" stopOpacity="1" />
+                                    </LinearGradient>
+                                </Defs>
+                                <SvgText
+                                    fill="url(#loginGrad)"
+                                    fontSize="36"
+                                    fontWeight="900"
+                                    x="150"
+                                    y="36"
+                                    textAnchor="middle"
+                                    letterSpacing="8"
+                                >
+                                    TASKTIME
+                                </SvgText>
+                            </Svg>
+                        </View>
 
                         <BackArrow onPress={() => navigation.goBack()} />
 
-                        <View style={s.header}>
-                            <Text style={s.title}>Check your email</Text>
-                            <Text style={s.sub}>
+                        <View style={[s.header, { alignItems: 'center' }]}>
+                            <Text style={[s.title, { textAlign: 'center' }]}>Check your email</Text>
+                            <Text style={[s.sub, { textAlign: 'center' }]}>
                                 We sent a 6-digit code to{'\n'}
                                 <Text style={{ color: C.text, fontWeight: '600' }}>{email}</Text>
                             </Text>
@@ -151,12 +173,12 @@ export default function OtpScreen({ route, navigation }) {
 }
 
 const s = StyleSheet.create({
-    root:    { flex: 1, backgroundColor: C.bg },
-    inner:   { flex: 1, paddingHorizontal: 26, paddingBottom: 32, justifyContent: 'center' },
+    root: { flex: 1, backgroundColor: C.bg },
+    inner: { flex: 1, paddingHorizontal: 26, justifyContent: 'center' },
     logoRow: { marginBottom: 28 },
-    header:  { marginBottom: 28 },
-    title:   { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
-    sub:     { fontSize: 15, color: C.sub, lineHeight: 23 },
+    header: { marginBottom: 28 },
+    title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
+    sub: { fontSize: 15, color: C.sub, lineHeight: 23 },
     boxes: {
         flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24,
     },
@@ -173,6 +195,6 @@ const s = StyleSheet.create({
     resend: {
         flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20,
     },
-    resendTxt:    { fontSize: 14, color: C.muted },
+    resendTxt: { fontSize: 14, color: C.muted },
     resendAction: { fontSize: 14, fontWeight: '600' },
 });
