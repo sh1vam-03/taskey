@@ -10,6 +10,7 @@ import {
     View, Text, StyleSheet, Animated,
     TextInput, TouchableOpacity, Platform,
 } from 'react-native';
+import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/Feather';
 
 /* ─── Tokens ────────────────────────────────────────────────────────────── */
@@ -67,19 +68,30 @@ export function AuthBg() {
 }
 
 
-/* ─── Logo ──────────────────────────────────────────────────────────────── */
-/* Pure text wordmark. No icons, no SVG gradients. */
-export function Logo({ size = 'md' }) {
-    const s = { lg: 24, md: 19, sm: 14 }[size];
-    const ls = { lg: 5, md: 4, sm: 3 }[size];
+/* ─── Logo / Auth Header ────────────────────────────────────────────────── */
+export function AuthHeader() {
     return (
         <View style={logoS.row}>
-            <Text style={[logoS.mark, { fontSize: s, letterSpacing: ls }]}>
-                TASKTIME
-            </Text>
-            <View style={logoS.badge}>
-                <Text style={logoS.badgeTxt}>AI</Text>
-            </View>
+            <Svg height={45} width={300} style={{ marginBottom: 12 }}>
+                <Defs>
+                    <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+                        <Stop offset="0.5" stopColor="#e0e0e0" stopOpacity="1" />
+                        <Stop offset="1" stopColor="#888888" stopOpacity="1" />
+                    </LinearGradient>
+                </Defs>
+                <SvgText
+                    fill="url(#loginGrad)"
+                    fontSize="36"
+                    fontWeight="900"
+                    x="150"
+                    y="36"
+                    textAnchor="middle"
+                    letterSpacing="8"
+                >
+                    TASKTIME
+                </SvgText>
+            </Svg>
         </View>
     );
 }
@@ -258,17 +270,7 @@ const bgS = StyleSheet.create({
 });
 
 const logoS = StyleSheet.create({
-    row: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-    mark: { fontWeight: '900', color: C.text, includeFontPadding: false },
-    badge: {
-        backgroundColor: C.cyanFaint,
-        borderWidth: 1,
-        borderColor: C.cyanTrim,
-        borderRadius: 6,
-        paddingHorizontal: 7,
-        paddingVertical: 3,
-    },
-    badgeTxt: { fontSize: 10, fontWeight: '800', color: C.cyan, letterSpacing: 0.5 },
+    row: { alignItems: 'center', paddingTop: 16, marginBottom: 8 },
 });
 
 const inS = StyleSheet.create({

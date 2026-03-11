@@ -8,10 +8,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    AuthBg, Input, Btn, ErrMsg,
+    AuthBg, AuthHeader, Input, Btn, ErrMsg,
     C, RADIUS,
 } from './_authShared';
-import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/Feather';
 import { login } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
@@ -59,35 +58,13 @@ export default function LoginScreen({ navigation }) {
                     style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
+                    <AuthHeader />
                     <ScrollView
                         contentContainerStyle={s.scroll}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                     >
                         <Animated.View style={style}>
-
-                            <View style={[s.logoRow, { alignItems: 'center' }]}>
-                                <Svg height={45} width={300} style={{ marginBottom: 12 }}>
-                                    <Defs>
-                                        <LinearGradient id="loginGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <Stop offset="0" stopColor="#ffffff" stopOpacity="1" />
-                                            <Stop offset="0.5" stopColor="#e0e0e0" stopOpacity="1" />
-                                            <Stop offset="1" stopColor="#888888" stopOpacity="1" />
-                                        </LinearGradient>
-                                    </Defs>
-                                    <SvgText
-                                        fill="url(#loginGrad)"
-                                        fontSize="36"
-                                        fontWeight="900"
-                                        x="150"
-                                        y="36"
-                                        textAnchor="middle"
-                                        letterSpacing="8"
-                                    >
-                                        TASKTIME
-                                    </SvgText>
-                                </Svg>
-                            </View>
 
                             <View style={[s.header, { alignItems: 'center' }]}>
                                 <Text style={[s.title, { textAlign: 'center' }]}>Welcome back</Text>
@@ -148,8 +125,7 @@ export default function LoginScreen({ navigation }) {
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    scroll: { flexGrow: 1, paddingHorizontal: 26, paddingBottom: 40, justifyContent: 'center' },
-    logoRow: { marginBottom: 36 },
+    scroll: { flexGrow: 1, paddingHorizontal: 26, justifyContent: 'center' },
     header: { marginBottom: 28 },
     title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 6 },
     sub: { fontSize: 15, color: C.sub },
