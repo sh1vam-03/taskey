@@ -7,8 +7,8 @@ import {
     KeyboardAvoidingView, Platform, TextInput, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthBg, AuthHeader, Btn, ErrMsg, BackArrow, C, RADIUS } from './_authShared';
-import { verifyOtp } from '../../api/auth.api';
+import { AuthBg, AuthHeader, Btn, ErrMsg, OkMsg, BackArrow, C, RADIUS } from './_authShared';
+import { verifyOtp, otpRequest } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 
 export default function OtpScreen({ route, navigation }) {
@@ -16,6 +16,7 @@ export default function OtpScreen({ route, navigation }) {
     const [digits, setDigits] = useState(['', '', '', '', '', '']);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [ok, setOk] = useState('');
     const [timer, setTimer] = useState(59);
 
     const refs = useRef([]);
@@ -58,13 +59,17 @@ export default function OtpScreen({ route, navigation }) {
     };
 
     const verify = async () => {
-        const otp = digits.join('');
+        const otp = digits.join('').trim();
         if (otp.length < 6) return setError('Enter the complete 6-digit code.');
         setError('');
+        setOk('');
         setLoading(true);
         try {
             const { data: res } = await verifyOtp(email, otp);
-            setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
+            setOk('Email verified successfully!');
+            setTimeout(() => {
+                setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
+            }, 1500);
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid or expired code. Please try again.');
             setDigits(['', '', '', '', '', '']);
@@ -96,6 +101,7 @@ export default function OtpScreen({ route, navigation }) {
                         </View>
 
                         <ErrMsg msg={error} />
+                        <OkMsg msg={ok} />
 
                         {/* ── OTP digit boxes ── */}
                         <View style={s.boxes}>
@@ -134,7 +140,16 @@ export default function OtpScreen({ route, navigation }) {
                             <Text style={s.resendTxt}>Didn't get the code? </Text>
                             <TouchableOpacity
                                 disabled={timer > 0}
-                                onPress={() => { if (!timer) setTimer(59); }}
+                                onPress={async () => {
+                                    if (timer > 0) return;
+                                    setError('');
+                                    try {
+                                        await otpRequest(email);
+                                        setTimer(59);
+                                    } catch (err) {
+                                        setError(err.response?.data?.message || 'Failed to resend OTP');
+                                    }
+                                }}
                             >
                                 <Text style={[s.resendAction, { color: timer > 0 ? C.muted : C.cyan }]}>
                                     {timer > 0 ? `Resend in ${timer}s` : 'Resend'}
@@ -151,7 +166,7 @@ export default function OtpScreen({ route, navigation }) {
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    inner: { flex: 1, paddingHorizontal: 26, justifyContent: 'center' },
+    inner: { flex: 1, paddingHorizontal: 26, justifyContent: 'flex-start', paddingTop: 60 },
     header: { marginBottom: 28 },
     title: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, marginBottom: 10 },
     sub: { fontSize: 15, color: C.sub, lineHeight: 23 },

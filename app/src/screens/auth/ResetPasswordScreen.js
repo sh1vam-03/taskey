@@ -88,7 +88,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    scroll: { flexGrow: 1, paddingHorizontal: 26, justifyContent: 'center' },
+    scroll: { flexGrow: 1, paddingHorizontal: 26, justifyContent: 'flex-start', paddingTop: 60 },
     centerCard: { alignItems: 'center', width: '100%' },
     iconWrap: {
         width: 88,
