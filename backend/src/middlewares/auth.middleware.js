@@ -4,10 +4,14 @@ import { AccountStatus } from "@prisma/client";
 
 const authMiddleware = async (req, res, next) => {
     try {
-        const token = req.cookies?.accessToken;
+        let token = req.cookies?.accessToken;
+
+        if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+            token = req.headers.authorization.split(" ")[1];
+        }
 
         if (!token) {
-            console.log("Auth Middleware: No access token in cookies");
+            console.log("Auth Middleware: No access token found");
             return res.status(401).json({ message: "Unauthorized access" });
         }
 

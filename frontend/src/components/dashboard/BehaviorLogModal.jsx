@@ -75,7 +75,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Today’s Activity"
+            title="Today's Progress"
             className="border-purple-500/20 bg-black/90 backdrop-blur-xl"
         >
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -177,7 +177,7 @@ export default function BehaviorLogModal({ isOpen, onClose, onLogSaved, currentL
                         disabled={loading}
                         className="min-w-[140px]"
                     >
-                        {loading ? 'Saving...' : 'Save Activity'}
+                        {loading ? 'Saving...' : 'Save Progress'}
                     </Button>
                 </div>
             </form>

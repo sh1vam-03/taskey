@@ -28,7 +28,7 @@ export const dashboardNavigation = [
         section: "Intelligence",
         items: [
             { name: "AI Assistant", href: "/dashboard/ai", icon: Bot },
-            { name: "Behavior Score", href: "/dashboard/behavior", icon: BrainCircuit },
+            { name: "Progress Insights", href: "/dashboard/behavior", icon: BrainCircuit },
             { name: "Performance", href: "/dashboard/performance", icon: TrendingUp },
             { name: "Streaks", href: "/dashboard/streaks", icon: Flame },
         ],

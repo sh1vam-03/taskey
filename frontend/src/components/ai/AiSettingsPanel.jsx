@@ -58,7 +58,7 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
 
                     {/* 2. Voice Thinking Model */}
                     <ModelSection
-                        title="Voice Thinking Model"
+                        title="Voice Reasoning Model"
                         subtitle="LLM that processes your voice input"
                         models={settings.availableVoiceModels}
                         selected={settings.voiceModel}
@@ -69,7 +69,7 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
 
                     {/* 3. Text-to-Speech (TTS) */}
                     <ModelSection
-                        title="Text-to-Speech (TTS)"
+                        title="Speech Output (TTS)"
                         subtitle="Converts AI response to audio"
                         models={settings.availableTtsModels}
                         selected={settings.ttsModel}
@@ -81,7 +81,7 @@ export default function AiSettingsPanel({ isOpen, onClose }) {
 
                     {/* 4. Speech-to-Text (STT) */}
                     <ModelSection
-                        title="Speech-to-Text (STT)"
+                        title="Speech Input (STT)"
                         subtitle="Transcribes your voice input"
                         models={settings.availableSttModels}
                         selected={settings.sttModel}

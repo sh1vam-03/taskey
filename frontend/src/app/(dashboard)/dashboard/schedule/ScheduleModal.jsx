@@ -115,7 +115,7 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
             onClose();
         } catch (err) {
             console.error("Schedule Save Error:", err);
-            setError(err.response?.data?.message || "Failed to save schedule allocation.");
+            setError(err.response?.data?.message || "Failed to schedule event.");
         } finally {
             setLoading(false);
         }
@@ -137,7 +137,7 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={scheduleToEdit ? "UPDATE ASSIGNMENT" : "ALLOCATE TIME BLOCK"}
+            title={scheduleToEdit ? "Update Event" : "Schedule Event"}
             className="border-white/10 bg-black/90 backdrop-blur-xl"
         >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -149,12 +149,12 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                 )}
 
                 <div className="space-y-2">
-                    <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Select Objective</label>
+                    <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Select Task</label>
                     <select
-                        {...register('taskId', { required: "Objective selection is required" })}
+                        {...register('taskId', { required: "Task selection is required" })}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm appearance-none"
                     >
-                        <option value="" className="bg-black text-gray-500">SELECT OBJECTIVE...</option>
+                        <option value="" className="bg-black text-gray-500">SELECT TASK...</option>
                         {tasks.map(t => (
                             <option key={t.id} value={t.id} className="bg-black text-white">{t.title}</option>
                         ))}
@@ -182,10 +182,10 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                             {...register('recurrence')}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm appearance-none"
                         >
-                            <option value="NONE" className="bg-black text-white">SINGLE BLOCK</option>
-                            <option value="DAILY" className="bg-black text-white">DAILY CYCLE</option>
-                            <option value="WEEKLY" className="bg-black text-white">WEEKLY CYCLE</option>
-                            <option value="MONTHLY" className="bg-black text-white">MONTHLY CYCLE</option>
+                            <option value="NONE" className="bg-black text-white">ONE-TIME</option>
+                            <option value="DAILY" className="bg-black text-white">DAILY</option>
+                            <option value="WEEKLY" className="bg-black text-white">WEEKLY</option>
+                            <option value="MONTHLY" className="bg-black text-white">MONTHLY</option>
                         </select>
                     </div>
                 </div>
@@ -258,14 +258,14 @@ export default function ScheduleModal({ isOpen, onClose, selectedDate, onSchedul
                         onClick={onClose}
                         disabled={loading}
                     >
-                        ABORT
+                        Cancel
                     </Button>
                     <Button
                         type="submit"
                         disabled={loading}
                         className="min-w-[120px]"
                     >
-                        {loading ? 'SAVING...' : (scheduleToEdit ? 'UPDATE BLOCK' : 'CONFIRM BLOCK')}
+                        {loading ? 'Saving...' : (scheduleToEdit ? 'Update Event' : 'Schedule Event')}
                     </Button>
                 </div>
             </form>

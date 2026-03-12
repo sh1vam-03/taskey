@@ -184,9 +184,9 @@ export default function DashboardOverview() {
                     <div className="flex items-center gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4 text-yellow-500">
                         <Zap className="h-5 w-5" />
                         <div className="flex-1">
-                            <p className="font-medium font-mono">LOW_ENERGY_WARNING</p>
+                            <p className="font-medium font-mono">Low AI Credits</p>
                             <p className="text-xs opacity-70">
-                                Neural capacity at {user?.aiCreditBalance} units. Recharge recommended.
+                                AI Balance at {user?.aiCreditBalance} credits. Recharge recommended.
                             </p>
                         </div>
                         <Link href="/dashboard/billing">
@@ -201,7 +201,7 @@ export default function DashboardOverview() {
                 <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                     {/* Today Tasks */}
                     <Card
-                        title="Today Tasks"
+                        title="Today's Tasks"
                         icon={CheckSquare}
                         className="min-h-[140px]"
                     >
@@ -252,7 +252,7 @@ export default function DashboardOverview() {
                             <div className="text-3xl font-bold text-white">{overview?.productivityScore || 0}</div>
                         </div>
                         <p className="text-xs text-gray-500 font-mono mt-1">
-                            Daily Efficiency Index
+                            Daily Productivity Level
                         </p>
                     </Card>
 
@@ -278,9 +278,9 @@ export default function DashboardOverview() {
                     <div className="lg:col-span-4 lg:relative min-h-[500px] lg:min-h-[500px]">
                         <Card
                             className="h-full flex flex-col overflow-hidden lg:absolute lg:inset-0"
-                            title="Temporal Timeline"
+                            title="Today's Schedule"
                             icon={Activity}
-                            description="Scheduled blocks for the current cycle."
+                            description="Your planned events and tasks for today."
                         >
                             <div className="space-y-4 mt-6 flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
                                 {overview?.timeline?.length > 0 ? (
@@ -298,13 +298,13 @@ export default function DashboardOverview() {
                                         <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
                                             <Calendar className="h-8 w-8 text-gray-600" />
                                         </div>
-                                        <h3 className="text-lg font-medium text-white mb-1">Timeline Clear</h3>
+                                        <h3 className="text-lg font-medium text-white mb-1">Schedule Clear</h3>
                                         <p className="text-gray-500 text-sm max-w-sm mb-6">
-                                            No temporal blocks allocated for this cycle. Initialize a schedule to begin.
+                                            Your schedule is clear for today. Add a task or event to get started.
                                         </p>
                                         <Link href="/dashboard/schedule">
                                             <Button variant="secondary" size="sm">
-                                                Initialize Schedule
+                                                Plan Today
                                             </Button>
                                         </Link>
                                     </div>
@@ -316,7 +316,7 @@ export default function DashboardOverview() {
                     {/* Quick Actions / Recent */}
                     <div className="lg:col-span-3 space-y-6">
                         <Card
-                            title="Quick Operations"
+                            title="Quick Actions"
                             icon={Zap}
                         >
                             <div className="grid gap-3 mt-4">
@@ -335,7 +335,7 @@ export default function DashboardOverview() {
                                         <div className="p-2 bg-black rounded border border-white/10 text-purple-500">
                                             <Bot className="h-4 w-4" />
                                         </div>
-                                        <span className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors">Consult AI</span>
+                                        <span className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors">Ask AI</span>
                                     </div>
                                     <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-white transition-colors" />
                                 </Link>
