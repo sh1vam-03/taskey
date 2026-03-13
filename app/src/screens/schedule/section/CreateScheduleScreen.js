@@ -16,8 +16,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
     const [tasks, setTasks] = useState([]);
     const [selectedTaskId, setSelectedTaskId] = useState(preselectedTaskId || '');
     const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
-    const [startTime, setStartTime] = useState('09:00:00');
-    const [endTime, setEndTime] = useState('10:00:00');
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('10:00');
     const [recurrence, setRecurrence] = useState('NONE');
     const [repeatUntil, setRepeatUntil] = useState('');
     const [weeklyDays, setWeeklyDays] = useState([]); // 0-6 array
@@ -52,8 +52,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
         if (scheduleToEdit) {
             setSelectedTaskId(scheduleToEdit.taskId || scheduleToEdit.task?.id || '');
             setDate(scheduleToEdit.scheduleDate ? scheduleToEdit.scheduleDate.split('T')[0] : (initialDate || format(new Date(), 'yyyy-MM-dd')));
-            setStartTime(scheduleToEdit.startTime || '09:00:00');
-            setEndTime(scheduleToEdit.endTime || '10:00:00');
+            setStartTime(scheduleToEdit.startTime || '09:00');
+            setEndTime(scheduleToEdit.endTime || '10:00');
             setRecurrence(scheduleToEdit.recurrence || 'NONE');
             setRepeatUntil(scheduleToEdit.repeatUntil ? scheduleToEdit.repeatUntil.split('T')[0] : '');
             setWeeklyDays(scheduleToEdit.repeatOnDays || []);
@@ -61,8 +61,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
             // Reset for new creation
             setSelectedTaskId(preselectedTaskId || '');
             setDate(initialDate || format(new Date(), 'yyyy-MM-dd'));
-            setStartTime('09:00:00');
-            setEndTime('10:00:00');
+            setStartTime('09:00');
+            setEndTime('10:00');
             setRecurrence('NONE');
             setRepeatUntil('');
             setWeeklyDays([]);
@@ -217,7 +217,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         >
                                             <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
                                             <Text style={{ color: theme.text, fontWeight: '600' }}>
-                                                {format(parse(startTime, 'HH:mm:ss', new Date()), 'hh:mm a')}
+                                                {format(parse(startTime, 'HH:mm', new Date()), 'hh:mm a')}
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
@@ -231,7 +231,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         >
                                             <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
                                             <Text style={{ color: theme.text, fontWeight: '600' }}>
-                                                {format(parse(endTime, 'HH:mm:ss', new Date()), 'hh:mm a')}
+                                                {format(parse(endTime, 'HH:mm', new Date()), 'hh:mm a')}
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
@@ -243,8 +243,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                     value={
                                         pickerMode === 'date' ? new Date(date) :
                                             pickerMode === 'repeatUntil' ? (repeatUntil ? new Date(repeatUntil) : new Date()) :
-                                                pickerMode === 'start' ? parse(startTime, 'HH:mm:ss', new Date()) :
-                                                    parse(endTime, 'HH:mm:ss', new Date())
+                                                pickerMode === 'start' ? parse(startTime, 'HH:mm', new Date()) :
+                                                    parse(endTime, 'HH:mm', new Date())
                                     }
                                     mode={(pickerMode === 'date' || pickerMode === 'repeatUntil') ? 'date' : 'time'}
                                     is24Hour={false}
@@ -254,8 +254,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         if (selectedDate) {
                                             if (pickerMode === 'date') setDate(format(selectedDate, 'yyyy-MM-dd'));
                                             else if (pickerMode === 'repeatUntil') setRepeatUntil(format(selectedDate, 'yyyy-MM-dd'));
-                                            else if (pickerMode === 'start') setStartTime(format(selectedDate, 'HH:mm:ss'));
-                                            else setEndTime(format(selectedDate, 'HH:mm:ss'));
+                                            else if (pickerMode === 'start') setStartTime(format(selectedDate, 'HH:mm'));
+                                            else setEndTime(format(selectedDate, 'HH:mm'));
                                         }
                                     }}
                                 />
