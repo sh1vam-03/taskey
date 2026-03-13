@@ -111,6 +111,35 @@ function HeroMetricCard({ label, value, suffix, color, icon, ring, ringMax }) {
     );
 }
 
+/* ── small metric card (stacked in left column) ─────────────────────────── */
+function SmallMetricCard({ label, value, suffix, color, icon }) {
+    const { theme, isDark } = useTheme();
+    return (
+        <View style={[styles.smallCard, {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+            borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)',
+        }, !isDark && {
+            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
+        }]}>
+            <View style={[styles.smallIconBadge, {
+                backgroundColor: color + (isDark ? '1C' : '14'),
+                borderColor: color + '30',
+            }]}>
+                <Icon name={icon} size={15} color={color} />
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={[styles.smallLabel, { color: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.35)' }]}>
+                    {label.toUpperCase()}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                    <Text style={[styles.smallNum, { color: theme.text ?? '#fff' }]}>{value}</Text>
+                    {suffix ? <Text style={[styles.smallSuffix, { color }]}>{suffix}</Text> : null}
+                </View>
+            </View>
+        </View>
+    );
+}
+
 /* ── today progress bar ────────────────────────────────────────────────────── */
 function TodayProgressBar({ completed, total, isDark, cyan }) {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -381,24 +410,33 @@ export default function OverviewSection({ refreshing, triggerSync }) {
             {/* ── METRIC CARDS ── */}
             {loadOv && !refreshing ? (
                 <View style={styles.cardRow}>
-                    <Skeleton style={[styles.heroCard, { flex: 1 }]} />
+                    <View style={styles.leftCol}>
+                        <Skeleton style={[styles.smallCard, { flex: 1 }]} />
+                        <Skeleton style={[styles.smallCard, { flex: 1 }]} />
+                    </View>
                     <Skeleton style={[styles.heroCard, { flex: 1 }]} />
                 </View>
             ) : (
                 <View style={styles.cardRow}>
+                    <View style={styles.leftCol}>
+                        <SmallMetricCard
+                            label="Completed"
+                            value={ovData?.completedTasksCount ?? 0}
+                            color="#00cc88"
+                            icon="check-all"
+                        />
+                        <SmallMetricCard
+                            label="Uncompleted"
+                            value={ovData?.todayTasksCount ?? 0}
+                            color="#f97316"
+                            icon="clock-alert-outline"
+                        />
+                    </View>
                     <HeroMetricCard
                         label="Today"
                         value={ovData?.todayTasksTotal ?? 0}
                         color={cyan}
                         icon="lightning-bolt"
-                    />
-                    <HeroMetricCard
-                        label="Completed"
-                        value={ovData?.completedTasksCount ?? 0}
-                        color="#00cc88"
-                        icon="check-all"
-                        ring
-                        ringMax={Math.max(ovData?.todayTasksTotal ?? 1, 1)}
                     />
                 </View>
             )}
@@ -467,12 +505,12 @@ export default function OverviewSection({ refreshing, triggerSync }) {
 
 /* ── styles ─────────────────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-    /* symmetric dual-hero card row */
-    cardRow: { flexDirection: 'row', gap: 12, marginHorizontal: -2, marginBottom: 14 },
+    /* asymmetric card row (matches PerformanceSection) */
+    cardRow: { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'stretch' },
 
     /* hero cards */
     heroCard: {
-        flex: 1, borderRadius: 22, borderWidth: 1,
+        flex: 9, borderRadius: 22, borderWidth: 1,
         padding: 20, overflow: 'hidden', minHeight: 140,
     },
     heroIconBadge: {
@@ -484,8 +522,22 @@ const styles = StyleSheet.create({
         width: 110, height: 110, borderRadius: 55, opacity: 0.09,
     },
     heroLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
-    heroNum: { fontSize: 48, fontWeight: '900', lineHeight: 50, letterSpacing: -1.5 },
+    heroNum: { fontSize: 42, fontWeight: '900', lineHeight: 46, letterSpacing: -1.5 },
     heroSuffix: { fontSize: 18, fontWeight: '800' },
+
+    /* small cards */
+    leftCol: { flex: 10, gap: 10 },
+    smallCard: {
+        flex: 1, borderRadius: 18, borderWidth: 1,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    smallIconBadge: {
+        width: 36, height: 36, borderRadius: 12, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    smallLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1.4, marginBottom: 4 },
+    smallNum: { fontSize: 24, fontWeight: '900', lineHeight: 26 },
+    smallSuffix: { fontSize: 13, fontWeight: '800' },
 
     /* error */
     errBox: { borderRadius: 22, borderWidth: 1, padding: 28, alignItems: 'center', marginBottom: 12 },
