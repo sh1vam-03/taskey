@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    RefreshControl, Platform, Dimensions
+    RefreshControl, Platform, Dimensions, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -18,6 +18,33 @@ const { width: W } = Dimensions.get('window');
 // API returns event-count label
 const getEventLabel = (count) => `${count} event${count !== 1 ? 's' : ''} scheduled`;
 
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+function Skeleton({ style }) {
+    const { isDark } = useTheme();
+    const anim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        Animated.loop(Animated.sequence([
+            Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
+        ])).start();
+    }, []);
+    const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.50] });
+    return <Animated.View style={[{
+        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        opacity,
+    }, style]} />;
+}
+
+function SkeletonList() {
+    return (
+        <View style={{ gap: 10, marginTop: 4 }}>
+            {[100, 100, 100].map((h, i) => (
+                <Skeleton key={i} style={{ height: h, borderRadius: 20 }} />
+            ))}
+        </View>
+    );
+}
+
 export default function ScheduleScreen() {
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
@@ -27,6 +54,7 @@ export default function ScheduleScreen() {
     const [schedules, setSchedules] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [weekDates, setWeekDates] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -43,6 +71,8 @@ export default function ScheduleScreen() {
     }, [selectedDate]);
 
     const fetchSchedule = async (date) => {
+        // Only show skeleton if we have no schedules for that day and it's not pull-to-refresh
+        if (schedules.length === 0 && !refreshing) setLoading(true);
         try {
             const formattedDate = format(date, 'yyyy-MM-dd');
             const { data } = await getDayCalendar(formattedDate);
@@ -51,6 +81,7 @@ export default function ScheduleScreen() {
         } catch (err) {
             console.error(err);
         } finally {
+            setLoading(false);
             setRefreshing(false);
         }
     };
@@ -165,15 +196,19 @@ export default function ScheduleScreen() {
                 )}
                 ListEmptyComponent={
                     <View style={{ marginTop: -8 }}>
-                        <EmptyState
-                            title="No events today"
-                            description="Stay on top of your events."
-                            icon="clipboard-text-outline"
-                            action={{
-                                label: "Create Event",
-                                onPress: () => setIsModalOpen(true)
-                            }}
-                        />
+                        {loading ? (
+                            <SkeletonList />
+                        ) : (
+                            <EmptyState
+                                title="No events today"
+                                description="Stay on top of your events."
+                                icon="clipboard-text-outline"
+                                action={{
+                                    label: "Create Event",
+                                    onPress: () => setIsModalOpen(true)
+                                }}
+                            />
+                        )}
                     </View>
                 }
             />
