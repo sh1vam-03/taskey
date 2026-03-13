@@ -160,7 +160,7 @@ function Heatmap({ data }) {
 }
 
 /* ─── Main ────────────────────────────────────────────────────────────────── */
-export default function StreaksSection({ refreshing }) {
+export default function StreaksSection({ refreshing, syncVersion }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
@@ -172,7 +172,7 @@ export default function StreaksSection({ refreshing }) {
     const [calendarData, setCalendarData] = useState([]);
 
     const fetchData = async () => {
-        setLoading(true);
+        if (!streakData) setLoading(true);
         try {
             const date = new Date().toLocaleDateString('en-CA');
             const [s, cal] = await Promise.all([
@@ -190,6 +190,7 @@ export default function StreaksSection({ refreshing }) {
 
     useEffect(() => { fetchData(); }, []);
     useEffect(() => { if (refreshing) fetchData(); }, [refreshing]);
+    useEffect(() => { if (syncVersion > 0) fetchData(); }, [syncVersion]);
 
     if (loading) {
         const skelBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';

@@ -188,7 +188,7 @@ function getInsights(data) {
 /* ─── Main ────────────────────────────────────────────────────────────────── */
 const VIEWS = ['DAILY', 'WEEKLY', 'MONTHLY'];
 
-export default function PerformanceSection({ refreshing }) {
+export default function PerformanceSection({ refreshing, syncVersion }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
@@ -200,9 +200,12 @@ export default function PerformanceSection({ refreshing }) {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
 
-    const fetchData = async (v) => {
-        if (cache[v] && !refreshing) { setData(cache[v]); setLoading(false); return; }
-        setLoading(true);
+    const fetchData = async (v, force = false) => {
+        if (cache[v] && !refreshing && !force) { setData(cache[v]); setLoading(false); return; }
+
+        // Silent Loading: Only show skeleton if we have no data at all
+        if (!data) setLoading(true);
+
         try {
             const localDate = new Date().toLocaleDateString('en-CA');
             let res;
@@ -221,6 +224,14 @@ export default function PerformanceSection({ refreshing }) {
 
     useEffect(() => { fetchData(view); }, [view]);
     useEffect(() => { if (refreshing) fetchData(view); }, [refreshing]);
+
+    // Update on global sync signal
+    useEffect(() => {
+        if (syncVersion > 0) {
+            // Force fetch will bypass the cache check internally
+            fetchData(view, true);
+        }
+    }, [syncVersion]);
 
     const chartData = view === 'DAILY' ? data?.hourly || [] : view === 'WEEKLY' ? data?.daily || [] : data?.history || [];
     const chartLines = [

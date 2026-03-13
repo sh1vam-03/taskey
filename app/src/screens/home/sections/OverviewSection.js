@@ -253,7 +253,7 @@ function TLItem({ item, isLast, onToggle }) {
 }
 
 /* ── MAIN ──────────────────────────────────────────────────────────────────── */
-export default function OverviewSection({ refreshing }) {
+export default function OverviewSection({ refreshing, triggerSync }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
@@ -324,7 +324,10 @@ export default function OverviewSection({ refreshing }) {
                     : await undoCompleteSchedule(item.scheduleId || item.id, date);
             }
 
-            // ③ Silent Sync (no loading skeleton)
+            // ③ Trigger Global Sync EARLIER (updates Performance, Streaks, Behavior in parallel)
+            if (triggerSync) triggerSync();
+
+            // ④ Silent Local Sync
             const [resTl, resOv] = await Promise.all([
                 getToday(date),
                 getOverview(date)

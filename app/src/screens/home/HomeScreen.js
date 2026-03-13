@@ -33,6 +33,11 @@ export default function HomeScreen() {
 
     const [profileVisible, setProfileVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [syncVersion, setSyncVersion] = useState(0);
+
+    const triggerSync = useCallback(() => {
+        setSyncVersion(v => v + 1);
+    }, []);
 
     const now = new Date();
     const hour = now.getHours();
@@ -136,19 +141,19 @@ export default function HomeScreen() {
 
                 {/* ── SECTION 1: OVERVIEW + TODAY TIMELINE ──────────── */}
                 <SectionHeader title="Overview" icon="view-dashboard-outline" />
-                <OverviewSection refreshing={refreshing} />
+                <OverviewSection refreshing={refreshing} triggerSync={triggerSync} />
 
                 {/* ── SECTION 2: STREAKS & HABITS ──────────────────── */}
                 <SectionHeader title="Streaks & Habits" icon="fire" />
-                <StreaksSection refreshing={refreshing} />
+                <StreaksSection refreshing={refreshing} syncVersion={syncVersion} />
 
                 {/* ── SECTION 3: PROGRESS INSIGHTS ────────────────── */}
                 <SectionHeader title="Progress Insights" icon="brain" />
-                <BehaviorSection refreshing={refreshing} />
+                <BehaviorSection refreshing={refreshing} syncVersion={syncVersion} />
 
                 {/* ── SECTION 4: PERFORMANCE ───────────────────────── */}
                 <SectionHeader title="Performance" icon="chart-line" />
-                <PerformanceSection refreshing={refreshing} />
+                <PerformanceSection refreshing={refreshing} syncVersion={syncVersion} />
 
                 {/* Tab bar spacer */}
                 <View style={{ height: 150 }} />
