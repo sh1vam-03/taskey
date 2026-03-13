@@ -148,7 +148,7 @@ function TLItem({ item, isLast, onToggle }) {
 
     const isDone = item.status === 'COMPLETED';
     const isMissed = item.status === 'MISSED';
-    const isTask = item.type === 'TASK';
+    const isTask = item.type === 'UNSCHEDULED';
 
     const dotColor = isDone ? '#00cc88' : isMissed ? '#ff4444' : cyan;
     const priColor = PRI[item.priority] || '#888';
@@ -288,32 +288,55 @@ export default function OverviewSection({ refreshing }) {
     useEffect(() => { fetchOverview(); fetchToday(); }, []);
     useEffect(() => { if (refreshing) { fetchOverview(); fetchToday(); } }, [refreshing]);
 
-    /* ── optimistic toggle ── */
+    /* ── optimistic toggle with silent sync ── */
     const handleToggle = useCallback(async (item) => {
         const willComplete = item.status !== 'COMPLETED';
         const date = new Date().toLocaleDateString('en-CA');
+
+        // ① Optimistic Timeline Update
         setTodayData(prev => !prev ? prev : ({
             ...prev,
             timeline: prev.timeline.map(t =>
-                t.id === item.id
+                (t.id === item.id || t.taskId === item.id || t.scheduleId === item.id)
                     ? { ...t, status: willComplete ? 'COMPLETED' : 'PENDING' }
                     : t
             ),
+            stats: {
+                ...prev.stats,
+                completed: Math.max(0, (prev.stats?.completed || 0) + (willComplete ? 1 : -1))
+            }
         }));
+
+        // ② Optimistic Metric Cards Update
+        setOvData(prev => !prev ? prev : ({
+            ...prev,
+            completedTasksCount: Math.max(0, (prev.completedTasksCount || 0) + (willComplete ? 1 : -1))
+        }));
+
         try {
-            if (item.type === 'TASK') {
+            if (item.type === 'UNSCHEDULED') {
                 willComplete
-                    ? await completeTask(item.id, date)
-                    : await undoCompleteTask(item.id, date);
+                    ? await completeTask(item.taskId || item.id, date)
+                    : await undoCompleteTask(item.taskId || item.id, date);
             } else {
                 willComplete
-                    ? await completeSchedule(item.id, date)
-                    : await undoCompleteSchedule(item.id, date);
+                    ? await completeSchedule(item.scheduleId || item.id, date)
+                    : await undoCompleteSchedule(item.scheduleId || item.id, date);
             }
-            const { data: r } = await getToday(date);
-            setTodayData(r.data || r);
-        } catch { fetchToday(); }
-    }, []);
+
+            // ③ Silent Sync (no loading skeleton)
+            const [resTl, resOv] = await Promise.all([
+                getToday(date),
+                getOverview(date)
+            ]);
+            setTodayData(resTl.data?.data || resTl.data);
+            setOvData(resOv.data?.data || resOv.data);
+        } catch (err) {
+            console.warn("Toggle sync failed, reverting...", err);
+            fetchToday(); // Noisy refetch on error to ensure consistency
+            fetchOverview();
+        }
+    }, [cyan, fetchToday, fetchOverview]);
 
     /* ── sorted timeline ── */
     const timelineItems = (todayData?.timeline || [])
@@ -362,17 +385,17 @@ export default function OverviewSection({ refreshing }) {
                 <View style={styles.cardRow}>
                     <HeroMetricCard
                         label="Today"
-                        value={ovData?.todayTasks ?? 0}
+                        value={ovData?.todayTasksTotal ?? 0}
                         color={cyan}
                         icon="lightning-bolt"
                     />
                     <HeroMetricCard
                         label="Completed"
-                        value={ovData?.completedTasks ?? 0}
+                        value={ovData?.completedTasksCount ?? 0}
                         color="#00cc88"
                         icon="check-all"
                         ring
-                        ringMax={Math.max(ovData?.todayTasks ?? 1, 1)}
+                        ringMax={Math.max(ovData?.todayTasksTotal ?? 1, 1)}
                     />
                 </View>
             )}
