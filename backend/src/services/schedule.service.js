@@ -1,6 +1,6 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear, toUTCDateOnly, startOfUTCDate, appliesOnDate } from "../utils/date.utils.js";
+import { getCurrentMonthYear, toUTCDateOnly, startOfUTCDate, appliesOnDate, formatTime } from "../utils/date.utils.js";
 import { validateSchedule } from "../ai/validators/schedule.validator.js";
 
 // Create Schedule
@@ -249,8 +249,8 @@ export const getSchedules = async (userId, from, to, taskId) => {
                     priority: s.task.priority,
                     category: s.task.category,
                     scheduleDate: dayKey, // The specific instance date
-                    startTime: s.startTime ? s.startTime.toISOString().slice(11, 16) : null,
-                    endTime: s.endTime ? s.endTime.toISOString().slice(11, 16) : null,
+                    startTime: formatTime(s.startTime),
+                    endTime: formatTime(s.endTime),
                     status,
                     // Recurrence Details for Editing
                     recurrence: s.recurrence,

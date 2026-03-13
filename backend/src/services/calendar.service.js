@@ -2,12 +2,9 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 // import { isAfter, isBefore, isEqual } from "date-fns"; // Unused
 // import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'; // Unused
-import { toUTCDateOnly, startOfUTCDate, appliesOnDate } from "../utils/date.utils.js";
+import { toUTCDateOnly, startOfUTCDate, appliesOnDate, formatTime } from "../utils/date.utils.js";
 
 /* -------------------- HELPERS -------------------- */
-
-const formatTime = (time) =>
-    time ? time.toISOString().slice(11, 16) : null;
 
 /* ======================================================
    DAY CALENDAR
