@@ -131,7 +131,10 @@ function Heatmap({ data }) {
 
     return (
         <View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4 }}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 4 }}>
                 {cols.map((col, ci) => (
                     <View key={ci} style={{ flexDirection: 'column', marginRight: 3 }}>
                         {col.map((day, di) => (
@@ -143,7 +146,7 @@ function Heatmap({ data }) {
                     </View>
                 ))}
             </ScrollView>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
                 <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 1.2, color: mutedColor }}>LESS</Text>
                 <View style={{ flexDirection: 'row', marginHorizontal: 8 }}>
                     {[0, 1, 2, 3, 4].map(l => (
