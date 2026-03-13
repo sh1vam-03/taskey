@@ -22,8 +22,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import TaskCard from './components/TaskCard';
-import PriorityBadge from './components/PriorityBadge';
+import UniversalTaskCard from '../../components/common/UniversalTaskCard';
+import { completeSchedule, undoCompleteSchedule } from '../../api/schedule.api';
 import { useTheme } from '../../context/ThemeContext';
 import { EmptyState } from '../../components/common/EmptyState';
 import API from '../../api/client';
@@ -298,6 +298,22 @@ export default function TasksScreen({ navigation }) {
 
     const onRefresh = () => { setRefreshing(true); fetchTasks({ pg: page, reset: true }); };
 
+    /* ── status toggle ── */
+    const handleToggleComplete = async (task) => {
+        try {
+            const isCompleted = task.status === 'COMPLETED';
+            const today = new Date().toISOString().slice(0, 10);
+            if (isCompleted) {
+                await undoCompleteSchedule(task.id, today);
+            } else {
+                await completeSchedule(task.id, today);
+            }
+            fetchTasks({ pg: page, silent: true });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     /* ── delete ── */
     const handleDelete = async () => {
         if (!deleteTask) return;
@@ -512,13 +528,13 @@ export default function TasksScreen({ navigation }) {
                                     isDark={isDark}
                                 />
                                 {scheduled.map(task => (
-                                    <TaskCard
+                                    <UniversalTaskCard
                                         key={task.id}
                                         item={task}
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
                                         onDelete={t => setDeleteTask(t)}
-                                        hideStatus={true}
+                                        onComplete={handleToggleComplete}
                                     />
                                 ))}
                             </View>
@@ -535,13 +551,13 @@ export default function TasksScreen({ navigation }) {
                                     isDark={isDark}
                                 />
                                 {unscheduled.map(task => (
-                                    <TaskCard
+                                    <UniversalTaskCard
                                         key={task.id}
                                         item={task}
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
                                         onDelete={t => setDeleteTask(t)}
-                                        hideStatus={true}
+                                        onComplete={handleToggleComplete}
                                     />
                                 ))}
                             </View>

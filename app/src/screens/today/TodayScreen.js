@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import ScheduleCard from '../schedule/components/ScheduleCard';
-import { getDayCalendar } from '../../api/schedule.api';
+import UniversalTaskCard from '../../components/common/UniversalTaskCard';
+import { getDayCalendar, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
 import { useTheme } from '../../context/ThemeContext';
 import { format } from 'date-fns';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -54,12 +54,9 @@ export default function TodayScreen() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
     const [preselectedTask, setPreselectedTask] = useState(null);
+    const [itemToEdit, setItemToEdit] = useState(null);
 
     const today = format(new Date(), 'yyyy-MM-dd');
-
-    /* glass tokens */
-    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
 
     const fetchToday = async () => {
         try {
@@ -82,19 +79,63 @@ export default function TodayScreen() {
         fetchToday();
     }, []);
 
-    const now = new Date().getHours() * 100 + new Date().getMinutes();
+    const handleToggleComplete = async (item) => {
+        try {
+            const status = item.status;
+            if (status === 'COMPLETED') {
+                await undoCompleteSchedule(item.id, today);
+            } else {
+                await completeSchedule(item.id, today);
+            }
+            fetchToday();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleEdit = (item) => {
+        if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+            setItemToEdit(item);
+            setIsScheduleModalOpen(true);
+        } else {
+            setItemToEdit(item);
+            setIsCreateModalOpen(true);
+        }
+    };
+
+    const handleDelete = async (item) => {
+        try {
+            await deleteSchedule(item.id);
+            fetchToday();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const nowStr = format(new Date(), 'HH:mm');
     const currentTask = useMemo(() => schedules.find(s => {
-        const [h, m] = s.time.split(':').map(Number);
-        const startTime = h * 100 + m;
-        // Simple logic: within 1 hour or the current hour
-        return startTime <= now && startTime + 100 > now;
-    }), [schedules, now]);
+        if (s.status === 'COMPLETED') return false;
+        if (!s.startTime) return false;
+        // Simple logic: if startTime <= current hour and it's not completed
+        const [sh, sm] = s.startTime.split(':').map(Number);
+        const [nh, nm] = nowStr.split(':').map(Number);
+        const st = sh * 100 + sm;
+        const nt = nh * 100 + nm;
+        return st <= nt && st + 100 > nt;
+    }), [schedules, nowStr]);
 
     const upcomingTasks = useMemo(() => schedules.filter(s => {
-        const [h, m] = s.time.split(':').map(Number);
-        const startTime = h * 100 + m;
-        return startTime > now;
-    }), [schedules, now]);
+        if (s.status === 'COMPLETED') return false;
+        if (s.id === currentTask?.id) return false;
+        if (!s.startTime) return true; // ANYTIME items are upcoming if not done
+        const [sh, sm] = s.startTime.split(':').map(Number);
+        const [nh, nm] = nowStr.split(':').map(Number);
+        const st = sh * 100 + sm;
+        const nt = nh * 100 + nm;
+        return st > nt || !s.startTime;
+    }), [schedules, nowStr, currentTask]);
+
+    const completedTasks = useMemo(() => schedules.filter(s => s.status === 'COMPLETED'), [schedules]);
 
     return (
         <View style={[styles.root, { backgroundColor: theme.bg ?? '#0a0a0a' }]}>
@@ -133,7 +174,7 @@ export default function TodayScreen() {
                         <Text style={[styles.pageSub, {
                             color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
                         }]}>
-                            {refreshing ? 'Refreshing…' : `${schedules.length} event${schedules.length !== 1 ? 's' : ''} active`}
+                            {refreshing ? 'Refreshing…' : `${schedules.length} item${schedules.length !== 1 ? 's' : ''} active`}
                         </Text>
                     </View>
                 </View>
@@ -147,7 +188,7 @@ export default function TodayScreen() {
                             icon="calendar-check"
                             action={{
                                 label: "Add Task",
-                                onPress: () => setIsCreateModalOpen(true)
+                                onPress: () => { setItemToEdit(null); setIsCreateModalOpen(true); }
                             }}
                         />
                     </View>
@@ -158,11 +199,17 @@ export default function TodayScreen() {
                                 <SectionLabel
                                     icon="play-circle-outline"
                                     iconColor={cyan}
-                                    label="CURRENT EVENT"
+                                    label="CURRENTLY ACTIVE"
                                     count={1}
                                     isDark={isDark}
                                 />
-                                <ScheduleCard schedule={currentTask} isToday={true} />
+                                <UniversalTaskCard
+                                    item={currentTask}
+                                    isToday={true}
+                                    onComplete={handleToggleComplete}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
                             </View>
                         )}
 
@@ -171,12 +218,39 @@ export default function TodayScreen() {
                                 <SectionLabel
                                     icon="chevron-double-right"
                                     iconColor={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'}
-                                    label="UPCOMING EVENTS"
+                                    label="UPCOMING"
                                     count={upcomingTasks.length}
                                     isDark={isDark}
                                 />
-                                {upcomingTasks.map(task => (
-                                    <ScheduleCard key={task.id} schedule={task} />
+                                {upcomingTasks.map(item => (
+                                    <UniversalTaskCard
+                                        key={item.id}
+                                        item={item}
+                                        onComplete={handleToggleComplete}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                    />
+                                ))}
+                            </View>
+                        )}
+
+                        {completedTasks.length > 0 && (
+                            <View style={styles.group}>
+                                <SectionLabel
+                                    icon="check-circle-outline"
+                                    iconColor="#00cc88"
+                                    label="COMPLETED"
+                                    count={completedTasks.length}
+                                    isDark={isDark}
+                                />
+                                {completedTasks.map(item => (
+                                    <UniversalTaskCard
+                                        key={item.id}
+                                        item={item}
+                                        onComplete={handleToggleComplete}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                    />
                                 ))}
                             </View>
                         )}
@@ -187,7 +261,7 @@ export default function TodayScreen() {
 
             {/* ── FAB ── */}
             <TouchableOpacity
-                onPress={() => setIsCreateModalOpen(true)}
+                onPress={() => { setItemToEdit(null); setIsCreateModalOpen(true); }}
                 activeOpacity={0.85}
                 style={[
                     styles.fab,
@@ -206,9 +280,10 @@ export default function TodayScreen() {
             </TouchableOpacity>
 
             <CreateTaskScreen
-                visible={isCreateModalOpen}
+                visible={itemToEdit?.type === 'TASK' ? isCreateModalOpen : (isCreateModalOpen && !itemToEdit)}
+                task={itemToEdit}
                 hideDueDate={true}
-                onClose={() => setIsCreateModalOpen(false)}
+                onClose={() => { setIsCreateModalOpen(false); setItemToEdit(null); }}
                 onCreated={() => fetchToday()}
                 onScheduleRequested={(task) => {
                     setPreselectedTask(task);
@@ -217,15 +292,18 @@ export default function TodayScreen() {
             />
 
             <CreateScheduleScreen
-                visible={isScheduleModalOpen}
+                visible={itemToEdit?.type === 'SCHEDULE' ? isScheduleModalOpen : isScheduleModalOpen}
+                scheduleToEdit={itemToEdit?.type === 'SCHEDULE' ? itemToEdit : null}
                 preselectedTaskId={preselectedTask?.id}
                 onClose={() => {
                     setIsScheduleModalOpen(false);
                     setPreselectedTask(null);
+                    setItemToEdit(null);
                 }}
                 onCreated={() => {
                     fetchToday();
                     setPreselectedTask(null);
+                    setItemToEdit(null);
                 }}
             />
         </View>

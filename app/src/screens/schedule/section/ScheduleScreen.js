@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getDayCalendar, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../../api/schedule.api';
-import ScheduleCard from '../components/ScheduleCard';
+import UniversalTaskCard from '../../../components/common/UniversalTaskCard';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
@@ -16,7 +16,7 @@ import CreateScheduleScreen from './CreateScheduleScreen';
 const { width: W } = Dimensions.get('window');
 
 // API returns event-count label
-const getEventLabel = (count) => `${count} event${count !== 1 ? 's' : ''} scheduled`;
+const getEventLabel = (count) => `${count} item${count !== 1 ? 's' : ''} scheduled`;
 
 /* ── Skeleton ─────────────────────────────────────────────────────────────── */
 function Skeleton({ style }) {
@@ -92,27 +92,27 @@ export default function ScheduleScreen() {
         fetchSchedule(selectedDate);
     }, [selectedDate]);
 
-    const handleToggleComplete = async (schedule) => {
+    const handleToggleComplete = async (item) => {
         try {
-            const isCompleted = schedule.status === 'COMPLETED';
+            const isCompleted = item.status === 'COMPLETED';
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             isCompleted
-                ? await undoCompleteSchedule(schedule.id, dateStr)
-                : await completeSchedule(schedule.id, dateStr);
+                ? await undoCompleteSchedule(item.id, dateStr)
+                : await completeSchedule(item.id, dateStr);
             fetchSchedule(selectedDate);
         } catch (e) {
             console.error(e);
         }
     };
 
-    const handleEdit = (schedule) => {
-        setScheduleToEdit(schedule);
+    const handleEdit = (item) => {
+        setScheduleToEdit(item);
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (schedule) => {
+    const handleDelete = async (item) => {
         try {
-            await deleteSchedule(schedule.id);
+            await deleteSchedule(item.id);
             fetchSchedule(selectedDate);
         } catch (e) {
             console.error(e);
@@ -232,8 +232,8 @@ export default function ScheduleScreen() {
                         <SkeletonList />
                     ) : schedules.length === 0 ? (
                         <EmptyState
-                            title="No events today"
-                            description="Stay on top of your events."
+                            title="No items today"
+                            description="Stay on top of your schedule."
                             icon="clipboard-text-outline"
                             action={{
                                 label: "Create Event",
@@ -246,11 +246,11 @@ export default function ScheduleScreen() {
                                 <View style={styles.group}>
                                     {renderSectionHeader('UPCOMING', pending.length, 'circle-outline', cyan)}
                                     {pending.map(s => (
-                                        <ScheduleCard
+                                        <UniversalTaskCard
                                             key={`${s.id}-${s.scheduleDate}`}
-                                            schedule={s}
+                                            item={s}
                                             isToday={isToday(selectedDate)}
-                                            onToggleComplete={() => handleToggleComplete(s)}
+                                            onComplete={() => handleToggleComplete(s)}
                                             onEdit={handleEdit}
                                             onDelete={handleDelete}
                                         />
@@ -262,10 +262,10 @@ export default function ScheduleScreen() {
                                 <View style={styles.group}>
                                     {renderSectionHeader('MISSED', missed.length, 'alert-circle-outline', '#ff4444')}
                                     {missed.map(s => (
-                                        <ScheduleCard
+                                        <UniversalTaskCard
                                             key={`${s.id}-${s.scheduleDate}`}
-                                            schedule={s}
-                                            onToggleComplete={() => handleToggleComplete(s)}
+                                            item={s}
+                                            onComplete={() => handleToggleComplete(s)}
                                             onEdit={handleEdit}
                                             onDelete={handleDelete}
                                         />
@@ -277,10 +277,10 @@ export default function ScheduleScreen() {
                                 <View style={styles.group}>
                                     {renderSectionHeader('COMPLETED', completed.length, 'check-circle-outline', '#00cc88')}
                                     {completed.map(s => (
-                                        <ScheduleCard
+                                        <UniversalTaskCard
                                             key={`${s.id}-${s.scheduleDate}`}
-                                            schedule={s}
-                                            onToggleComplete={() => handleToggleComplete(s)}
+                                            item={s}
+                                            onComplete={() => handleToggleComplete(s)}
                                             onEdit={handleEdit}
                                             onDelete={handleDelete}
                                         />
