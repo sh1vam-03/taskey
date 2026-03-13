@@ -243,8 +243,6 @@ export default function TodayScreen() {
                                         key={item.id}
                                         item={item}
                                         onComplete={handleToggleComplete}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
@@ -263,8 +261,6 @@ export default function TodayScreen() {
                                     item={currentTask}
                                     isToday={true}
                                     onComplete={handleToggleComplete}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
                                 />
                             </View>
                         )}
@@ -283,8 +279,6 @@ export default function TodayScreen() {
                                         key={item.id}
                                         item={item}
                                         onComplete={handleToggleComplete}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
@@ -304,8 +298,6 @@ export default function TodayScreen() {
                                         key={item.id}
                                         item={item}
                                         onComplete={handleToggleComplete}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
