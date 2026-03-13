@@ -252,7 +252,8 @@ export default function TasksScreen({ navigation }) {
 
     /* ── fetch ── */
     const fetchTasks = useCallback(async ({ pg = 1, reset = false, silent = false } = {}) => {
-        if (!silent) setLoading(true);
+        // Only show skeleton if we have no tasks and it's not a pull-to-refresh
+        if (!silent && tasks.length === 0 && !refreshing) setLoading(true);
         try {
             const params = {
                 page: pg, limit: LIMIT,
@@ -512,6 +513,7 @@ export default function TasksScreen({ navigation }) {
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
                                         onDelete={t => setDeleteTask(t)}
+                                        hideStatus={true}
                                     />
                                 ))}
                             </View>
@@ -534,6 +536,7 @@ export default function TasksScreen({ navigation }) {
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
                                         onDelete={t => setDeleteTask(t)}
+                                        hideStatus={true}
                                     />
                                 ))}
                             </View>

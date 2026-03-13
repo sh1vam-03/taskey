@@ -34,7 +34,7 @@ function formatDueDate(raw) {
     return { label: `${dueLocal.getDate()} ${MONTHS[dueLocal.getMonth()]}` };
 }
 
-export default function TaskCard({ item, onEdit, onDelete, onPress }) {
+export default function TaskCard({ item, onEdit, onDelete, onPress, hideStatus }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
 
@@ -178,25 +178,27 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
                                         color: isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.28)',
                                     },
                                 ]}
-                                numberOfLines={2}
+                                numberOfLines={1}
                             >
                                 {item.title}
                             </Text>
 
                             {/* Status icon */}
-                            <View style={{ paddingTop: 1 }}>
-                                {isCompleted ? (
-                                    <Icon name="check-circle" size={19} color="#00cc88" />
-                                ) : isMissed ? (
-                                    <Icon name="close-circle" size={19} color="#ff4444" />
-                                ) : isArchived ? (
-                                    <Icon name="archive-outline" size={18}
-                                        color={isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.20)'} />
-                                ) : (
-                                    <Icon name="circle-outline" size={19}
-                                        color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.16)'} />
-                                )}
-                            </View>
+                            {!hideStatus && (
+                                <View style={{ paddingTop: 1 }}>
+                                    {isCompleted ? (
+                                        <Icon name="check-circle" size={19} color="#00cc88" />
+                                    ) : isMissed ? (
+                                        <Icon name="close-circle" size={19} color="#ff4444" />
+                                    ) : isArchived ? (
+                                        <Icon name="archive-outline" size={18}
+                                            color={isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.20)'} />
+                                    ) : (
+                                        <Icon name="circle-outline" size={19}
+                                            color={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.16)'} />
+                                    )}
+                                </View>
+                            )}
                         </View>
 
                         {/* Description */}
@@ -270,9 +272,9 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
                             ) : null}
                         </View>
                     </View>
-                </TouchableOpacity>
-            </Animated.View>
-        </View>
+                </TouchableOpacity >
+            </Animated.View >
+        </View >
     );
 }
 
