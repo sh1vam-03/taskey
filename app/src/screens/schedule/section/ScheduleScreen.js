@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getDayCalendar, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../../api/schedule.api';
+import { completeTask, undoCompleteTask } from '../../../api/task.api';
 import UniversalTaskCard from '../../../components/common/UniversalTaskCard';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { useTheme } from '../../../context/ThemeContext';
@@ -78,7 +79,14 @@ export default function ScheduleScreen() {
             const formattedDate = format(date, 'yyyy-MM-dd');
             const { data } = await getDayCalendar(formattedDate);
             const calendarData = data?.data || data;
-            setSchedules(calendarData?.days?.[formattedDate] || []);
+            const dayItems = calendarData?.days?.[formattedDate] || [];
+            // Only show items that are actual schedules (type SCHEDULED)
+            const onlySchedules = dayItems.filter(item =>
+                item.type === 'SCHEDULED' ||
+                !!item.schedule?.type ||
+                !!item.recurrence
+            );
+            setSchedules(onlySchedules);
         } catch (err) {
             console.error(err);
         } finally {
@@ -96,9 +104,15 @@ export default function ScheduleScreen() {
         try {
             const isCompleted = item.status === 'COMPLETED';
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
-            isCompleted
-                ? await undoCompleteSchedule(item.id, dateStr)
-                : await completeSchedule(item.id, dateStr);
+            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+                isCompleted
+                    ? await undoCompleteSchedule(item.id, dateStr)
+                    : await completeSchedule(item.id, dateStr);
+            } else {
+                isCompleted
+                    ? await undoCompleteTask(item.id, dateStr)
+                    : await completeTask(item.id, dateStr);
+            }
             fetchSchedule(selectedDate);
         } catch (e) {
             console.error(e);

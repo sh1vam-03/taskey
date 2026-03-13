@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UniversalTaskCard from '../../components/common/UniversalTaskCard';
 import { getDayCalendar, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
+import { completeTask, undoCompleteTask } from '../../api/task.api';
 import { useTheme } from '../../context/ThemeContext';
 import { format } from 'date-fns';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -81,11 +82,17 @@ export default function TodayScreen() {
 
     const handleToggleComplete = async (item) => {
         try {
-            const status = item.status;
-            if (status === 'COMPLETED') {
-                await undoCompleteSchedule(item.id, today);
+            const isCompleted = item.status === 'COMPLETED';
+            const dateStr = format(new Date(), 'yyyy-MM-dd');
+
+            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+                isCompleted
+                    ? await undoCompleteSchedule(item.id, dateStr)
+                    : await completeSchedule(item.id, dateStr);
             } else {
-                await completeSchedule(item.id, today);
+                isCompleted
+                    ? await undoCompleteTask(item.id, dateStr)
+                    : await completeTask(item.id, dateStr);
             }
             fetchToday();
         } catch (e) {

@@ -534,7 +534,6 @@ export default function TasksScreen({ navigation }) {
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
                                         onDelete={t => setDeleteTask(t)}
-                                        onComplete={handleToggleComplete}
                                     />
                                 ))}
                             </View>
@@ -557,7 +556,6 @@ export default function TasksScreen({ navigation }) {
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
                                         onDelete={t => setDeleteTask(t)}
-                                        onComplete={handleToggleComplete}
                                     />
                                 ))}
                             </View>
