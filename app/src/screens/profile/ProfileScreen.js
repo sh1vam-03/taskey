@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { useAuthStore } from '../../store/auth.store';
@@ -9,12 +9,14 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import ModelSelector from '../../components/ai/ModelSelector';
+import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { typography } from '../../theme/typography';
 
 export default function ProfileScreen({ navigation }) {
-    const { user } = useAuthStore();
+    const { user, logout } = useAuthStore();
     const { theme, toggleTheme, themeMode, isDark } = useTheme();
+    const { alert } = useAlert();
     const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
     const [isModelSelectorVisible, setIsModelSelectorVisible] = useState(false);
 
@@ -59,7 +61,7 @@ export default function ProfileScreen({ navigation }) {
     };
 
     const confirmLogout = () => {
-        Alert.alert('Logout', 'Are you sure you want to log out?', [
+        alert('Logout', 'Are you sure you want to log out?', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Logout', style: 'destructive', onPress: handleLogout },
         ]);

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Modal, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Modal, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { useAuthStore } from '../../store/auth.store';
 import { updateProfile, requestSecurityOtp, changePassword, deleteAccount, logoutAll } from '../../api/auth.api';
 
@@ -78,6 +79,7 @@ const ActionModal = ({ visible, onClose, title, subtitle, children, onConfirm, c
 // ── MAIN SCREEN ─────────────────────────────────────────────────────────
 export default function SettingsScreen({ navigation }) {
     const { theme, themeMode, toggleTheme, isDark } = useTheme();
+    const { alert } = useAlert();
     const user = useAuthStore(s => s.user);
     const updateUser = useAuthStore(s => s.updateUser);
     const logoutStore = useAuthStore(s => s.logout);
@@ -152,7 +154,7 @@ export default function SettingsScreen({ navigation }) {
             setPwdModal(false);
             setPwdData({ oldPassword: '', newPassword: '', confirmPassword: '' });
             setPwdOtp(''); setIsPwdOtpSent(false);
-            Alert.alert("Success", "Password updated successfully");
+            alert("Success", "Password updated successfully");
         } catch (err) {
             setPwdError(err.response?.data?.message || "Failed to change password");
         } finally { setLoadingPwd(false); }
@@ -182,21 +184,28 @@ export default function SettingsScreen({ navigation }) {
     };
 
     const handleLogoutAll = async () => {
-        Alert.alert(
+        alert(
             "Logout All Devices",
-            "This will invalidate all sessions on all devices.",
+            "This will invalidate all sessions on all devices. You will be logged out immediately.",
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Confirm", style: "destructive", onPress: async () => {
+                    text: "Logout Everywhere",
+                    style: "destructive",
+                    onPress: async () => {
+                        setLoadingLogoutAll(true);
                         try {
                             await logoutAll();
-                            logoutStore();
-                        } catch (e) { Alert.alert("Error", "Failed to logout all devices."); }
+                            logoutStore(); // Clear local state, RootNavigator will swap to AuthNavigator
+                        } catch (e) {
+                            alert("Error", "Failed to logout all devices. Please try again.");
+                        } finally {
+                            setLoadingLogoutAll(false);
+                        }
                     }
                 }
             ]
-        )
+        );
     };
 
     return (
