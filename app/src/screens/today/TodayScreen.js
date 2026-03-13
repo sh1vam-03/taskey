@@ -176,7 +176,7 @@ export default function TodayScreen() {
                                     isDark={isDark}
                                 />
                                 {upcomingTasks.map(task => (
-                                    <ScheduleCard key={task._id} schedule={task} />
+                                    <ScheduleCard key={task.id} schedule={task} />
                                 ))}
                             </View>
                         )}
@@ -218,7 +218,7 @@ export default function TodayScreen() {
 
             <CreateScheduleScreen
                 visible={isScheduleModalOpen}
-                preselectedTaskId={preselectedTask?.id || preselectedTask?._id}
+                preselectedTaskId={preselectedTask?.id}
                 onClose={() => {
                     setIsScheduleModalOpen(false);
                     setPreselectedTask(null);

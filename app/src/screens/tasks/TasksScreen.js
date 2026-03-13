@@ -228,7 +228,7 @@ export default function TasksScreen({ navigation }) {
     /* state */
     const [tasks, setTasks] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState(null);
@@ -272,13 +272,18 @@ export default function TasksScreen({ navigation }) {
             if (catRes) setCategories(catRes.data?.data || catRes.data || []);
         } catch { /* silent */ }
         finally { setLoading(false); setRefreshing(false); }
-    }, [search, filterPriority, filterCategory, showArchived]);
+    }, [search, filterPriority, filterCategory, showArchived, tasks, refreshing]);
 
     /* Initial load + refocus refresh */
     useFocusEffect(
         useCallback(() => {
-            fetchTasks({ pg: page, reset: page === 1 });
-        }, [page, fetchTasks])
+            // Background refresh if we already have tasks
+            fetchTasks({
+                pg: page,
+                reset: page === 1,
+                silent: tasks.length > 0
+            });
+        }, [page, fetchTasks, tasks.length])
     );
 
     /* Filter changes → debounce → reset to page 1 */

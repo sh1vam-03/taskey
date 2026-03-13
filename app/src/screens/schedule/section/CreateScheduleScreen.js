@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parse } from 'date-fns';
-import { createSchedule } from '../../../api/schedule.api';
+import { createSchedule, updateSchedule } from '../../../api/schedule.api';
 import { getTasks } from '../../../api/task.api';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
@@ -12,12 +12,12 @@ import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
 
 // Simple mockup for Time/Date selection inputs for React Native
-export default function CreateScheduleScreen({ visible, onClose, onCreated, preselectedTaskId }) {
+export default function CreateScheduleScreen({ visible, onClose, onCreated, preselectedTaskId, scheduleToEdit, initialDate }) {
     const [tasks, setTasks] = useState([]);
     const [selectedTaskId, setSelectedTaskId] = useState(preselectedTaskId || '');
-    const [date, setDate] = useState('2026-03-09'); // mockup value
-    const [startTime, setStartTime] = useState('09:00:00'); // mockup value
-    const [endTime, setEndTime] = useState('10:00:00'); // mockup value
+    const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
+    const [startTime, setStartTime] = useState('09:00:00');
+    const [endTime, setEndTime] = useState('10:00:00');
     const [recurrence, setRecurrence] = useState('NONE');
     const [repeatUntil, setRepeatUntil] = useState('');
     const [weeklyDays, setWeeklyDays] = useState([]); // 0-6 array
@@ -43,6 +43,33 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
     }, [preselectedTaskId]);
 
     useEffect(() => {
+        if (initialDate && !scheduleToEdit) {
+            setDate(initialDate);
+        }
+    }, [initialDate, scheduleToEdit]);
+
+    useEffect(() => {
+        if (scheduleToEdit) {
+            setSelectedTaskId(scheduleToEdit.taskId || scheduleToEdit.task?.id || '');
+            setDate(scheduleToEdit.scheduleDate ? scheduleToEdit.scheduleDate.split('T')[0] : (initialDate || format(new Date(), 'yyyy-MM-dd')));
+            setStartTime(scheduleToEdit.startTime || '09:00:00');
+            setEndTime(scheduleToEdit.endTime || '10:00:00');
+            setRecurrence(scheduleToEdit.recurrence || 'NONE');
+            setRepeatUntil(scheduleToEdit.repeatUntil ? scheduleToEdit.repeatUntil.split('T')[0] : '');
+            setWeeklyDays(scheduleToEdit.repeatOnDays || []);
+        } else {
+            // Reset for new creation
+            setSelectedTaskId(preselectedTaskId || '');
+            setDate(initialDate || format(new Date(), 'yyyy-MM-dd'));
+            setStartTime('09:00:00');
+            setEndTime('10:00:00');
+            setRecurrence('NONE');
+            setRepeatUntil('');
+            setWeeklyDays([]);
+        }
+    }, [scheduleToEdit, visible, preselectedTaskId, initialDate]);
+
+    useEffect(() => {
         if (visible) {
             fetchTasks();
         }
@@ -50,8 +77,10 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
 
     const fetchTasks = async () => {
         try {
-            const { data } = await getTasks();
-            setTasks(data.filter(t => !t.dueDate)); // plan says task with dueDate = null
+            const response = await getTasks();
+            // Backend returns { tasks: [], meta: {} }
+            const tasksList = response.data.tasks || [];
+            setTasks(tasksList.filter(t => !t.dueDate)); // plan says task with dueDate = null
         } catch (err) {
             console.log(err);
         }
@@ -77,11 +106,15 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
             if (recurrence !== 'NONE' && repeatUntil) {
                 data.repeatUntil = repeatUntil;
             }
-            await createSchedule(data);
+            if (scheduleToEdit) {
+                await updateSchedule(scheduleToEdit.id, data);
+            } else {
+                await createSchedule(data);
+            }
             onCreated();
             handleClose();
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to create schedule');
+            setError(err.response?.data?.message || `Failed to ${scheduleToEdit ? 'update' : 'create'} schedule`);
         } finally {
             setLoading(false);
         }
@@ -120,7 +153,9 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                     ]}>
                         <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]} />
                         <View style={styles.header}>
-                            <Text style={[styles.headerTitle, { color: theme.text }]}>Create Event</Text>
+                            <Text style={[styles.headerTitle, { color: theme.text }]}>
+                                {scheduleToEdit ? 'Edit Event' : 'Create Event'}
+                            </Text>
                             <TouchableOpacity
                                 onPress={handleClose}
                                 activeOpacity={0.75}
@@ -137,17 +172,17 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.taskScroll}>
                                 {tasks.length > 0 ? tasks.map(t => (
                                     <TouchableOpacity
-                                        key={t._id}
+                                        key={t.id}
                                         style={[
                                             styles.taskChip,
                                             {
-                                                backgroundColor: selectedTaskId === t._id ? cyan + (isDark ? '1E' : '14') : glassBg,
-                                                borderColor: selectedTaskId === t._id ? cyan + '55' : glassBord
+                                                backgroundColor: selectedTaskId === t.id ? cyan + (isDark ? '1E' : '14') : glassBg,
+                                                borderColor: selectedTaskId === t.id ? cyan + '55' : glassBord
                                             }
                                         ]}
-                                        onPress={() => setSelectedTaskId(t._id)}
+                                        onPress={() => setSelectedTaskId(t.id)}
                                     >
-                                        <Text style={[styles.taskText, { color: selectedTaskId === t._id ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }, selectedTaskId === t._id && { fontWeight: 'bold' }]}>
+                                        <Text style={[styles.taskText, { color: selectedTaskId === t.id ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }, selectedTaskId === t.id && { fontWeight: 'bold' }]}>
                                             {t.title}
                                         </Text>
                                     </TouchableOpacity>
@@ -285,7 +320,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                             )}
 
                             <Button
-                                title="Save Event"
+                                title={scheduleToEdit ? "Update Event" : "Save Event"}
                                 onPress={handleSave}
                                 loading={loading}
                                 style={{
