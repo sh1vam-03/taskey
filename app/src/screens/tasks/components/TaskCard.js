@@ -13,8 +13,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../../context/ThemeContext';
 import PriorityBadge from './PriorityBadge';
 
-const SWIPE_THRESHOLD = 55;
-const ACTION_WIDTH = 124;
+const SWIPE_THRESHOLD = 40;
+const ACTION_WIDTH = 80;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -74,11 +74,15 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
             Animated.spring(rowScale, { toValue: 0.985, useNativeDriver: true, speed: 40 }).start();
         },
         onPanResponderMove: (_, g) => {
-            translateX.setValue(Math.min(0, Math.max(-ACTION_WIDTH - 16, g.dx)));
+            translateX.setValue(Math.max(-ACTION_WIDTH - 10, Math.min(ACTION_WIDTH + 10, g.dx)));
         },
         onPanResponderRelease: (_, g) => {
             Animated.spring(rowScale, { toValue: 1, useNativeDriver: true, speed: 30 }).start();
-            if (g.dx < -SWIPE_THRESHOLD) {
+            if (g.dx > SWIPE_THRESHOLD) {
+                Animated.spring(translateX, {
+                    toValue: ACTION_WIDTH, useNativeDriver: true, speed: 18, bounciness: 3,
+                }).start();
+            } else if (g.dx < -SWIPE_THRESHOLD) {
                 Animated.spring(translateX, {
                     toValue: -ACTION_WIDTH, useNativeDriver: true, speed: 18, bounciness: 3,
                 }).start();
@@ -96,31 +100,48 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
     return (
         <View style={styles.wrap}>
             {/* ── Back: action buttons ── */}
-            <View style={styles.actionRow}>
-                <TouchableOpacity
-                    onPress={() => { close(); setTimeout(() => onEdit?.(item), 150); }}
-                    activeOpacity={0.8}
-                    style={[styles.actionBtn, {
-                        backgroundColor: cyan + '1E',
-                        borderColor: cyan + '44',
-                    }]}
-                >
-                    <Icon name="pencil-outline" size={17} color={cyan} />
-                    <Text style={[styles.actionTxt, { color: cyan }]}>EDIT</Text>
-                </TouchableOpacity>
-
+            {/* ── Back: action buttons ── */}
+            <Animated.View style={[styles.leftActions, {
+                opacity: translateX.interpolate({
+                    inputRange: [0, 20],
+                    outputRange: [0, 1],
+                    extrapolate: 'clamp'
+                })
+            }]}>
                 <TouchableOpacity
                     onPress={() => { close(); setTimeout(() => onDelete?.(item), 150); }}
                     activeOpacity={0.8}
                     style={[styles.actionBtn, {
                         backgroundColor: 'rgba(255,68,68,0.14)',
                         borderColor: 'rgba(255,68,68,0.32)',
+                        width: ACTION_WIDTH,
                     }]}
                 >
                     <Icon name="trash-can-outline" size={17} color="#ff4444" />
                     <Text style={[styles.actionTxt, { color: '#ff4444' }]}>DELETE</Text>
                 </TouchableOpacity>
-            </View>
+            </Animated.View>
+
+            <Animated.View style={[styles.rightActions, {
+                opacity: translateX.interpolate({
+                    inputRange: [-20, 0],
+                    outputRange: [1, 0],
+                    extrapolate: 'clamp'
+                })
+            }]}>
+                <TouchableOpacity
+                    onPress={() => { close(); setTimeout(() => onEdit?.(item), 150); }}
+                    activeOpacity={0.8}
+                    style={[styles.actionBtn, {
+                        backgroundColor: cyan + '1E',
+                        borderColor: cyan + '44',
+                        width: ACTION_WIDTH,
+                    }]}
+                >
+                    <Icon name="pencil-outline" size={17} color={cyan} />
+                    <Text style={[styles.actionTxt, { color: cyan }]}>EDIT</Text>
+                </TouchableOpacity>
+            </Animated.View>
 
             {/* ── Front: card ── */}
             <Animated.View
@@ -144,8 +165,6 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
                         }),
                     ]}
                 >
-                    {/* Priority stripe */}
-                    <PriorityStripe priority={item.priority} />
 
                     <View style={styles.inner}>
                         {/* Title row */}
@@ -257,34 +276,26 @@ export default function TaskCard({ item, onEdit, onDelete, onPress }) {
     );
 }
 
-/* Thin 3px left stripe based on priority */
-function PriorityStripe({ priority }) {
-    const CONFIG = {
-        HIGH: '#f97316',
-        MEDIUM: '#eab308',
-        LOW: '#00cc88',
-        CRITICAL: '#ff4444',
-    };
-    const color = CONFIG[(priority || 'MEDIUM').toUpperCase()] || CONFIG.MEDIUM;
-    return <View style={[styles.stripe, { backgroundColor: color }]} />;
-}
 
 const styles = StyleSheet.create({
     wrap: { marginBottom: 8 },
 
     /* actions */
-    actionRow: {
+    leftActions: {
+        position: 'absolute',
+        left: 0, top: 0, bottom: 0,
+        justifyContent: 'center',
+        paddingVertical: 1,
+    },
+    rightActions: {
         position: 'absolute',
         right: 0, top: 0, bottom: 0,
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: ACTION_WIDTH,
-        paddingLeft: 8,
-        gap: 6,
+        justifyContent: 'center',
+        paddingVertical: 1,
     },
     actionBtn: {
         flex: 1,
-        height: '82%',
+        height: '100%',
         borderRadius: 16,
         borderWidth: 1,
         alignItems: 'center',
@@ -304,16 +315,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         overflow: 'hidden',
     },
-    stripe: {
-        width: 3,
-        alignSelf: 'stretch',
-        borderTopLeftRadius: 18,
-        borderBottomLeftRadius: 18,
-    },
     inner: {
         flex: 1,
         padding: 14,
-        paddingLeft: 12,
+        paddingLeft: 16,
     },
 
     /* title */
