@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getDayCalendar, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../../api/schedule.api';
+import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../../api/schedule.api';
 import { completeTask, undoCompleteTask } from '../../../api/task.api';
 import UniversalTaskCard from '../../../components/common/UniversalTaskCard';
 import { EmptyState } from '../../../components/common/EmptyState';
@@ -77,9 +77,10 @@ export default function ScheduleScreen() {
         if (schedules.length === 0 && !refreshing) setLoading(true);
         try {
             const formattedDate = format(date, 'yyyy-MM-dd');
-            const { data } = await getDayCalendar(formattedDate);
-            const calendarData = data?.data || data;
-            const dayItems = calendarData?.days?.[formattedDate] || [];
+            const { data: response } = await getSchedules({ from: formattedDate, to: formattedDate });
+            // getSchedules returns a flat array in response.data or response
+            const list = response?.data || response;
+            const dayItems = Array.isArray(list) ? list : [];
             // Only show items that are actual schedules (type SCHEDULED)
             const onlySchedules = dayItems.filter(item =>
                 item.type === 'SCHEDULED' ||

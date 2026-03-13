@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UniversalTaskCard from '../../components/common/UniversalTaskCard';
-import { getDayCalendar, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
+import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
 import { completeTask, undoCompleteTask } from '../../api/task.api';
 import { useTheme } from '../../context/ThemeContext';
 import { format } from 'date-fns';
@@ -61,9 +61,10 @@ export default function TodayScreen() {
 
     const fetchToday = async () => {
         try {
-            const { data } = await getDayCalendar(today);
-            const calendarData = data?.data || data;
-            setSchedules(calendarData?.days?.[today] || []);
+            const { data: response } = await getSchedules({ from: today, to: today });
+            // getSchedules returns a flat array in response.data or response
+            const list = response?.data || response;
+            setSchedules(Array.isArray(list) ? list : []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -300,7 +301,7 @@ export default function TodayScreen() {
 
             <CreateScheduleScreen
                 visible={itemToEdit?.type === 'SCHEDULE' ? isScheduleModalOpen : isScheduleModalOpen}
-                scheduleToEdit={itemToEdit?.type === 'SCHEDULE' ? itemToEdit : null}
+                scheduleToEdit={(itemToEdit?.type === 'SCHEDULE' || itemToEdit?.type === 'SCHEDULED') ? itemToEdit : null}
                 preselectedTaskId={preselectedTask?.id}
                 onClose={() => {
                     setIsScheduleModalOpen(false);

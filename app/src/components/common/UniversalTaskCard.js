@@ -6,6 +6,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
 import { format } from 'date-fns';
+import PriorityBadge from './PriorityBadge';
 
 const SWIPE_THRESHOLD = 40;
 const ACTION_WIDTH = 80;
@@ -305,14 +306,7 @@ export default function UniversalTaskCard({
                         </View>
 
                         <View style={styles.metaRight}>
-                            <View style={[
-                                styles.badge,
-                                priority === 'HIGH' ? styles.highBadge : priority === 'LOW' ? styles.lowBadge : styles.medBadge
-                            ]}>
-                                <Text style={priority === 'HIGH' ? styles.highBadgeText : priority === 'LOW' ? styles.lowBadgeText : styles.medBadgeText}>
-                                    {priority}
-                                </Text>
-                            </View>
+                            <PriorityBadge priority={priority} size="sm" />
 
                             <View style={[styles.badge, styles.typeBadge]}>
                                 <Text style={styles.typeBadgeText}>{isScheduleType ? "EVENT" : "TASK"}</Text>
@@ -466,12 +460,6 @@ const styles = StyleSheet.create({
     dueBadgeText: { color: '#f97316', fontSize: 8, fontWeight: '800' },
     missedBadge: { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.2)' },
     missedBadgeText: { color: '#ef4444', fontSize: 8, fontWeight: '800' },
-    highBadge: { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.2)' },
-    highBadgeText: { color: '#ef4444', fontSize: 8, fontWeight: '800' },
-    medBadge: { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)' },
-    medBadgeText: { color: '#f59e0b', fontSize: 8, fontWeight: '800' },
-    lowBadge: { backgroundColor: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.2)' },
-    lowBadgeText: { color: '#3b82f6', fontSize: 8, fontWeight: '800' },
     typeBadge: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' },
     typeBadgeText: { color: 'rgba(255,255,255,0.4)', fontSize: 8, fontWeight: '800' },
     catBadge: { backgroundColor: 'rgba(0,212,255,0.1)', borderColor: 'rgba(0,212,255,0.2)' },
