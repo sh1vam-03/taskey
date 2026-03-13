@@ -3,15 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Refresh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { colors } from '../../theme/colors';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay, subDays, subMonths, addMonths } from 'date-fns';
-import { getDayCalendar, getWeekCalendar, getMonthCalendar, completeSchedule, undoCompleteSchedule } from '../../api/schedule.api';
+import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
 import { completeTask, undoCompleteTask } from '../../api/task.api';
-import TaskCard from '../tasks/components/TaskCard';
-import ScheduleCard from '../schedule/components/ScheduleCard';
+import UniversalTaskCard from '../../components/common/UniversalTaskCard';
+import CreateScheduleScreen from '../schedule/section/CreateScheduleScreen';
 
 export default function CalendarScreen({ navigation }) {
     const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
     const cyan = theme.cyan ?? '#00d4ff';
 
     const [view, setView] = useState('day'); // 'day', 'week', 'month'
@@ -19,12 +21,25 @@ export default function CalendarScreen({ navigation }) {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState(null);
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     useEffect(() => {
         fetchData();
     }, [selectedDate, view]);
 
     const normalizeData = (data) => {
+        // If data is already an array (from getSchedules), just map it
+        if (Array.isArray(data)) {
+            return data.map(item => ({
+                ...item,
+                id: item.id || item._id,
+                date: item.scheduleDate,
+                type: (item.type === "SCHEDULED" || item.type === "SCHEDULE") ? "SCHEDULE" : (item.type === "TASK" || item.type === "UNSCHEDULED") ? "TASK" : item.type,
+            }));
+        }
+
+        // Fallback for old calendar structure if any
         if (!data || !data.days) return [];
         const flattened = [];
         Object.entries(data.days).forEach(([dateStr, items]) => {
@@ -33,7 +48,7 @@ export default function CalendarScreen({ navigation }) {
                     ...item,
                     id: item.id || item._id,
                     date: dateStr,
-                    type: item.type === "SCHEDULED" ? "SCHEDULE" : "TASK",
+                    type: item.type === "SCHEDULED" ? "SCHEDULE" : item.type === "TASK" ? "TASK" : item.type,
                 });
             });
         });
@@ -44,17 +59,20 @@ export default function CalendarScreen({ navigation }) {
         if (!silent) setLoading(true);
         try {
             let res;
-            const dateStr = format(selectedDate, 'yyyy-MM-dd');
-
             if (view === 'day') {
-                res = await getDayCalendar(dateStr);
+                const dateStr = format(selectedDate, 'yyyy-MM-dd');
+                res = await getSchedules({ from: dateStr, to: dateStr });
             } else if (view === 'week') {
-                res = await getWeekCalendar(dateStr);
+                const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+                const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+                res = await getSchedules({ from: format(start, 'yyyy-MM-dd'), to: format(end, 'yyyy-MM-dd') });
             } else {
-                res = await getMonthCalendar(selectedDate.getFullYear(), selectedDate.getMonth() + 1);
+                const start = startOfMonth(selectedDate);
+                const end = endOfMonth(selectedDate);
+                res = await getSchedules({ from: format(start, 'yyyy-MM-dd'), to: format(end, 'yyyy-MM-dd') });
             }
 
-            const raw = res.data?.data || res.data || {};
+            const raw = res.data?.data || res.data || [];
             setEvents(normalizeData(raw));
         } catch (err) {
             console.error(err);
@@ -73,7 +91,7 @@ export default function CalendarScreen({ navigation }) {
         try {
             const isCompleted = item.status === 'COMPLETED';
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
-            if (item.type === 'SCHEDULE') {
+            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
                 isCompleted ? await undoCompleteSchedule(item.id, dateStr) : await completeSchedule(item.id, dateStr);
             } else {
                 isCompleted ? await undoCompleteTask(item.id, dateStr) : await completeTask(item.id, dateStr);
@@ -82,6 +100,35 @@ export default function CalendarScreen({ navigation }) {
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleEdit = (item) => {
+        if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+            setItemToEdit(item);
+            setIsScheduleModalOpen(true);
+        }
+    };
+
+    const handleDelete = async (item) => {
+        alert(
+            'Delete Event',
+            `Are you sure you want to delete "${item.title || item.task?.title || 'this event'}" ? `,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteSchedule(item.id);
+                            fetchData(true);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const renderHeader = () => (
@@ -147,20 +194,19 @@ export default function CalendarScreen({ navigation }) {
         >
             {events.length > 0 ? (
                 events.map((item, idx) => (
-                    item.type === 'SCHEDULE' ? (
-                        <ScheduleCard
-                            key={item.id || idx}
-                            schedule={item}
-                            onToggleComplete={() => handleToggleCompletion(item)}
-                            isToday={isSameDay(new Date(item.date), new Date())}
-                        />
-                    ) : (
-                        <TaskCard
-                            key={item.id || idx}
-                            item={item}
-                            onPress={() => navigation.navigate('TaskDetail', { task: item })}
-                        />
-                    )
+                    <UniversalTaskCard
+                        key={item.id || idx}
+                        item={item}
+                        isToday={isSameDay(new Date(), selectedDate)}
+                        onComplete={() => handleToggleCompletion(item)}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onPress={() => {
+                            if (item.type === 'TASK' || item.type === 'UNSCHEDULED') {
+                                navigation.navigate('TaskDetail', { task: item });
+                            }
+                        }}
+                    />
                 ))
             ) : (
                 <View style={styles.empty}>
@@ -206,10 +252,10 @@ export default function CalendarScreen({ navigation }) {
                                             key={eIdx}
                                             style={[
                                                 styles.weekEventPill,
-                                                { backgroundColor: event.type === 'SCHEDULE' ? cyan + '15' : '#ff444415' }
+                                                { backgroundColor: (event.type === 'SCHEDULE' || event.type === 'SCHEDULED') ? cyan + '15' : '#ff444415' }
                                             ]}
                                         >
-                                            <View style={[styles.weekEventDot, { backgroundColor: event.type === 'SCHEDULE' ? cyan : '#ff4444' }]} />
+                                            <View style={[styles.weekEventDot, { backgroundColor: (event.type === 'SCHEDULE' || event.type === 'SCHEDULED') ? cyan : '#ff4444' }]} />
                                             <Text style={[styles.weekEventText, { color: theme.text }]} numberOfLines={1}>
                                                 {event.title}
                                             </Text>
@@ -276,7 +322,7 @@ export default function CalendarScreen({ navigation }) {
                                                     key={ei}
                                                     style={[
                                                         styles.dot,
-                                                        { backgroundColor: e.type === 'SCHEDULE' ? cyan : '#ff4444' }
+                                                        { backgroundColor: (e.type === 'SCHEDULE' || e.type === 'SCHEDULED') ? cyan : '#ff4444' }
                                                     ]}
                                                 />
                                             ))}
@@ -301,6 +347,20 @@ export default function CalendarScreen({ navigation }) {
                 {view === 'week' && renderWeekView()}
                 {view === 'month' && renderMonthView()}
             </View>
+            <CreateScheduleScreen
+                visible={isScheduleModalOpen}
+                scheduleToEdit={itemToEdit}
+                initialDate={format(selectedDate, 'yyyy-MM-dd')}
+                onClose={() => {
+                    setIsScheduleModalOpen(false);
+                    setItemToEdit(null);
+                }}
+                onCreated={() => {
+                    fetchData(true);
+                    setIsScheduleModalOpen(false);
+                    setItemToEdit(null);
+                }}
+            />
         </SafeAreaView>
     );
 }

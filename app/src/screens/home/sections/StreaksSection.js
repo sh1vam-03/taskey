@@ -131,7 +131,10 @@ function Heatmap({ data }) {
 
     return (
         <View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4 }}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 4 }}>
                 {cols.map((col, ci) => (
                     <View key={ci} style={{ flexDirection: 'column', marginRight: 3 }}>
                         {col.map((day, di) => (
@@ -143,7 +146,7 @@ function Heatmap({ data }) {
                     </View>
                 ))}
             </ScrollView>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
                 <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 1.2, color: mutedColor }}>LESS</Text>
                 <View style={{ flexDirection: 'row', marginHorizontal: 8 }}>
                     {[0, 1, 2, 3, 4].map(l => (
@@ -157,7 +160,7 @@ function Heatmap({ data }) {
 }
 
 /* ─── Main ────────────────────────────────────────────────────────────────── */
-export default function StreaksSection({ refreshing }) {
+export default function StreaksSection({ refreshing, syncVersion }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
@@ -169,7 +172,7 @@ export default function StreaksSection({ refreshing }) {
     const [calendarData, setCalendarData] = useState([]);
 
     const fetchData = async () => {
-        setLoading(true);
+        if (!streakData) setLoading(true);
         try {
             const date = new Date().toLocaleDateString('en-CA');
             const [s, cal] = await Promise.all([
@@ -187,6 +190,7 @@ export default function StreaksSection({ refreshing }) {
 
     useEffect(() => { fetchData(); }, []);
     useEffect(() => { if (refreshing) fetchData(); }, [refreshing]);
+    useEffect(() => { if (syncVersion > 0) fetchData(); }, [syncVersion]);
 
     if (loading) {
         const skelBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';

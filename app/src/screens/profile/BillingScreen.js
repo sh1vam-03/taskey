@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -8,6 +8,7 @@ import { subscribe, createTopUp, verifyTopUp, getUsage, getHistory, getSubscript
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { useAuthStore } from '../../store/auth.store';
 
 // ── DATA MATCHING WEB ───────────────────────────────────────────────────
@@ -78,6 +79,7 @@ const TOP_UPS = [
 ];
 
 export default function BillingScreen({ navigation }) {
+    const { alert } = useAlert();
     const [loadingTopUp, setLoadingTopUp] = useState(false);
     const [loadingPlan, setLoadingPlan] = useState(null);
     const [usage, setUsage] = useState(null);
@@ -124,16 +126,16 @@ export default function BillingScreen({ navigation }) {
             const { data } = await subscribe(planId, cycle);
 
             if (!data.orderId) {
-                Alert.alert('Success', 'Plan updated successfully.');
+                alert('Success', 'Plan updated successfully.');
                 return;
             }
 
             openRazorpay(data, () => {
-                Alert.alert('Success', 'Payment Successful! System upgrading...');
+                alert('Success', 'Payment Successful! System upgrading...');
             });
         } catch (err) {
             console.log(err);
-            Alert.alert('Error', 'Failed to initiate subscription');
+            alert('Error', 'Failed to initiate subscription');
         } finally { setLoadingPlan(null); }
     };
 
@@ -148,19 +150,19 @@ export default function BillingScreen({ navigation }) {
                         razorpay_order_id: res.razorpay_order_id,
                         razorpay_signature: res.razorpay_signature
                     });
-                    Alert.alert('Success', 'Credits added successfully!');
+                    alert('Success', 'Credits added successfully!');
                 } catch (verifyErr) {
-                    Alert.alert('Error', 'Payment verification failed. Please contact support.');
+                    alert('Error', 'Payment verification failed. Please contact support.');
                 }
             });
         } catch (err) {
             console.log(err);
-            Alert.alert('Error', 'Failed to initiate top-up');
+            alert('Error', 'Failed to initiate top-up');
         } finally { setLoadingTopUp(null); }
     };
 
     const handleCancel = () => {
-        Alert.alert(
+        alert(
             'Cancel Subscription',
             'Are you sure you want to cancel? Your access will remain active until the end of the current billing cycle.',
             [
@@ -171,10 +173,10 @@ export default function BillingScreen({ navigation }) {
                     onPress: async () => {
                         try {
                             await cancelSubscription();
-                            Alert.alert('Success', 'Cancellation scheduled. Access remains until cycle end.');
+                            alert('Success', 'Cancellation scheduled. Access remains until cycle end.');
                             loadData();
                         } catch (err) {
-                            Alert.alert('Error', 'Cancellation failed. Please try again.');
+                            alert('Error', 'Cancellation failed. Please try again.');
                         }
                     }
                 }
@@ -186,10 +188,10 @@ export default function BillingScreen({ navigation }) {
         try {
             setLoadingPlan(newPlanId);
             await downgradePlan(newPlanId);
-            Alert.alert('Success', `Plan downgraded to ${newPlanId.replace('_', ' ')}. Effective next cycle.`);
+            alert('Success', `Plan downgraded to ${newPlanId.replace('_', ' ')}. Effective next cycle.`);
             loadData();
         } catch (err) {
-            Alert.alert('Error', 'Downgrade failed. Please try again.');
+            alert('Error', 'Downgrade failed. Please try again.');
         } finally {
             setLoadingPlan(null);
         }
@@ -209,8 +211,8 @@ export default function BillingScreen({ navigation }) {
         };
 
         RazorpayCheckout.open(options)
-            .then(res => { if (onSuccess) onSuccess(res); else Alert.alert('Success', 'Payment successful'); })
-            .catch(err => Alert.alert('Error', `Payment failed: ${err.description || 'Unknown error'}`));
+            .then(res => { if (onSuccess) onSuccess(res); else alert('Success', 'Payment successful'); })
+            .catch(err => alert('Error', `Payment failed: ${err.description || 'Unknown error'}`));
     };
 
     const isNearLimit = currentPlanId === 'FREE' && usage && (

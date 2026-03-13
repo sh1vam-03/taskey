@@ -68,33 +68,45 @@ function MiniRing({ value = 0, max = 100, color, size = 46, stroke = 4 }) {
 }
 
 /* ── premium stat card ────────────────────────────────────────────────────── */
-function StatCard({ label, value, icon, color, ring, ringMax }) {
+/* ── hero metric card (right column) ────────────────────────────────────── */
+function HeroMetricCard({ label, value, suffix, color, icon, ring, ringMax }) {
     const { theme, isDark } = useTheme();
-    const glassBg = isDark ? 'rgba(255,255,255,0.045)' : '#ffffff';
-    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
     return (
-        <View style={[styles.statCard, {
-            backgroundColor: glassBg,
-            borderColor: glassBord,
-        }, !isDark && {
-            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
-        }]}>
-            <View style={styles.statBody}>
-                <View style={styles.statLeft}>
-                    <Text style={[styles.statLabel, { color: theme.textMuted ?? '#888' }]}>
-                        {label.toUpperCase()}
-                    </Text>
-                    <Text style={[styles.statValue, { color: theme.text ?? '#fff' }]}>
-                        {value ?? 0}
-                    </Text>
-                </View>
+        <View style={[styles.heroCard, {
+            backgroundColor: isDark ? color + '12' : '#ffffff',
+            borderColor: isDark ? color + '30' : 'rgba(0,0,0,0.05)',
+        }, Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: isDark ? 8 : 10 },
+                shadowOpacity: isDark ? 0.20 : 0.05,
+                shadowRadius: isDark ? 20 : 15,
+            },
+            android: { elevation: isDark ? 6 : 4 },
+        })]}>
+            <View style={[
+                styles.heroIconBadge,
+                !ring && {
+                    backgroundColor: color + (isDark ? '20' : '16'),
+                    borderColor: color + '38',
+                },
+                ring && { borderWidth: 0 }
+            ]}>
                 {ring
-                    ? <MiniRing value={value ?? 0} max={ringMax ?? 100} color={color} size={46} stroke={4} />
-                    : <View style={[styles.statIcon, { backgroundColor: color + (isDark ? '20' : '16'), borderColor: color + '30' }]}>
-                        <Icon name={icon} size={20} color={color} />
-                    </View>
+                    ? <MiniRing value={value ?? 0} max={ringMax ?? 100} color={color} size={42} stroke={4} />
+                    : <Icon name={icon} size={22} color={color} />
                 }
             </View>
+            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                <Text style={[styles.heroLabel, { color: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.35)' }]}>
+                    {label.toUpperCase()}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 4 }}>
+                    <Text style={[styles.heroNum, { color: theme.text ?? '#fff' }]}>{value}</Text>
+                    {suffix ? <Text style={[styles.heroSuffix, { color }]}>{suffix}</Text> : null}
+                </View>
+            </View>
+            <View style={[styles.heroBlob, { backgroundColor: color }]} pointerEvents="none" />
         </View>
     );
 }
@@ -136,7 +148,7 @@ function TLItem({ item, isLast, onToggle }) {
 
     const isDone = item.status === 'COMPLETED';
     const isMissed = item.status === 'MISSED';
-    const isTask = item.type === 'TASK';
+    const isTask = item.type === 'UNSCHEDULED';
 
     const dotColor = isDone ? '#00cc88' : isMissed ? '#ff4444' : cyan;
     const priColor = PRI[item.priority] || '#888';
@@ -241,7 +253,7 @@ function TLItem({ item, isLast, onToggle }) {
 }
 
 /* ── MAIN ──────────────────────────────────────────────────────────────────── */
-export default function OverviewSection({ refreshing }) {
+export default function OverviewSection({ refreshing, triggerSync }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
@@ -276,32 +288,58 @@ export default function OverviewSection({ refreshing }) {
     useEffect(() => { fetchOverview(); fetchToday(); }, []);
     useEffect(() => { if (refreshing) { fetchOverview(); fetchToday(); } }, [refreshing]);
 
-    /* ── optimistic toggle ── */
+    /* ── optimistic toggle with silent sync ── */
     const handleToggle = useCallback(async (item) => {
         const willComplete = item.status !== 'COMPLETED';
         const date = new Date().toLocaleDateString('en-CA');
+
+        // ① Optimistic Timeline Update
         setTodayData(prev => !prev ? prev : ({
             ...prev,
             timeline: prev.timeline.map(t =>
-                t.id === item.id
+                (t.id === item.id || t.taskId === item.id || t.scheduleId === item.id)
                     ? { ...t, status: willComplete ? 'COMPLETED' : 'PENDING' }
                     : t
             ),
+            stats: {
+                ...prev.stats,
+                completed: Math.max(0, (prev.stats?.completed || 0) + (willComplete ? 1 : -1))
+            }
         }));
+
+        // ② Optimistic Metric Cards Update
+        setOvData(prev => !prev ? prev : ({
+            ...prev,
+            completedTasksCount: Math.max(0, (prev.completedTasksCount || 0) + (willComplete ? 1 : -1))
+        }));
+
         try {
-            if (item.type === 'TASK') {
+            if (item.type === 'UNSCHEDULED') {
                 willComplete
-                    ? await completeTask(item.id, date)
-                    : await undoCompleteTask(item.id, date);
+                    ? await completeTask(item.taskId || item.id, date)
+                    : await undoCompleteTask(item.taskId || item.id, date);
             } else {
                 willComplete
-                    ? await completeSchedule(item.id, date)
-                    : await undoCompleteSchedule(item.id, date);
+                    ? await completeSchedule(item.scheduleId || item.id, date)
+                    : await undoCompleteSchedule(item.scheduleId || item.id, date);
             }
-            const { data: r } = await getToday(date);
-            setTodayData(r.data || r);
-        } catch { fetchToday(); }
-    }, []);
+
+            // ③ Trigger Global Sync EARLIER (updates Performance, Streaks, Behavior in parallel)
+            if (triggerSync) triggerSync();
+
+            // ④ Silent Local Sync
+            const [resTl, resOv] = await Promise.all([
+                getToday(date),
+                getOverview(date)
+            ]);
+            setTodayData(resTl.data?.data || resTl.data);
+            setOvData(resOv.data?.data || resOv.data);
+        } catch (err) {
+            console.warn("Toggle sync failed, reverting...", err);
+            fetchToday(); // Noisy refetch on error to ensure consistency
+            fetchOverview();
+        }
+    }, [cyan, fetchToday, fetchOverview]);
 
     /* ── sorted timeline ── */
     const timelineItems = (todayData?.timeline || [])
@@ -340,40 +378,27 @@ export default function OverviewSection({ refreshing }) {
 
     return (
         <View>
-            {/* ── STAT CARDS ── */}
+            {/* ── METRIC CARDS ── */}
             {loadOv && !refreshing ? (
-                <View style={styles.statGrid}>
-                    {[0, 1, 2, 3].map(i => (
-                        <Skeleton key={i} style={[styles.statCard, { height: 96, margin: 5 }]} />
-                    ))}
+                <View style={styles.cardRow}>
+                    <Skeleton style={[styles.heroCard, { flex: 1 }]} />
+                    <Skeleton style={[styles.heroCard, { flex: 1 }]} />
                 </View>
             ) : (
-                <View style={styles.statGrid}>
-                    <StatCard
+                <View style={styles.cardRow}>
+                    <HeroMetricCard
                         label="Today"
-                        value={ovData?.todayTasks ?? 0}
-                        icon="lightning-bolt-outline"
+                        value={ovData?.todayTasksTotal ?? 0}
                         color={cyan}
+                        icon="lightning-bolt"
                     />
-                    <StatCard
+                    <HeroMetricCard
                         label="Completed"
-                        value={ovData?.completedTasks ?? 0}
+                        value={ovData?.completedTasksCount ?? 0}
                         color="#00cc88"
+                        icon="check-all"
                         ring
-                        ringMax={Math.max(ovData?.todayTasks ?? 1, 1)}
-                    />
-                    <StatCard
-                        label="Behavior Score"
-                        value={ovData?.behaviorScore ?? 0}
-                        color="#a855f7"
-                        ring
-                        ringMax={100}
-                    />
-                    <StatCard
-                        label="Streak"
-                        value={ovData?.currentStreak ?? 0}
-                        icon="fire"
-                        color="#f97316"
+                        ringMax={Math.max(ovData?.todayTasksTotal ?? 1, 1)}
                     />
                 </View>
             )}
@@ -442,31 +467,25 @@ export default function OverviewSection({ refreshing }) {
 
 /* ── styles ─────────────────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-    /* stat grid */
-    statGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginHorizontal: -5,
-        marginBottom: 14,
+    /* symmetric dual-hero card row */
+    cardRow: { flexDirection: 'row', gap: 12, marginHorizontal: -2, marginBottom: 14 },
+
+    /* hero cards */
+    heroCard: {
+        flex: 1, borderRadius: 22, borderWidth: 1,
+        padding: 20, overflow: 'hidden', minHeight: 140,
     },
-    statCard: {
-        flex: 1,
-        minWidth: '45%',
-        borderRadius: 22,
-        borderWidth: 1,
-        overflow: 'hidden',
+    heroIconBadge: {
+        width: 48, height: 48, borderRadius: 16, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center', marginBottom: 10,
     },
-    statBody: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        paddingTop: 12,
+    heroBlob: {
+        position: 'absolute', bottom: -35, right: -35,
+        width: 110, height: 110, borderRadius: 55, opacity: 0.09,
     },
-    statLeft: { flex: 1 },
-    statLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginBottom: 6 },
-    statValue: { fontSize: 28, fontWeight: '900', lineHeight: 30 },
-    statIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+    heroLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
+    heroNum: { fontSize: 48, fontWeight: '900', lineHeight: 50, letterSpacing: -1.5 },
+    heroSuffix: { fontSize: 18, fontWeight: '800' },
 
     /* error */
     errBox: { borderRadius: 22, borderWidth: 1, padding: 28, alignItems: 'center', marginBottom: 12 },

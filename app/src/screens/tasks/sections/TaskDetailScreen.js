@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../../context/ThemeContext';
-import PriorityBadge from '../components/PriorityBadge';
+import PriorityBadge from '../../../components/common/PriorityBadge';
 
 export default function TaskDetailScreen({ route, navigation }) {
     const { task } = route.params || {};

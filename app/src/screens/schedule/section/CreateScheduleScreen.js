@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parse } from 'date-fns';
-import { createSchedule } from '../../../api/schedule.api';
+import { createSchedule, updateSchedule } from '../../../api/schedule.api';
 import { getTasks } from '../../../api/task.api';
 import Button from '../../../components/common/Button';
 import Input from '../../../components/common/Input';
@@ -12,18 +12,19 @@ import { useTheme } from '../../../context/ThemeContext';
 import { typography } from '../../../theme/typography';
 
 // Simple mockup for Time/Date selection inputs for React Native
-export default function CreateScheduleScreen({ visible, onClose, onCreated, preselectedTaskId }) {
+export default function CreateScheduleScreen({ visible, onClose, onCreated, preselectedTaskId, scheduleToEdit, initialDate }) {
     const [tasks, setTasks] = useState([]);
     const [selectedTaskId, setSelectedTaskId] = useState(preselectedTaskId || '');
-    const [date, setDate] = useState('2026-03-09'); // mockup value
-    const [startTime, setStartTime] = useState('09:00:00'); // mockup value
-    const [endTime, setEndTime] = useState('10:00:00'); // mockup value
+    const [date, setDate] = useState(initialDate || format(new Date(), 'yyyy-MM-dd'));
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('10:00');
     const [recurrence, setRecurrence] = useState('NONE');
     const [repeatUntil, setRepeatUntil] = useState('');
     const [weeklyDays, setWeeklyDays] = useState([]); // 0-6 array
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [pickerMode, setPickerMode] = useState(null); // 'date' | 'start' | 'end' | 'repeatUntil'
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
@@ -43,6 +44,56 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
     }, [preselectedTaskId]);
 
     useEffect(() => {
+        if (initialDate && !scheduleToEdit) {
+            setDate(initialDate);
+        }
+    }, [initialDate, scheduleToEdit]);
+
+    // Helper to extract YYYY-MM-DD from various formats
+    const toYMD = (d) => {
+        if (!d) return '';
+        try {
+            if (typeof d === 'string' && d.length >= 10) return d.split('T')[0];
+            const dateObj = new Date(d);
+            if (isNaN(dateObj.getTime())) return '';
+            return dateObj.toISOString().split('T')[0];
+        } catch (e) {
+            return '';
+        }
+    };
+
+    useEffect(() => {
+        if (visible) {
+            if (scheduleToEdit) {
+                // Populate for editing
+                const tId = scheduleToEdit.taskId || scheduleToEdit.task?.id || '';
+                setSelectedTaskId(tId);
+
+                const sDate = toYMD(scheduleToEdit.scheduleDate || scheduleToEdit.startScheduleDate);
+                setDate(sDate || (initialDate || format(new Date(), 'yyyy-MM-dd')));
+
+                // Ensure time is only HH:mm
+                const cleanTime = (t) => (t && typeof t === 'string') ? t.substring(0, 5) : null;
+                setStartTime(cleanTime(scheduleToEdit.startTime) || '09:00');
+                setEndTime(cleanTime(scheduleToEdit.endTime) || '10:00');
+                setRecurrence(scheduleToEdit.recurrence || 'NONE');
+
+                setRepeatUntil(toYMD(scheduleToEdit.repeatUntil));
+                setWeeklyDays(scheduleToEdit.repeatOnDays || []);
+            } else {
+                // Reset for creation
+                setSelectedTaskId(preselectedTaskId || '');
+                setDate(initialDate || format(new Date(), 'yyyy-MM-dd'));
+                setStartTime('09:00');
+                setEndTime('10:00');
+                setRecurrence('NONE');
+                setRepeatUntil('');
+                setWeeklyDays([]);
+            }
+        }
+    }, [scheduleToEdit, visible, preselectedTaskId, initialDate]);
+
+    useEffect(() => {
         if (visible) {
             fetchTasks();
         }
@@ -50,8 +101,10 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
 
     const fetchTasks = async () => {
         try {
-            const { data } = await getTasks();
-            setTasks(data.filter(t => !t.dueDate)); // plan says task with dueDate = null
+            const response = await getTasks();
+            // Backend returns { tasks: [], meta: {} }
+            const tasksList = response.data.tasks || [];
+            setTasks(tasksList.filter(t => !t.dueDate)); // plan says task with dueDate = null
         } catch (err) {
             console.log(err);
         }
@@ -77,11 +130,15 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
             if (recurrence !== 'NONE' && repeatUntil) {
                 data.repeatUntil = repeatUntil;
             }
-            await createSchedule(data);
+            if (scheduleToEdit) {
+                await updateSchedule(scheduleToEdit.id, data);
+            } else {
+                await createSchedule(data);
+            }
             onCreated();
             handleClose();
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to create schedule');
+            setError(err.response?.data?.message || `Failed to ${scheduleToEdit ? 'update' : 'create'} schedule`);
         } finally {
             setLoading(false);
         }
@@ -102,6 +159,34 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
         );
     };
 
+    const selectedTask = tasks.find(t => t.id === selectedTaskId) || (
+        scheduleToEdit && (scheduleToEdit.taskId === selectedTaskId || scheduleToEdit.task?.id === selectedTaskId)
+            ? { id: selectedTaskId, title: scheduleToEdit.title || 'Selected Task' }
+            : null
+    );
+
+    // Helper for safe date formatting from YYYY-MM-DD
+    const safeFormat = (dateStr, formatStr) => {
+        const ymd = toYMD(dateStr);
+        if (!ymd) return '';
+        const [y, m, d] = ymd.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        if (isNaN(dateObj.getTime())) return '';
+        return format(dateObj, formatStr);
+    };
+
+    // Helper for safe time formatting
+    const safeFormatTime = (timeStr) => {
+        try {
+            if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return '00:00 AM';
+            const parsed = parse(timeStr.substring(0, 5), 'HH:mm', new Date());
+            if (isNaN(parsed.getTime())) return '00:00 AM';
+            return format(parsed, 'hh:mm a');
+        } catch (e) {
+            return '00:00 AM';
+        }
+    };
+
     return (
         <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.overlay}>
@@ -120,7 +205,9 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                     ]}>
                         <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)' }]} />
                         <View style={styles.header}>
-                            <Text style={[styles.headerTitle, { color: theme.text }]}>Create Event</Text>
+                            <Text style={[styles.headerTitle, { color: theme.text }]}>
+                                {scheduleToEdit ? 'Edit Event' : 'Create Event'}
+                            </Text>
                             <TouchableOpacity
                                 onPress={handleClose}
                                 activeOpacity={0.75}
@@ -133,28 +220,18 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
                             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                            <Text style={[styles.label, { color: theme.text }]}>Select a Task</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.taskScroll}>
-                                {tasks.length > 0 ? tasks.map(t => (
-                                    <TouchableOpacity
-                                        key={t._id}
-                                        style={[
-                                            styles.taskChip,
-                                            {
-                                                backgroundColor: selectedTaskId === t._id ? cyan + (isDark ? '1E' : '14') : glassBg,
-                                                borderColor: selectedTaskId === t._id ? cyan + '55' : glassBord
-                                            }
-                                        ]}
-                                        onPress={() => setSelectedTaskId(t._id)}
-                                    >
-                                        <Text style={[styles.taskText, { color: selectedTaskId === t._id ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }, selectedTaskId === t._id && { fontWeight: 'bold' }]}>
-                                            {t.title}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )) : (
-                                    <Text style={[styles.emptyTasksText, { color: theme.textDim }]}>No tasks available to schedule.</Text>
-                                )}
-                            </ScrollView>
+                            <Text style={[styles.label, { color: theme.text }]}>SELECT A TASK</Text>
+                            <TouchableOpacity
+                                onPress={() => setIsTaskModalOpen(true)}
+                                activeOpacity={0.7}
+                                style={[styles.pickerTrigger, { backgroundColor: inputBg, borderColor: inputBord, marginBottom: 20 }]}
+                            >
+                                <Icon name="clipboard-text-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
+                                <Text style={{ color: selectedTask ? theme.text : (isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'), fontWeight: '600', flex: 1 }}>
+                                    {selectedTask ? selectedTask.title : 'Select a task...'}
+                                </Text>
+                                <Icon name="chevron-down" size={20} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'} />
+                            </TouchableOpacity>
 
                             {/* Native Pickers triggers */}
                             <View style={{ gap: 12, marginBottom: 20 }}>
@@ -167,7 +244,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                     >
                                         <Icon name="calendar" size={18} color={cyan} style={{ marginRight: 12 }} />
                                         <Text style={{ color: theme.text, fontWeight: '600' }}>
-                                            {format(new Date(date), 'PPP')}
+                                            {safeFormat(date, 'PPP')}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
@@ -182,7 +259,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         >
                                             <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
                                             <Text style={{ color: theme.text, fontWeight: '600' }}>
-                                                {format(parse(startTime, 'HH:mm:ss', new Date()), 'hh:mm a')}
+                                                {safeFormatTime(startTime)}
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
@@ -196,7 +273,7 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         >
                                             <Icon name="clock-outline" size={18} color={cyan} style={{ marginRight: 12 }} />
                                             <Text style={{ color: theme.text, fontWeight: '600' }}>
-                                                {format(parse(endTime, 'HH:mm:ss', new Date()), 'hh:mm a')}
+                                                {safeFormatTime(endTime)}
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
@@ -208,8 +285,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                     value={
                                         pickerMode === 'date' ? new Date(date) :
                                             pickerMode === 'repeatUntil' ? (repeatUntil ? new Date(repeatUntil) : new Date()) :
-                                                pickerMode === 'start' ? parse(startTime, 'HH:mm:ss', new Date()) :
-                                                    parse(endTime, 'HH:mm:ss', new Date())
+                                                pickerMode === 'start' ? parse(startTime, 'HH:mm', new Date()) :
+                                                    parse(endTime, 'HH:mm', new Date())
                                     }
                                     mode={(pickerMode === 'date' || pickerMode === 'repeatUntil') ? 'date' : 'time'}
                                     is24Hour={false}
@@ -219,8 +296,8 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                         if (selectedDate) {
                                             if (pickerMode === 'date') setDate(format(selectedDate, 'yyyy-MM-dd'));
                                             else if (pickerMode === 'repeatUntil') setRepeatUntil(format(selectedDate, 'yyyy-MM-dd'));
-                                            else if (pickerMode === 'start') setStartTime(format(selectedDate, 'HH:mm:ss'));
-                                            else setEndTime(format(selectedDate, 'HH:mm:ss'));
+                                            else if (pickerMode === 'start') setStartTime(format(selectedDate, 'HH:mm'));
+                                            else setEndTime(format(selectedDate, 'HH:mm'));
                                         }
                                     }}
                                 />
@@ -278,14 +355,14 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                                     >
                                         <Icon name="calendar-range" size={18} color={repeatUntil ? cyan : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)')} style={{ marginRight: 12 }} />
                                         <Text style={{ color: repeatUntil ? theme.text : (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'), fontWeight: '600' }}>
-                                            {repeatUntil ? format(new Date(repeatUntil), 'PPP') : 'Optional end date'}
+                                            {repeatUntil ? safeFormat(repeatUntil, 'PPP') : 'Optional end date'}
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
 
                             <Button
-                                title="Save Event"
+                                title={scheduleToEdit ? "Update Event" : "Save Event"}
                                 onPress={handleSave}
                                 loading={loading}
                                 style={{
@@ -309,6 +386,47 @@ export default function CreateScheduleScreen({ visible, onClose, onCreated, pres
                     </View>
                 </KeyboardAvoidingView>
             </View>
+
+            {/* Task Selection Modal */}
+            <Modal visible={isTaskModalOpen} animationType="fade" transparent>
+                <View style={styles.overlay}>
+                    <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setIsTaskModalOpen(false)} />
+                    <View style={[styles.taskPickerSheet, { backgroundColor: sheetBg, borderColor: sheetBord, paddingBottom: insets.bottom + 20 }]}>
+                        <View style={styles.header}>
+                            <Text style={[styles.headerTitle, { color: theme.text, fontSize: 18 }]}>Select Task</Text>
+                            <TouchableOpacity onPress={() => setIsTaskModalOpen(false)} style={styles.closeBtn}>
+                                <Icon name="close" size={18} color={theme.textDim} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {tasks.length > 0 ? tasks.map(t => (
+                                <TouchableOpacity
+                                    key={t.id}
+                                    onPress={() => { setSelectedTaskId(t.id); setIsTaskModalOpen(false); }}
+                                    style={[
+                                        styles.taskPickerItem,
+                                        {
+                                            backgroundColor: selectedTaskId === t.id ? cyan + '1A' : 'transparent',
+                                            borderColor: selectedTaskId === t.id ? cyan + '4D' : glassBord
+                                        }
+                                    ]}
+                                >
+                                    <Icon
+                                        name={selectedTaskId === t.id ? "check-circle" : "circle-outline"}
+                                        size={20}
+                                        color={selectedTaskId === t.id ? cyan : theme.textDim}
+                                    />
+                                    <Text style={[styles.taskPickerText, { color: selectedTaskId === t.id ? cyan : theme.text, fontWeight: selectedTaskId === t.id ? '700' : '500' }]}>
+                                        {t.title}
+                                    </Text>
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={[styles.emptyTasksText, { color: theme.textDim, textAlign: 'center', marginTop: 30 }]}>No tasks available.</Text>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </Modal>
     );
 }
@@ -369,4 +487,26 @@ const styles = StyleSheet.create({
     dayCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     dayText: { fontWeight: 'bold' },
     errorText: { color: '#ef4444', marginBottom: 16 },
+    taskPickerSheet: {
+        width: '100%',
+        maxHeight: '70%',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        borderTopWidth: 1,
+        paddingHorizontal: 22,
+        paddingTop: 8,
+    },
+    taskPickerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 8,
+        gap: 12,
+    },
+    taskPickerText: {
+        fontSize: 14,
+    },
 });

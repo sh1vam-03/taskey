@@ -219,7 +219,7 @@ function DayStrip({ selectedDate, onSelect }) {
 }
 
 /* ─── Main section ────────────────────────────────────────────────────────── */
-export default function BehaviorSection({ refreshing }) {
+export default function BehaviorSection({ refreshing, syncVersion }) {
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
 
@@ -240,7 +240,7 @@ export default function BehaviorSection({ refreshing }) {
     const [chartPeriod, setChartPeriod] = useState(7); // default 7 days like web
 
     const fetchAll = async () => {
-        setLoading(true);
+        if (!summary) setLoading(true);
         setDetailsLoading(true);
         try {
             const [sum, log, explain, latest] = await Promise.all([
@@ -290,6 +290,8 @@ export default function BehaviorSection({ refreshing }) {
     useEffect(() => { fetchAll(); }, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (refreshing) fetchAll(); }, [refreshing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { if (syncVersion > 0) fetchAll(); }, [syncVersion]);
 
     const handleDaySelect = (date) => { setSelectedDate(date); loadDay(date); };
 

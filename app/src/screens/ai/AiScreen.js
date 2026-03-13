@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
     KeyboardAvoidingView, Platform, Animated, Dimensions,
-    TouchableWithoutFeedback, Keyboard, StatusBar, ScrollView, Alert,
+    TouchableWithoutFeedback, Keyboard, StatusBar, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
@@ -16,6 +16,7 @@ import { useStream } from '../../hooks/useStream';
 import ChatBubble from './components/ChatBubble';
 import AiSettingsModal from './components/AiSettingsModal';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -105,6 +106,7 @@ export default function AiScreen() {
 
     const { messages, isStreaming, streamMessage, initializeMessages } = useStream();
     const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
     const navigation = useNavigation();
 
     const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
@@ -212,7 +214,7 @@ export default function AiScreen() {
         } else {
             Keyboard.dismiss();
 
-            Alert.alert(
+            alert(
                 'Voice Module Required',
                 'Tasktime AI voice requires a native audio module (e.g. @react-native-voice/voice or expo-av) which is not yet installed in this build. \n\nVoice input is being simulated.',
                 [{ text: 'OK' }]

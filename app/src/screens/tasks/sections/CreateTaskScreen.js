@@ -49,7 +49,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
             setTitle(t.title || '');
             setDescription(t.description || '');
             setPriority(t.priority || 'MEDIUM');
-            setCategoryId(t.categoryId || t.category?.id || t.category?._id || '');
+            setCategoryId(t.categoryId || t.category?.id || '');
             setDueDate(t.dueDate ? t.dueDate.split('T')[0] : '');
         }
     }, [route?.params?.task]);
@@ -180,7 +180,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                                     </TouchableOpacity>
                                     {categories.map(c => (
                                         <TouchableOpacity
-                                            key={c.id || c._id}
+                                            key={c.id}
                                             style={[
                                                 styles.categoryChip,
                                                 {
@@ -188,7 +188,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                                                     borderColor: categoryId === (c.id || c._id) ? cyan + '55' : glassBord
                                                 }
                                             ]}
-                                            onPress={() => setCategoryId(c.id || c._id)}
+                                            onPress={() => setCategoryId(c.id)}
                                         >
                                             <Text style={[styles.categoryText, { color: categoryId === (c.id || c._id) ? cyan : (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.32)') }, categoryId === (c.id || c._id) && { fontWeight: 'bold' }]}>{c.name}</Text>
                                         </TouchableOpacity>
@@ -222,7 +222,7 @@ export default function CreateTaskScreen({ navigation, route, visible, onClose, 
                                                 icon: "circle"
                                             });
                                             const newCat = response.data?.data || response.data;
-                                            setCategoryId(newCat.id || newCat._id);
+                                            setCategoryId(newCat.id);
                                             setIsCreatingCategory(false);
                                             setNewCategoryName('');
                                             fetchCategories();
