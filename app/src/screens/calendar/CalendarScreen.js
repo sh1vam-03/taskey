@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Refresh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { colors } from '../../theme/colors';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay, subDays, subMonths, addMonths } from 'date-fns';
 import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
@@ -12,6 +13,7 @@ import CreateScheduleScreen from '../schedule/section/CreateScheduleScreen';
 
 export default function CalendarScreen({ navigation }) {
     const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
     const cyan = theme.cyan ?? '#00d4ff';
 
     const [view, setView] = useState('day'); // 'day', 'week', 'month'
@@ -108,14 +110,25 @@ export default function CalendarScreen({ navigation }) {
     };
 
     const handleDelete = async (item) => {
-        try {
-            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
-                await deleteSchedule(item.id);
-                fetchData(true);
-            }
-        } catch (err) {
-            console.error(err);
-        }
+        alert(
+            'Delete Event',
+            `Are you sure you want to delete "${item.title || item.task?.title || 'this event'}" ? `,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteSchedule(item.id);
+                            fetchData(true);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const renderHeader = () => (

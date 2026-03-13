@@ -25,6 +25,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UniversalTaskCard from '../../components/common/UniversalTaskCard';
 import { completeSchedule, undoCompleteSchedule } from '../../api/schedule.api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { EmptyState } from '../../components/common/EmptyState';
 import API from '../../api/client';
 
@@ -94,69 +95,7 @@ function SectionLabel({ icon, iconColor, label, count, isDark }) {
 }
 
 
-/* ── Delete confirm sheet ─────────────────────────────────────────────────── */
-function DeleteSheet({ task, onConfirm, onCancel, isDark, deleting }) {
-    if (!task) return null;
-    const sheetBg = isDark ? 'rgba(10,10,14,0.98)' : 'rgba(250,250,255,0.98)';
-    const sheetBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
-    return (
-        <View style={[StyleSheet.absoluteFill, { zIndex: 998 }]} pointerEvents="box-none">
-            <TouchableOpacity
-                style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.48)' }]}
-                onPress={onCancel}
-                activeOpacity={1}
-            />
-            <View style={[styles.deleteSheet, { backgroundColor: sheetBg, borderColor: sheetBord }]}>
-                <View style={[styles.handle, {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.13)',
-                }]} />
-                <View style={styles.deleteIconWrap}>
-                    <Icon name="trash-can-outline" size={28} color="#ff4444" />
-                </View>
-                <Text style={[styles.deleteTitle, { color: isDark ? '#fff' : '#000' }]}>
-                    Delete Task
-                </Text>
-                <Text
-                    style={[styles.deleteSub, { color: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.38)' }]}
-                    numberOfLines={2}
-                >
-                    Delete "{task.title}"?{'\n'}This action cannot be undone.
-                </Text>
-                <View style={styles.deleteActions}>
-                    <TouchableOpacity
-                        onPress={onCancel}
-                        style={[styles.cancelBtn, {
-                            borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)',
-                        }]}
-                    >
-                        <Text style={[styles.cancelTxt, {
-                            color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.40)',
-                        }]}>
-                            Cancel
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={onConfirm}
-                        disabled={deleting}
-                        style={[styles.confirmBtn, {
-                            opacity: deleting ? 0.6 : 1,
-                            ...Platform.select({
-                                ios: {
-                                    shadowColor: '#ff4444', shadowOffset: { width: 0, height: 5 },
-                                    shadowOpacity: 0.30, shadowRadius: 12,
-                                }
-                            }),
-                        }]}
-                    >
-                        <Text style={styles.confirmTxt}>
-                            {deleting ? 'Deleting…' : 'Delete'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </View>
-    );
-}
+// DeleteSheet removed in favor of global Alert system
 
 /* ── Pagination ───────────────────────────────────────────────────────────── */
 function Pagination({ page, totalPages, onPrev, onNext, onPage, isDark, cyan, glassBg, glassBord }) {
@@ -223,6 +162,7 @@ function Pagination({ page, totalPages, onPrev, onNext, onPage, isDark, cyan, gl
 export default function TasksScreen({ navigation }) {
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
     const cyan = theme.cyan ?? '#00d4ff';
 
     /* state */
@@ -237,9 +177,6 @@ export default function TasksScreen({ navigation }) {
     const [filterPriority, setFilterPriority] = useState('ALL');
     const [filterCategory, setFilterCategory] = useState('ALL');
     const [showArchived, setShowArchived] = useState(false);
-
-    const [deleteTask, setDeleteTask] = useState(null);
-    const [deleting, setDeleting] = useState(false);
 
     const debounceRef = useRef(null);
 
@@ -315,15 +252,26 @@ export default function TasksScreen({ navigation }) {
     };
 
     /* ── delete ── */
-    const handleDelete = async () => {
-        if (!deleteTask) return;
-        setDeleting(true);
-        try {
-            await API.delete(`/task/${deleteTask.id}`);
-            setDeleteTask(null);
-            fetchTasks({ pg: page, silent: true });
-        } catch { /* toast */ }
-        finally { setDeleting(false); }
+    const handleDelete = async (task) => {
+        alert(
+            'Delete Task',
+            `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await API.delete(`/task/${task.id}`);
+                            fetchTasks({ pg: page, silent: true });
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     /* ── grouped tasks ── */
@@ -533,7 +481,7 @@ export default function TasksScreen({ navigation }) {
                                         item={task}
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
-                                        onDelete={t => setDeleteTask(t)}
+                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
@@ -555,7 +503,7 @@ export default function TasksScreen({ navigation }) {
                                         item={task}
                                         onPress={t => navigation.navigate('TaskDetail', { task: t })}
                                         onEdit={t => navigation.navigate('CreateTask', { task: t })}
-                                        onDelete={t => setDeleteTask(t)}
+                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
@@ -600,15 +548,6 @@ export default function TasksScreen({ navigation }) {
                 <View style={styles.fabShimmer} />
                 <Icon name="plus" size={26} color="#000" />
             </TouchableOpacity>
-
-            {/* ── Delete confirm ── */}
-            <DeleteSheet
-                task={deleteTask}
-                onConfirm={handleDelete}
-                onCancel={() => setDeleteTask(null)}
-                isDark={isDark}
-                deleting={deleting}
-            />
         </View>
     );
 }
@@ -729,32 +668,5 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.42)', borderRadius: 1,
     },
 
-    /* delete sheet */
-    deleteSheet: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        borderTopLeftRadius: 28, borderTopRightRadius: 28,
-        borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
-        paddingHorizontal: 28, paddingTop: 8, paddingBottom: 40,
-        alignItems: 'center',
-    },
-    handle: {
-        width: 36, height: 4, borderRadius: 2,
-        alignSelf: 'center', marginTop: 10, marginBottom: 24,
-    },
-    deleteIconWrap: {
-        width: 66, height: 66, borderRadius: 22,
-        backgroundColor: 'rgba(255,68,68,0.12)', borderWidth: 1,
-        borderColor: 'rgba(255,68,68,0.26)',
-        alignItems: 'center', justifyContent: 'center', marginBottom: 16,
-    },
-    deleteTitle: { fontSize: 18, fontWeight: '900', marginBottom: 8 },
-    deleteSub: { fontSize: 13, fontWeight: '500', textAlign: 'center', lineHeight: 19, marginBottom: 28 },
-    deleteActions: { flexDirection: 'row', gap: 12, width: '100%' },
-    cancelBtn: {
-        flex: 1, height: 52, borderRadius: 16, borderWidth: 1,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    cancelTxt: { fontSize: 14, fontWeight: '700' },
-    confirmBtn: { flex: 2, height: 52, borderRadius: 16, backgroundColor: '#ff4444', alignItems: 'center', justifyContent: 'center' },
     confirmTxt: { color: '#fff', fontSize: 15, fontWeight: '900' },
 });

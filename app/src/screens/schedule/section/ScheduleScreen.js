@@ -10,6 +10,7 @@ import { completeTask, undoCompleteTask } from '../../../api/task.api';
 import UniversalTaskCard from '../../../components/common/UniversalTaskCard';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { useTheme } from '../../../context/ThemeContext';
+import { useAlert } from '../../../context/AlertContext';
 import { typography } from '../../../theme/typography';
 import { format, addDays, startOfWeek, isToday } from 'date-fns';
 import CreateScheduleScreen from './CreateScheduleScreen';
@@ -49,6 +50,7 @@ function SkeletonList() {
 export default function ScheduleScreen() {
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
     const cyan = theme.cyan ?? '#00d4ff';
     const textColor = theme.text ?? '#fff';
 
@@ -126,12 +128,25 @@ export default function ScheduleScreen() {
     };
 
     const handleDelete = async (item) => {
-        try {
-            await deleteSchedule(item.id);
-            fetchSchedule(selectedDate);
-        } catch (e) {
-            console.error(e);
-        }
+        alert(
+            'Delete Schedule',
+            `Are you sure you want to delete "${item.title || item.task?.title || 'this item'}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteSchedule(item.id);
+                            fetchSchedule(selectedDate);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const { pending, missed, completed } = useMemo(() => {

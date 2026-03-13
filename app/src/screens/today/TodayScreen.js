@@ -9,6 +9,7 @@ import UniversalTaskCard from '../../components/common/UniversalTaskCard';
 import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
 import { completeTask, undoCompleteTask } from '../../api/task.api';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { format } from 'date-fns';
 import { EmptyState } from '../../components/common/EmptyState';
 import CreateScheduleScreen from '../schedule/section/CreateScheduleScreen';
@@ -47,6 +48,7 @@ function SectionLabel({ icon, iconColor, label, count, isDark }) {
 export default function TodayScreen() {
     const insets = useSafeAreaInsets();
     const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
     const cyan = theme.cyan ?? '#00d4ff';
     const textColor = theme.text ?? '#fff';
 
@@ -112,12 +114,25 @@ export default function TodayScreen() {
     };
 
     const handleDelete = async (item) => {
-        try {
-            await deleteSchedule(item.id);
-            fetchToday();
-        } catch (e) {
-            console.error(e);
-        }
+        alert(
+            'Delete Schedule',
+            `Are you sure you want to delete "${item.title || item.task?.title || 'this item'}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteSchedule(item.id);
+                            fetchToday();
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const nowStr = format(new Date(), 'HH:mm');
