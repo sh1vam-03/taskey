@@ -332,14 +332,16 @@ export default function OverviewSection({ refreshing, triggerSync }) {
             ),
             stats: {
                 ...prev.stats,
-                completed: Math.max(0, (prev.stats?.completed || 0) + (willComplete ? 1 : -1))
+                completed: Math.max(0, (prev.stats?.completed || 0) + (willComplete ? 1 : -1)),
+                pending: Math.max(0, (prev.stats?.pending || 0) + (willComplete ? -1 : 1))
             }
         }));
 
         // ② Optimistic Metric Cards Update
         setOvData(prev => !prev ? prev : ({
             ...prev,
-            completedTasksCount: Math.max(0, (prev.completedTasksCount || 0) + (willComplete ? 1 : -1))
+            completedTasksCount: Math.max(0, (prev.completedTasksCount || 0) + (willComplete ? 1 : -1)),
+            todayTasksCount: Math.max(0, (prev.todayTasksCount || 0) + (willComplete ? -1 : 1))
         }));
 
         try {
