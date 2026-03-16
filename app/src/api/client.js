@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Storage } from '../utils/storage';
 import { API_BASE_URL } from '../utils/constants';
+import { useAuthStore } from '../store/auth.store';
 
 const client = axios.create({
     baseURL: API_BASE_URL,
@@ -60,8 +61,7 @@ client.interceptors.response.use(
                 return client(original);
             } catch (err) {
                 processQueue(err, null);
-                Storage.clear();
-                // Note: auth.store will need to listen to storage clear or trigger logout
+                useAuthStore.getState().logout();
             } finally {
                 isRefreshing = false;
             }
