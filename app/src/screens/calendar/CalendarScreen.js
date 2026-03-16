@@ -192,8 +192,6 @@ export default function CalendarScreen({ navigation }) {
                         item={item}
                         isToday={isSameDay(new Date(), selectedDate)}
                         onComplete={() => handleToggleCompletion(item)}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
                         onPress={() => {
                             if (item.type === 'TASK' || item.type === 'UNSCHEDULED') {
                                 navigation.navigate('TaskDetail', { task: item });
