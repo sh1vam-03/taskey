@@ -188,7 +188,7 @@ export default function CalendarScreen({ navigation }) {
             {events.length > 0 ? (
                 events.map((item, idx) => (
                     <UniversalTaskCard
-                        key={item.id || idx}
+                        key={`${item.id}-${item.date}-${idx}`}
                         item={item}
                         isToday={isSameDay(new Date(), selectedDate)}
                         onComplete={() => handleToggleCompletion(item)}
