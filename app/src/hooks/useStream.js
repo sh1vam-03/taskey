@@ -6,84 +6,143 @@ import { API_BASE_URL } from '../utils/constants';
 export function useStream() {
     const [messages, setMessages] = useState([]);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [streamingContent, setStreamingContent] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState(null);
 
-    // Set initial text messages before stream
     const initializeMessages = useCallback((initialMessages) => {
-        setMessages(initialMessages);
+        setMessages(Array.isArray(initialMessages) ? initialMessages : []);
     }, []);
 
-    const streamMessage = useCallback((conversationId, prompt, selectedModel) => {
-        if (!prompt.trim() || !conversationId) return;
+    // Generic message adder for optimistic UI
+    const addMessage = useCallback((msg) => {
+        setMessages(prev => [...prev, msg]);
+    }, []);
 
-        // Add user message to UI immediately
-        const userMsg = { id: Date.now(), role: 'user', content: prompt };
-        // Add empty assistant message that will be filled by stream
-        const assistantMsgId = Date.now() + 1;
-        const assistantMsg = {
-            id: assistantMsgId,
-            role: 'assistant',
-            content: '',
-            isStreaming: true,
+    const streamMessage = useCallback((conversationId, prompt, selectedModel, options = {}) => {
+        const { onTitle, onWarning, onToken, onDone, onError } = options;
+        if (!conversationId) return;
+
+        // Prevent overlapping streams
+        if (isStreaming || isSending) {
+            console.log('[useStream] Guard: Stream already in progress');
+            return;
+        }
+
+        const url = `${API_BASE_URL}/ai/conversations/${conversationId}/message?stream=true`;
+
+        const data = {
+            message: prompt,
+            stream: true,
+            mode: options.mode || 'TEXT',
             model: selectedModel
         };
 
-        setMessages(prev => [...prev, userMsg, assistantMsg]);
         setIsStreaming(true);
+        setIsSending(true);
+        setStreamingContent('');
         setError(null);
 
-        const token = Storage.getAccessToken();
-        const url = `${API_BASE_URL}/ai/conversations/${conversationId}/stream`;
+        // Note: User message is now added optimistically by the screen using addMessage()
 
-        // React Native SSE
+        const token = Storage.getAccessToken();
         const es = new EventSource(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`
+                'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ prompt, model: selectedModel })
+            body: JSON.stringify(data),
+            timeout: 60000,
+            autoReconnect: false
+        });
+
+        let accumulated = '';
+
+        const cleanup = () => {
+            es.close();
+            setIsStreaming(false);
+            setIsSending(false);
+            setStreamingContent('');
+        };
+
+        es.addEventListener('open', () => {
+            console.log('SSE connection opened');
         });
 
         es.addEventListener('message', (event) => {
+            if (event.data === '[DONE]') {
+                cleanup();
+
+                // Finalize: Add AI message to persistent list
+                const aiMsg = {
+                    id: `ai-${Date.now()}`,
+                    role: 'assistant',
+                    content: accumulated,
+                    model: selectedModel,
+                    createdAt: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, aiMsg]);
+
+                if (onDone) onDone(accumulated);
+                return;
+            }
+
             try {
-                if (event.data === '[DONE]') {
-                    es.close();
-                    setIsStreaming(false);
-                    setMessages(prev => prev.map(m =>
-                        m.id === assistantMsgId ? { ...m, isStreaming: false } : m
-                    ));
-                    return;
+                const parsed = JSON.parse(event.data);
+
+                if (parsed.token) {
+                    accumulated += parsed.token;
+                    setStreamingContent(accumulated);
+                    if (onToken) onToken(parsed.token, accumulated);
                 }
 
-                const parsed = JSON.parse(event.data);
-                if (parsed.content) {
-                    setMessages(prev => prev.map(m => {
-                        if (m.id === assistantMsgId) {
-                            return { ...m, content: m.content + parsed.content };
-                        }
-                        return m;
-                    }));
+                if (parsed.title && onTitle) {
+                    onTitle(parsed.title);
                 }
-            } catch (err) {
-                console.error('SSE Error processing chunk', err);
+
+                if (parsed.warning && onWarning) {
+                    onWarning(parsed.warning);
+                }
+
+                if (parsed.error) {
+                    console.error('SSE Logic Error:', parsed.error);
+                    setError(parsed.error);
+                    cleanup();
+                    if (onError) onError(parsed.error);
+                }
+            } catch (e) {
+                console.log('SSE Parse Error:', e);
             }
         });
 
         es.addEventListener('error', (event) => {
-            console.error('SSE event error', event);
-            setError('Connection error');
-            setIsStreaming(false);
-            es.close();
-            setMessages(prev => prev.map(m =>
-                m.id === assistantMsgId ? { ...m, isStreaming: false } : m
-            ));
+            console.error('SSE Connection Error:', event);
+
+            let msg = 'Connection interrupted';
+            // Detect 401 Unauthorized (Expired Token) on mobile
+            if (event.xhrStatus === 401 || (event.message && event.message.includes('401'))) {
+                msg = 'Session expired. Please try sending again.';
+            }
+
+            setError(msg);
+            cleanup();
+            if (onError) onError(msg);
         });
 
         return () => {
             es.close();
         };
-    }, []);
+    }, [isStreaming, isSending]); // Added deps for safety
 
-    return { messages, isStreaming, error, streamMessage, initializeMessages };
+    return {
+        messages,
+        isStreaming,
+        streamingContent,
+        isSending,
+        error,
+        streamMessage,
+        initializeMessages,
+        addMessage
+    };
 }

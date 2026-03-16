@@ -1,14 +1,32 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Platform, Animated } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../../../context/ThemeContext';
+
+const BlinkingCursor = () => {
+    const opacity = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        const animation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(opacity, { toValue: 0.1, duration: 400, useNativeDriver: true }),
+                Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+            ])
+        );
+        animation.start();
+        return () => animation.stop();
+    }, [opacity]);
+
+    return (
+        <Animated.View style={[styles.cursor, { opacity }]} />
+    );
+};
 
 export default function ChatBubble({ message }) {
     const isUser = message?.role === 'user';
     const { theme, isDark } = useTheme();
     const cyan = theme.cyan ?? '#00d4ff';
 
-    // Null guard — don't crash on undefined content
     const content = message?.content ?? '';
 
     const markdownStyles = {
@@ -47,10 +65,10 @@ export default function ChatBubble({ message }) {
         heading1: { color: theme.text, fontWeight: '900', fontSize: 18 },
         heading2: { color: theme.text, fontWeight: '800', fontSize: 16 },
         heading3: { color: theme.text, fontWeight: '700', fontSize: 15 },
-        strong:   { fontWeight: '700', color: isUser ? '#000000' : theme.text },
-        em:       { fontStyle: 'italic' },
+        strong: { fontWeight: '700', color: isUser ? '#000000' : theme.text },
+        em: { fontStyle: 'italic' },
         bullet_list: { marginVertical: 4 },
-        list_item:   { marginVertical: 2 },
+        list_item: { marginVertical: 2 },
         blockquote: {
             borderLeftWidth: 3,
             borderLeftColor: cyan,
@@ -72,29 +90,23 @@ export default function ChatBubble({ message }) {
                     alignSelf: 'flex-start',
                     borderWidth: 1,
                     borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
-                  },
+                },
         ]}>
             {isUser ? (
                 <Text style={[styles.userText, { color: '#000000' }]}>{content}</Text>
             ) : (
-                <View>
-                    <Markdown style={markdownStyles}>
-                        {content + (message?.isStreaming ? ' \u2588' : '')}
-                    </Markdown>
-                    {message?.model && (
-                        <Text style={[styles.modelLabel, {
-                            color: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.28)',
-                        }]}>
-                            {message.model}
-                        </Text>
-                    )}
+                <View style={styles.assistantContent}>
+                    <View style={styles.mainMarkdown}>
+                        <Markdown style={markdownStyles}>
+                            {content}
+                        </Markdown>
+                        {message?.isStreaming && <BlinkingCursor />}
+                    </View>
                 </View>
             )}
         </View>
     );
 }
-
-import { Platform } from 'react-native';
 
 const styles = StyleSheet.create({
     container: {
@@ -109,10 +121,19 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         lineHeight: 22,
     },
-    modelLabel: {
-        fontSize: 11,
-        fontWeight: '500',
-        marginTop: 8,
-        alignSelf: 'flex-end',
+    assistantContent: {
+        width: '100%',
+    },
+    mainMarkdown: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'flex-end',
+    },
+    cursor: {
+        width: 2,
+        height: 18,
+        backgroundColor: '#00d4ff',
+        marginLeft: 4,
+        marginBottom: 2,
     },
 });

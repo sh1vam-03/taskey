@@ -18,18 +18,17 @@ import AiSettingsModal from './components/AiSettingsModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useAlert } from '../../context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
+import { getMe } from '../../api/auth.api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 340);
 
-function getGreeting() {
-    const h = new Date().getHours();
-    if (h < 5) return 'Good night';
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    if (h < 21) return 'Good evening';
-    return 'Good night';
-}
+const stripThoughts = (text) => {
+    if (!text) return '';
+    let cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, '');
+    cleaned = cleaned.replace(/<think>[\s\S]*/g, '');
+    return cleaned;
+};
 
 const QUICK_PROMPTS = [
     { icon: 'calendar-check', label: 'What should I focus on?', sub: 'Check my tasks & schedule', prompt: 'What should I focus on?' },
@@ -37,6 +36,38 @@ const QUICK_PROMPTS = [
     { icon: 'star-four-points', label: 'What can you do?', sub: 'Explore AI capabilities', prompt: 'What can you do?' },
     { icon: 'clock-outline', label: 'Analyze my time', sub: 'Review habit consistency', prompt: 'Analyze my time' },
 ];
+
+function ThinkingDots({ color }) {
+    const dot1 = useRef(new Animated.Value(0)).current;
+    const dot2 = useRef(new Animated.Value(0)).current;
+    const dot3 = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const animate = (v, delay) => {
+            return Animated.loop(
+                Animated.sequence([
+                    Animated.delay(delay),
+                    Animated.timing(v, { toValue: -6, duration: 400, useNativeDriver: true }),
+                    Animated.timing(v, { toValue: 0, duration: 400, useNativeDriver: true }),
+                    Animated.delay(400),
+                ])
+            );
+        };
+        const a1 = animate(dot1, 0);
+        const a2 = animate(dot2, 150);
+        const a3 = animate(dot3, 300);
+        a1.start(); a2.start(); a3.start();
+        return () => { a1.stop(); a2.stop(); a3.stop(); };
+    }, []);
+
+    return (
+        <View style={styles.thinkingDots}>
+            <Animated.View style={[styles.thinkingDot, { backgroundColor: color, transform: [{ translateY: dot1 }] }]} />
+            <Animated.View style={[styles.thinkingDot, { backgroundColor: color, opacity: 0.7, transform: [{ translateY: dot2 }] }]} />
+            <Animated.View style={[styles.thinkingDot, { backgroundColor: color, opacity: 0.4, transform: [{ translateY: dot3 }] }]} />
+        </View>
+    );
+}
 
 function MicPulse({ color }) {
     const ring1 = useRef(new Animated.Value(1)).current;
@@ -65,18 +96,11 @@ function MicPulse({ color }) {
             ]),
         ]).start(() => loop());
         loop();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     return (
         <View style={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }}>
-            <Animated.View style={{
-                position: 'absolute', width: 72, height: 72, borderRadius: 36,
-                backgroundColor: color, opacity: op2, transform: [{ scale: ring2 }],
-            }} />
-            <Animated.View style={{
-                position: 'absolute', width: 72, height: 72, borderRadius: 36,
-                backgroundColor: color, opacity: op1, transform: [{ scale: ring1 }],
-            }} />
+            <Animated.View style={{ position: 'absolute', width: 72, height: 72, borderRadius: 36, backgroundColor: color, opacity: op2, transform: [{ scale: ring2 }] }} />
+            <Animated.View style={{ position: 'absolute', width: 72, height: 72, borderRadius: 36, backgroundColor: color, opacity: op1, transform: [{ scale: ring1 }] }} />
             <Icon name="microphone" size={30} color="#000" />
         </View>
     );
@@ -99,12 +123,52 @@ export default function AiScreen() {
     const [focused, setFocused] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [voiceTranscript, setVoiceTranscript] = useState('');
+    const [isVoiceMode, setIsVoiceMode] = useState(false);
+    const [displayedContent, setDisplayedContent] = useState('');
 
+    const ttsProcessedIndex = useRef(0);
+    const ttsPendingText = useRef('');
     const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
     const voiceFadeAnim = useRef(new Animated.Value(0)).current;
     const flatListRef = useRef(null);
+    const isProcessingRef = useRef(false);
 
-    const { messages, isStreaming, streamMessage, initializeMessages } = useStream();
+    const {
+        messages,
+        isStreaming,
+        streamingContent,
+        isSending,
+        streamMessage,
+        initializeMessages,
+        addMessage
+    } = useStream();
+
+    // Catch-up logic for smooth streaming
+    useEffect(() => {
+        if (!isStreaming || !streamingContent) {
+            // Keep the displayedContent visible for a moment after streaming stops
+            // until the messages list actually updates with the final AI response.
+            // This prevents the "blank" flicker.
+            const timer = setTimeout(() => {
+                if (!isStreaming) setDisplayedContent('');
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+
+        const raw = streamingContent; // STOP stripping thoughts locally
+        const diff = raw.length - displayedContent.length;
+
+        if (diff > 0) {
+            const charsToAdd = Math.max(1, Math.ceil(diff / 10));
+            const timer = setTimeout(() => {
+                setDisplayedContent(raw.slice(0, displayedContent.length + charsToAdd));
+            }, 25);
+            return () => clearTimeout(timer);
+        } else if (diff < 0) {
+            setDisplayedContent(raw);
+        }
+    }, [isStreaming, streamingContent, displayedContent]);
+
     const { theme, isDark } = useTheme();
     const { alert } = useAlert();
     const navigation = useNavigation();
@@ -119,38 +183,40 @@ export default function AiScreen() {
     const toggleSidebar = useCallback((open) => {
         setIsSidebarOpen(open);
         if (open) { Keyboard.dismiss(); setIsSidebarRendered(true); }
-        Animated.timing(slideAnim, {
-            toValue: open ? 0 : -SIDEBAR_WIDTH,
-            duration: 300, useNativeDriver: true,
-        }).start(() => { if (!open) setIsSidebarRendered(false); });
+        Animated.timing(slideAnim, { toValue: open ? 0 : -SIDEBAR_WIDTH, duration: 300, useNativeDriver: true }).start(() => { if (!open) setIsSidebarRendered(false); });
     }, [slideAnim]);
 
     const loadConversation = useCallback(async (id) => {
+        if (!id) return;
         try {
             setLoadingMessages(true);
-            const { data } = await getMessages(id);
-            initializeMessages(data.data || data);
+            const res = await getMessages(id);
+            const responseData = res.data?.data || res.data || [];
+            initializeMessages(Array.isArray(responseData) ? responseData : []);
             setActiveConvId(id);
             toggleSidebar(false);
-        } catch (err) { console.log('loadConversation:', err); }
-        finally { setLoadingMessages(false); }
+        } catch (err) {
+            console.log('loadConversation Error:', err);
+            initializeMessages([]);
+        } finally { setLoadingMessages(false); }
     }, [initializeMessages, toggleSidebar]);
 
     const fetchConversations = useCallback(async (openFirst = false) => {
         try {
             setLoadingConversations(true);
             const { data } = await getConversations();
-            const list = data.data || data;
+            const list = data.data || data || [];
             const filtered = search
-                ? list.filter(c =>
-                    c.title?.toLowerCase().includes(search.toLowerCase()) ||
-                    c.messages?.[0]?.content?.toLowerCase().includes(search.toLowerCase()))
+                ? list.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()))
                 : list;
             setConversations(filtered);
-            if (openFirst && filtered.length > 0) loadConversation(filtered[0]._id);
+            if (openFirst && filtered.length > 0 && !activeConvId) {
+                const firstId = filtered[0].id || filtered[0]._id;
+                if (firstId) loadConversation(firstId);
+            }
         } catch (err) { console.log('fetchConversations:', err); }
         finally { setLoadingConversations(false); }
-    }, [search, loadConversation]);
+    }, [search, loadConversation, activeConvId]);
 
     const fetchSettings = useCallback(async () => {
         try {
@@ -159,9 +225,9 @@ export default function AiScreen() {
         } catch (err) { console.log('fetchSettings:', err); }
     }, []);
 
-    useEffect(() => { fetchConversations(true); fetchSettings(); }, []); // eslint-disable-line
-    useEffect(() => { fetchConversations(false); }, [search]);            // eslint-disable-line
-    useEffect(() => { if (isSidebarOpen) fetchConversations(false); }, [isSidebarOpen]); // eslint-disable-line
+    useEffect(() => { fetchConversations(true); fetchSettings(); }, []);
+    useEffect(() => { fetchConversations(false); }, [search]);
+    useEffect(() => { if (isSidebarOpen) fetchConversations(false); }, [isSidebarOpen]);
 
     const handleUpdateSettings = useCallback(async (s) => {
         try { setSettings(prev => ({ ...prev, ...s })); await apiUpdateSettings(s); }
@@ -171,7 +237,7 @@ export default function AiScreen() {
     const handleDelete = useCallback(async (id) => {
         try {
             await deleteConversation(id);
-            setConversations(prev => prev.filter(c => c._id !== id));
+            setConversations(prev => prev.filter(c => (c.id || c._id) !== id));
             if (activeConvId === id) { setActiveConvId(null); initializeMessages([]); }
             setActiveActionId(null);
         } catch (err) { console.log(err); }
@@ -181,30 +247,93 @@ export default function AiScreen() {
         if (!renameText.trim()) { setIsRenaming(false); setActiveActionId(null); return; }
         try {
             await updateConversation(id, { title: renameText.trim() });
-            setConversations(prev => prev.map(c => c._id === id ? { ...c, title: renameText.trim() } : c));
+            setConversations(prev => prev.map(c => (c.id === id || c._id === id) ? { ...c, title: renameText.trim() } : c));
         } catch (err) { console.log(err); }
         finally { setIsRenaming(false); setActiveActionId(null); }
     }, [renameText]);
 
     const handleNewChat = useCallback(() => {
         setActiveConvId(null); initializeMessages([]); toggleSidebar(false);
+        ttsProcessedIndex.current = 0; ttsPendingText.current = '';
     }, [initializeMessages, toggleSidebar]);
+
+    const processTTS = useCallback((fullText, isFinal = false) => {
+        if (!isVoiceMode) return;
+        // Mock TTS logic
+        console.log('[TTS] Processing:', fullText.substring(ttsProcessedIndex.current));
+        ttsProcessedIndex.current = fullText.length;
+    }, [isVoiceMode]);
 
     const handleSend = useCallback(async (overrideText) => {
         const text = (overrideText || prompt).trim();
-        if (!text || isStreaming) return;
+        if (!text || isSending || isStreaming || isProcessingRef.current) return;
+
+        // Synchronous immediate lock
+        isProcessingRef.current = true;
         setPrompt('');
+
+        // Optimistic UI update: show user message immediately
+        addMessage({
+            id: `user-opt-${Date.now()}`,
+            role: 'user',
+            content: text,
+            createdAt: new Date().toISOString()
+        });
+
+        // ── Token Pre-check ─────────────────────────────────
+        // Call getMe() via Axios to trigger the auto-refresh interceptor
+        // if the session is expired. This prevents the SSE 401 error.
+        try {
+            await getMe();
+        } catch (authErr) {
+            console.log('[AiScreen] Auth pre-check failed:', authErr);
+            // If even refresh fails, we must unlock
+            isProcessingRef.current = false;
+            return;
+        }
+
         let targetId = activeConvId;
         if (!targetId) {
             try {
                 const { data } = await createConversation('GENERAL');
-                targetId = data._id || data.data?._id;
+                const conv = data.conversation || data.data?.conversation || data.data || data;
+                targetId = conv.id || conv._id;
                 setActiveConvId(targetId);
-                setConversations(prev => [{ _id: targetId, title: text.slice(0, 50), updatedAt: new Date() }, ...prev]);
-            } catch (err) { console.log('createConversation:', err); return; }
+                setConversations(prev => [{ id: targetId, _id: targetId, title: text.slice(0, 50), updatedAt: new Date() }, ...prev]);
+            } catch (err) {
+                console.log('createConversation Error:', err);
+                isProcessingRef.current = false; // RELEASE LOCK ON ERROR
+                return;
+            }
         }
-        streamMessage(targetId, text, settings?.chatModel || 'gemini-2.0-flash');
-    }, [prompt, isStreaming, activeConvId, settings, streamMessage]);
+
+        ttsProcessedIndex.current = 0;
+        ttsPendingText.current = '';
+
+        streamMessage(targetId, text, settings?.chatModel || 'gemini-1.5-flash', {
+            onToken: (token, currentFull) => { processTTS(currentFull); },
+            onTitle: (newTitle) => {
+                setConversations(prev => prev.map(c => (c.id === targetId || c._id === targetId) ? { ...c, title: newTitle } : c));
+            },
+            onWarning: (w) => { if (w.code === 402) alert('Credits Finished', w.message, [{ text: 'OK' }]); },
+            onDone: () => {
+                isProcessingRef.current = false; // RELEASE LOCK ON DONE
+            },
+            onError: (err) => {
+                console.log('[AiScreen] Stream Error:', err);
+                isProcessingRef.current = false; // RELEASE LOCK ON ERROR
+            }
+        });
+
+        // Failsafe: release lock if stream never starts or finishes unexpectedly
+        // Extended to 30s for mobile network/auth pre-check/conv creation latency
+        setTimeout(() => {
+            if (isProcessingRef.current && !isSending && !isStreaming) {
+                console.log('[AiScreen] Failsafe: Releasing stuck sender lock');
+                isProcessingRef.current = false;
+            }
+        }, 30000);
+    }, [prompt, isSending, isStreaming, activeConvId, settings, streamMessage, alert, processTTS]);
 
     const handleVoiceToggle = useCallback(() => {
         if (isRecording) {
@@ -213,63 +342,29 @@ export default function AiScreen() {
             if (voiceTranscript.trim()) { handleSend(voiceTranscript.trim()); setVoiceTranscript(''); }
         } else {
             Keyboard.dismiss();
-
-            alert(
-                'Voice Module Required',
-                'Tasktime AI voice requires a native audio module (e.g. @react-native-voice/voice or expo-av) which is not yet installed in this build. \n\nVoice input is being simulated.',
-                [{ text: 'OK' }]
-            );
-
             setIsRecording(true);
-            setVoiceTranscript('What is my next task?');
+            setVoiceTranscript('Simulation: What is my next task?');
             Animated.timing(voiceFadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
         }
-    }, [isRecording, voiceTranscript, voiceFadeAnim, handleSend]);
+    }, [isRecording, voiceTranscript, handleSend, voiceFadeAnim]);
 
-    const modelLabel = settings?.chatModel
-        ? settings.chatModel.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-        : 'Gemini 2.0 Flash';
+    const modelLabel = settings?.chatModel ? settings.chatModel.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Gemini 2.0 Flash';
 
     return (
         <SafeAreaView style={[styles.root, { backgroundColor: theme.bg }]} edges={['top']}>
             <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-
-            <KeyboardAvoidingView
-                style={styles.flex}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-                {/* ── HEADER ── */}
-                <View style={[styles.header, {
-                    backgroundColor: theme.bg,
-                    borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                }]}>
-                    <TouchableOpacity
-                        onPress={() => toggleSidebar(true)}
-                        style={[styles.iconBtn, { backgroundColor: glassBg, borderColor: glassBord }]}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    >
+            <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <View style={[styles.header, { backgroundColor: theme.bg, borderBottomColor: glassBord }]}>
+                    <TouchableOpacity onPress={() => toggleSidebar(true)} style={[styles.iconBtn, { backgroundColor: glassBg, borderColor: glassBord }]} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                         <Icon name="menu" size={22} color={theme.text} />
                     </TouchableOpacity>
-
-                    {/* Title: flex:1 + marginLeft so it never overlaps the menu button */}
                     <View style={styles.titleBlock} pointerEvents="none">
                         <View style={styles.titleRow}>
                             <Svg height={22} width={175}>
-                                <Defs>
-                                    <LinearGradient id="ttGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <Stop offset="0" stopColor={isDark ? '#ffffff' : '#1a1a1a'} stopOpacity="1" />
-                                        <Stop offset="0.6" stopColor={isDark ? '#cccccc' : '#333333'} stopOpacity="1" />
-                                        <Stop offset="1" stopColor={isDark ? '#777777' : '#000000'} stopOpacity="1" />
-                                    </LinearGradient>
-                                </Defs>
-                                <SvgText fill="url(#ttGrad)" fontSize="16" fontWeight="900" x="10" y="18" letterSpacing="3.5">
-                                    TASKTIME AI
-                                </SvgText>
+                                <Defs><LinearGradient id="ttGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={isDark ? '#ffffff' : '#1a1a1a'} /><Stop offset="0.6" stopColor={isDark ? '#cccccc' : '#333333'} /><Stop offset="1" stopColor={isDark ? '#777777' : '#000000'} /></LinearGradient></Defs>
+                                <SvgText fill="url(#ttGrad)" fontSize="16" fontWeight="900" x="10" y="18" letterSpacing="3.5">TASKTIME AI</SvgText>
                             </Svg>
-                            {/* vALPHA tag — same style as web version */}
-                            <View style={[styles.alphaTag, { backgroundColor: cyan + '20', borderColor: cyan }]}>
-                                <Text style={[styles.alphaTagTxt, { color: cyan }]}>vALPHA</Text>
-                            </View>
+                            <View style={[styles.alphaTag, { backgroundColor: cyan + '20', borderColor: cyan }]}><Text style={[styles.alphaTagTxt, { color: cyan }]}>vALPHA</Text></View>
                         </View>
                         <View style={styles.subRow}>
                             <Icon name="lightning-bolt" size={11} color={cyan} style={{ marginRight: 3 }} />
@@ -277,61 +372,25 @@ export default function AiScreen() {
                             <Text style={[styles.subTxt, { color: mutedText, marginLeft: 5 }]}>• {settings?.plan || 'FREE'}</Text>
                         </View>
                     </View>
-
-                    <TouchableOpacity
-                        onPress={() => setIsSettingsVisible(true)}
-                        style={[styles.iconBtn, { backgroundColor: glassBg, borderColor: glassBord }]}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    >
+                    <TouchableOpacity onPress={() => setIsSettingsVisible(true)} style={[styles.iconBtn, { backgroundColor: glassBg, borderColor: glassBord }]} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                         <Icon name="cog" size={20} color={isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)'} />
                     </TouchableOpacity>
                 </View>
 
-                {/* ── MESSAGES / EMPTY ── */}
                 {loadingMessages ? (
-                    <View style={styles.centered}>
-                        <Text style={[styles.stateTxt, { color: mutedText }]}>Loading…</Text>
-                    </View>
-                ) : (!messages || messages.length === 0) ? (
+                    <View style={styles.centered}><Text style={[styles.stateTxt, { color: mutedText }]}>Loading…</Text></View>
+                ) : (messages.length === 0) ? (
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-                        <ScrollView
-                            contentContainerStyle={styles.emptyState}
-                            keyboardShouldPersistTaps="handled"
-                            showsVerticalScrollIndicator={false}
-                        >
-                            <View style={[styles.aiIcon, { borderColor: cyan + '40', backgroundColor: cyan + '12' }]}>
-                                <Icon name="star-four-points" size={28} color={cyan} />
-                            </View>
+                        <ScrollView contentContainerStyle={styles.emptyState} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                            <View style={[styles.aiIcon, { borderColor: cyan + '40', backgroundColor: cyan + '12' }]}><Icon name="star-four-points" size={28} color={cyan} /></View>
                             <Text style={[styles.greeting, { color: theme.text }]}>How can I help you?</Text>
-                            <Text style={[styles.greetingSub, { color: mutedText }]}>
-                                Ask me anything about your tasks, schedule, or habits. I'm here to help you stay organized and productive.
-                            </Text>
-
-                            {/* Sarvam-M Alpha Banner */}
-                            {settings?.chatModel === 'sarvam-m' && (
-                                <View style={[styles.sarvamBanner, { backgroundColor: cyan + '10', borderColor: cyan + '30' }]}>
-                                    <Text style={{ fontSize: 10, fontWeight: '600', color: cyan, letterSpacing: 0.5, textAlign: 'center' }}>
-                                        📚 Alpha — Sarvam-M is knowledge-first. Experimental task support is active.
-                                    </Text>
-                                </View>
-                            )}
-
+                            <Text style={[styles.greetingSub, { color: mutedText }]}>Ask me anything about your tasks, schedule, or habits. I'm here to help you stay organized and productive.</Text>
                             <View style={styles.quickGrid}>
                                 {QUICK_PROMPTS.map((qp, i) => (
-                                    <TouchableOpacity
-                                        key={i}
-                                        style={[styles.quickChip, { backgroundColor: glassBg, borderColor: glassBord }]}
-                                        onPress={() => handleSend(qp.prompt)}
-                                        activeOpacity={0.7}
-                                    >
+                                    <TouchableOpacity key={i} style={[styles.quickChip, { backgroundColor: glassBg, borderColor: glassBord }]} onPress={() => handleSend(qp.prompt)}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                            <View style={[styles.quickChipIcon, { backgroundColor: cyan + '18' }]}>
-                                                <Icon name={qp.icon} size={16} color={cyan} />
-                                            </View>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={[styles.quickChipTxt, { color: theme.text }]}>{qp.label}</Text>
-                                                <Text style={[styles.quickChipSub, { color: mutedText }]}>{qp.sub}</Text>
-                                            </View>
+                                            <View style={[styles.quickChipIcon, { backgroundColor: cyan + '18' }]}><Icon name={qp.icon} size={16} color={cyan} /></View>
+                                            <View style={{ flex: 1 }}><Text style={[styles.quickChipTxt, { color: theme.text }]}>{qp.label}</Text><Text style={[styles.quickChipSub, { color: mutedText }]}>{qp.sub}</Text></View>
                                         </View>
                                     </TouchableOpacity>
                                 ))}
@@ -339,309 +398,99 @@ export default function AiScreen() {
                         </ScrollView>
                     </TouchableWithoutFeedback>
                 ) : (
-                    /* FIX keyboard dismiss: keyboardShouldPersistTaps="handled" */
                     <FlatList
                         ref={flatListRef}
                         data={messages}
-                        keyExtractor={(item, idx) => item.id?.toString() || idx.toString()}
+                        keyExtractor={(item, idx) => item.id?.toString() || item._id?.toString() || idx.toString()}
+                        style={styles.flex}
                         contentContainerStyle={styles.chatContent}
                         renderItem={({ item }) => <ChatBubble message={item} />}
                         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
-                        keyboardDismissMode="interactive"
                         ListFooterComponent={
-                            isStreaming && (!messages.length || !messages[messages.length - 1]?.content) ? (
-                                <View style={styles.thinkingRow}>
-                                    <View style={styles.thinkingDots}>
-                                        <View style={[styles.thinkingDot, { backgroundColor: cyan }]} />
-                                        <View style={[styles.thinkingDot, { backgroundColor: cyan, opacity: 0.7 }]} />
-                                        <View style={[styles.thinkingDot, { backgroundColor: cyan, opacity: 0.4 }]} />
+                            <View style={{ paddingBottom: 20 }}>
+                                {isStreaming && displayedContent ? (
+                                    <ChatBubble message={{ role: 'assistant', content: displayedContent, isStreaming: true, model: settings?.chatModel || 'gemini-1.5-flash' }} />
+                                ) : null}
+                                {isStreaming && !displayedContent && (
+                                    <View style={styles.thinkingRow}>
+                                        <ThinkingDots color={cyan} />
+                                        <Text style={[styles.thinkingTxt, { color: mutedText }]}>Thinking...</Text>
                                     </View>
-                                    <Text style={[styles.thinkingTxt, { color: mutedText }]}>Thinking...</Text>
-                                </View>
-                            ) : null
+                                )}
+                            </View>
                         }
                     />
                 )}
 
-                {/* ── INPUT BAR ── */}
-                <View style={[styles.inputArea, {
-                    paddingBottom: Platform.OS === 'ios' ? 22 : 10,
-                    borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-                }]}>
-                    {/* FIX placeholder off-centre: alignItems:'center' + no paddingVertical on input */}
-                    <View style={[styles.inputRow, {
-                        backgroundColor: inputBg,
-                        borderColor: focused ? cyan + '90' : inputBord,
-                        ...(Platform.OS === 'ios' && focused ? {
-                            shadowColor: cyan, shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: 0.2, shadowRadius: 8,
-                        } : {}),
-                    }]}>
-                        <TouchableOpacity
-                            onPress={handleVoiceToggle}
-                            style={[styles.roundBtn, isRecording
-                                ? { backgroundColor: '#ff3b30' }
-                                : { backgroundColor: glassBg, borderColor: glassBord, borderWidth: 1 },
-                            { marginRight: 8 }
-                            ]}
-                            activeOpacity={0.8}
-                        >
-                            <Icon
-                                name={isRecording ? 'microphone-off' : 'microphone'}
-                                size={17}
-                                color={isRecording ? '#fff' : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)')}
-                            />
+                <View style={[styles.inputArea, { paddingBottom: Platform.OS === 'ios' ? 22 : 10, borderTopColor: glassBord }]}>
+                    <View style={[styles.inputRow, { backgroundColor: inputBg, borderColor: focused ? cyan + '90' : inputBord }]}>
+                        <TouchableOpacity onPress={handleVoiceToggle} style={[styles.roundBtn, isRecording ? { backgroundColor: '#ff3b30' } : { backgroundColor: glassBg, borderColor: glassBord, borderWidth: 1 }, { marginRight: 8 }]}>
+                            <Icon name={isRecording ? 'microphone-off' : 'microphone'} size={17} color={isRecording ? '#fff' : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)')} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setIsVoiceMode(!isVoiceMode)} style={[styles.roundBtn, { marginRight: 4, backgroundColor: isVoiceMode ? cyan + '30' : glassBg, borderColor: isVoiceMode ? cyan : glassBord, borderWidth: 1 }]}>
+                            <Icon name={isVoiceMode ? 'headset' : 'headset-off-outline'} size={17} color={isVoiceMode ? cyan : mutedText} />
                         </TouchableOpacity>
                         <TextInput
                             style={[styles.chatInput, { color: theme.text }]}
                             placeholder="Chat with TASKTIME AI…"
                             placeholderTextColor={isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)'}
-                            value={prompt}
-                            onChangeText={setPrompt}
-                            onFocus={() => setFocused(true)}
-                            onBlur={() => setFocused(false)}
-                            multiline
-                            maxLength={1000}
-                            textAlignVertical="center"
+                            value={prompt} onChangeText={setPrompt}
+                            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+                            multiline maxLength={1000}
                         />
                         <TouchableOpacity
-                            style={[styles.roundBtn, { backgroundColor: cyan, marginLeft: 6 },
-                            (!prompt.trim() || isStreaming) && { opacity: 0.36 }]}
+                            style={[styles.roundBtn, { backgroundColor: cyan, marginLeft: 6 }, (!prompt.trim() || isSending || isStreaming || isProcessingRef.current) && { opacity: 0.36 }]}
                             onPress={() => handleSend()}
-                            disabled={!prompt.trim() || isStreaming}
+                            disabled={!prompt.trim() || isSending || isStreaming || isProcessingRef.current}
                         >
-                            {isStreaming
-                                ? <Icon name="stop" size={15} color="#000" />
-                                : <Icon name="arrow-up" size={19} color="#000" />}
+                            {isStreaming ? <Icon name="stop" size={15} color="#000" /> : <Icon name="arrow-up" size={19} color="#000" />}
                         </TouchableOpacity>
                     </View>
-
-                    {isStreaming && (
-                        <View style={styles.streamRow}>
-                            <View style={[styles.streamDot, { backgroundColor: cyan }]} />
-                            <Text style={[styles.streamTxt, { color: mutedText }]}>AI is responding…</Text>
-                        </View>
-                    )}
-
-                    {/* Disclaimer — matches web */}
-                    <Text style={[styles.disclaimer, { color: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)' }]}>
-                        AI can make mistakes. Please verify important information.
-                    </Text>
+                    <Text style={[styles.disclaimer, { color: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.25)' }]}>AI can make mistakes. Please verify important information.</Text>
                 </View>
 
-                <AiSettingsModal
-                    visible={isSettingsVisible}
-                    onClose={() => setIsSettingsVisible(false)}
-                    settings={settings}
-                    onUpdateSettings={handleUpdateSettings}
-                    isLoading={false}
-                />
+                <AiSettingsModal visible={isSettingsVisible} onClose={() => setIsSettingsVisible(false)} settings={settings} onUpdateSettings={handleUpdateSettings} />
             </KeyboardAvoidingView>
 
-            {/* ── VOICE OVERLAY ── */}
-            <Animated.View
-                pointerEvents={isRecording ? 'auto' : 'none'}
-                style={[styles.voiceOverlay, { opacity: voiceFadeAnim }]}
-            >
-                <TouchableWithoutFeedback onPress={handleVoiceToggle}>
-                    <View style={StyleSheet.absoluteFill} />
-                </TouchableWithoutFeedback>
+            <Animated.View pointerEvents={isRecording ? 'auto' : 'none'} style={[styles.voiceOverlay, { opacity: voiceFadeAnim }]}>
                 <View style={[styles.voiceCard, { backgroundColor: isDark ? '#111' : '#fff', borderColor: glassBord }]}>
-                    <View style={[styles.micCircle, { backgroundColor: cyan }]}>
-                        <MicPulse color={cyan} />
-                    </View>
+                    <View style={[styles.micCircle, { backgroundColor: cyan }]}><MicPulse color={cyan} /></View>
                     <Text style={[styles.voiceTitle, { color: theme.text }]}>Listening…</Text>
-                    <Text style={[styles.voiceSub, { color: mutedText }]}>
-                        {voiceTranscript || 'Speak now — tap mic to stop'}
-                    </Text>
-                    <TouchableOpacity
-                        onPress={handleVoiceToggle}
-                        style={[styles.voiceStopBtn, { backgroundColor: '#ff3b3018', borderColor: '#ff3b3055' }]}
-                    >
-                        <Icon name="stop-circle" size={18} color="#ff3b30" style={{ marginRight: 8 }} />
-                        <Text style={{ color: '#ff3b30', fontWeight: '700', fontSize: 14 }}>Stop & Send</Text>
+                    <Text style={[styles.voiceSub, { color: mutedText }]}>{voiceTranscript || 'Speak now — tap mic to stop'}</Text>
+                    <TouchableOpacity onPress={handleVoiceToggle} style={[styles.voiceStopBtn, { backgroundColor: '#ff3b3018', borderColor: '#ff3b3055' }]}>
+                        <Icon name="stop-circle" size={18} color="#ff3b30" style={{ marginRight: 8 }} /><Text style={{ color: '#ff3b30', fontWeight: '700', fontSize: 14 }}>Stop & Send</Text>
                     </TouchableOpacity>
                 </View>
             </Animated.View>
 
-            {/* ── SIDEBAR ── */}
-            {isSidebarOpen && (
-                <TouchableWithoutFeedback onPress={() => toggleSidebar(false)}>
-                    <View style={styles.sidebarOverlay} />
-                </TouchableWithoutFeedback>
-            )}
-            <Animated.View
-                pointerEvents={isSidebarOpen ? 'auto' : 'none'}
-                style={[styles.sidebarPanel, {
-                    backgroundColor: theme.bg,
-                    borderRightColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                    transform: [{ translateX: slideAnim }],
-                }]}
-            >
+            {isSidebarOpen && <TouchableWithoutFeedback onPress={() => toggleSidebar(false)}><View style={styles.sidebarOverlay} /></TouchableWithoutFeedback>}
+            <Animated.View pointerEvents={isSidebarOpen ? 'auto' : 'none'} style={[styles.sidebarPanel, { backgroundColor: theme.bg, borderRightColor: glassBord, transform: [{ translateX: slideAnim }] }]}>
                 {isSidebarRendered && (
                     <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
-                        <View style={[styles.sidebarHeader, {
-                            borderBottomColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-                        }]}>
-                            <View>
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <Svg height={19} width={155}>
-                                        <Defs>
-                                            <LinearGradient id="sbGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <Stop offset="0" stopColor={isDark ? '#fff' : '#222'} stopOpacity="1" />
-                                                <Stop offset="1" stopColor={isDark ? '#888' : '#000'} stopOpacity="1" />
-                                            </LinearGradient>
-                                        </Defs>
-                                        <SvgText fill="url(#sbGrad)" fontSize="13" fontWeight="900" x="4" y="14" letterSpacing="3">
-                                            TASKTIME AI
-                                        </SvgText>
-                                    </Svg>
-                                    <View style={[styles.alphaTagSm, { backgroundColor: cyan + '20', borderColor: cyan }]}>
-                                        <Text style={[styles.alphaTagSmTxt, { color: cyan }]}>vALPHA</Text>
-                                    </View>
-                                </View>
-                                <Text style={{ fontSize: 11, fontWeight: '500', marginTop: 3, color: mutedText }}>
-                                    Conversation history
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => { toggleSidebar(false); navigation.navigate('Home'); }}
-                                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 4 }}
-                                activeOpacity={0.7}
-                            >
-                                <Icon name="arrow-left" size={14} color={mutedText} />
-                                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.text, marginLeft: 4 }}>Home</Text>
-                            </TouchableOpacity>
+                        <View style={[styles.sidebarHeader, { borderBottomColor: glassBord }]}>
+                            <Svg height={19} width={155}><Defs><LinearGradient id="sbGrad" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={isDark ? '#fff' : '#222'} /><Stop offset="1" stopColor={isDark ? '#888' : '#000'} /></LinearGradient></Defs><SvgText fill="url(#sbGrad)" fontSize="13" fontWeight="900" x="4" y="14" letterSpacing="3">TASKTIME AI</SvgText></Svg>
+                            <TouchableOpacity onPress={() => { toggleSidebar(false); navigation.navigate('Home'); }} style={{ flexDirection: 'row', alignItems: 'center' }}><Icon name="arrow-left" size={14} color={mutedText} /><Text style={{ color: theme.text, marginLeft: 4 }}>Home</Text></TouchableOpacity>
                         </View>
-
                         <View style={{ paddingHorizontal: 14, paddingTop: 12 }}>
-                            <TouchableOpacity
-                                onPress={handleNewChat}
-                                style={[styles.newChatBtn, { backgroundColor: cyan + '18', borderColor: cyan + '40' }]}
-                                activeOpacity={0.75}
-                            >
-                                <Icon name="plus" size={17} color={cyan} />
-                                <Text style={[styles.newChatTxt, { color: cyan }]}>New Chat</Text>
-                            </TouchableOpacity>
-                            <View style={[styles.searchRow, { backgroundColor: inputBg, borderColor: inputBord }]}>
-                                <Icon name="magnify" size={16} color={mutedText} style={{ marginLeft: 11 }} />
-                                <TextInput
-                                    value={search}
-                                    onChangeText={setSearch}
-                                    placeholder="Search conversations…"
-                                    placeholderTextColor={mutedText}
-                                    editable={isSidebarOpen}
-                                    style={[styles.searchInput, { color: theme.text }]}
-                                />
-                                {search.length > 0 && (
-                                    <TouchableOpacity onPress={() => setSearch('')} style={{ marginRight: 10 }}>
-                                        <Icon name="close-circle" size={15} color={mutedText} />
-                                    </TouchableOpacity>
-                                )}
-                            </View>
+                            <TouchableOpacity onPress={handleNewChat} style={[styles.newChatBtn, { backgroundColor: cyan + '18', borderColor: cyan + '40' }]}><Icon name="plus" size={17} color={cyan} /><Text style={[styles.newChatTxt, { color: cyan }]}>New Chat</Text></TouchableOpacity>
+                            <View style={[styles.searchRow, { backgroundColor: inputBg, borderColor: inputBord }]}><Icon name="magnify" size={16} color={mutedText} style={{ marginLeft: 11 }} /><TextInput value={search} onChangeText={setSearch} placeholder="Search…" style={[styles.searchInput, { color: theme.text }]} /></View>
                         </View>
-
-                        {loadingConversations && conversations.length === 0 ? (
-                            <View style={styles.centered}>
-                                <Text style={[styles.stateTxt, { color: mutedText }]}>Loading…</Text>
-                            </View>
-                        ) : conversations.length === 0 ? (
-                            <View style={[styles.centered, { paddingTop: 40 }]}>
-                                <Icon name="chat-outline" size={30} color={mutedText} />
-                                <Text style={[styles.stateTxt, { color: mutedText, marginTop: 10 }]}>
-                                    {search ? 'No results' : 'No conversations yet'}
-                                </Text>
-                            </View>
-                        ) : (
-                            <FlatList
-                                data={conversations}
-                                keyExtractor={item => item._id}
-                                contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 10, paddingTop: 4 }}
-                                showsVerticalScrollIndicator={false}
-                                keyboardShouldPersistTaps="handled"
-                                renderItem={({ item }) => {
-                                    const isActive = activeConvId === item._id;
-                                    const isEditing = isRenaming && activeActionId === item._id;
-                                    return (
-                                        <View style={{ position: 'relative', marginBottom: 8 }}>
-                                            <TouchableOpacity
-                                                style={[styles.convCard, {
-                                                    backgroundColor: isActive ? cyan + '18' : glassBg,
-                                                    borderColor: isActive ? cyan + '40' : glassBord,
-                                                }]}
-                                                onPress={() => !isEditing && loadConversation(item._id)}
-                                                activeOpacity={0.7}
-                                            >
-                                                <View style={[styles.stripe, { backgroundColor: isActive ? cyan : 'transparent' }]} />
-                                                <View style={styles.convInner}>
-                                                    <View style={[styles.convIcon, {
-                                                        backgroundColor: isActive ? cyan + '22' : glassBg,
-                                                        borderColor: isActive ? cyan + '44' : glassBord,
-                                                    }]}>
-                                                        <Icon name="chat-processing-outline" size={14} color={isActive ? cyan : mutedText} />
-                                                    </View>
-                                                    <View style={{ flex: 1 }}>
-                                                        {isEditing ? (
-                                                            <TextInput
-                                                                style={[styles.renameInput, { color: theme.text, backgroundColor: inputBg, borderColor: cyan }]}
-                                                                value={renameText}
-                                                                onChangeText={setRenameText}
-                                                                autoFocus
-                                                                onSubmitEditing={() => handleRenameSubmit(item._id)}
-                                                                onBlur={() => handleRenameSubmit(item._id)}
-                                                            />
-                                                        ) : (
-                                                            <>
-                                                                <Text style={[styles.convTitle, { color: theme.text }]} numberOfLines={1}>
-                                                                    {item.title || 'New Conversation'}
-                                                                </Text>
-                                                                <Text style={[styles.convDate, { color: mutedText }]}>
-                                                                    {new Date(item.updatedAt).toLocaleDateString()}
-                                                                </Text>
-                                                            </>
-                                                        )}
-                                                    </View>
-                                                    {!isEditing && (
-                                                        <TouchableOpacity
-                                                            onPress={() => setActiveActionId(activeActionId === item._id ? null : item._id)}
-                                                            style={{ padding: 6 }}
-                                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                                        >
-                                                            <Icon name="dots-horizontal" size={16} color={mutedText} />
-                                                        </TouchableOpacity>
-                                                    )}
-                                                </View>
-                                            </TouchableOpacity>
-                                            {activeActionId === item._id && !isEditing && (
-                                                <View style={[styles.popover, {
-                                                    backgroundColor: isDark ? '#1c1c1c' : '#fff',
-                                                    borderColor: glassBord,
-                                                }]}>
-                                                    <TouchableOpacity
-                                                        style={styles.popoverBtn}
-                                                        onPress={() => { setRenameText(item.title || ''); setIsRenaming(true); }}
-                                                    >
-                                                        <Icon name="pencil-outline" size={14} color={theme.text} style={{ marginRight: 8 }} />
-                                                        <Text style={{ color: theme.text, fontSize: 13, fontWeight: '500' }}>Rename</Text>
-                                                    </TouchableOpacity>
-                                                    <View style={{ height: 1, backgroundColor: glassBord }} />
-                                                    <TouchableOpacity
-                                                        style={styles.popoverBtn}
-                                                        onPress={() => handleDelete(item._id)}
-                                                    >
-                                                        <Icon name="delete-outline" size={14} color="#ff4444" style={{ marginRight: 8 }} />
-                                                        <Text style={{ color: '#ff4444', fontSize: 13, fontWeight: '500' }}>Delete</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            )}
-                                        </View>
-                                    );
-                                }}
-                            />
-                        )}
-
+                        <FlatList
+                            data={conversations}
+                            keyExtractor={item => item.id || item._id}
+                            renderItem={({ item }) => {
+                                const convId = item.id || item._id;
+                                const isActive = activeConvId === convId;
+                                return (
+                                    <TouchableOpacity style={[styles.convCard, { backgroundColor: isActive ? cyan + '18' : glassBg, borderColor: isActive ? cyan + '40' : glassBord, marginBottom: 8, marginHorizontal: 14 }]} onPress={() => loadConversation(convId)}>
+                                        <View style={[styles.stripe, { backgroundColor: isActive ? cyan : 'transparent' }]} />
+                                        <View style={styles.convInner}><Text style={[styles.convTitle, { color: theme.text }]} numberOfLines={1}>{item.title || 'New Chat'}</Text></View>
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
                     </SafeAreaView>
                 )}
             </Animated.View>
@@ -652,115 +501,46 @@ export default function AiScreen() {
 const styles = StyleSheet.create({
     root: { flex: 1 },
     flex: { flex: 1 },
-    header: {
-        flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 14, paddingVertical: 10,
-        borderBottomWidth: 1, gap: 10,
-    },
-    iconBtn: {
-        width: 38, height: 38, borderRadius: 12, borderWidth: 1,
-        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    },
-    titleBlock: { flex: 1, justifyContent: 'center', paddingLeft: 2 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, gap: 10 },
+    iconBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    titleBlock: { flex: 1, justifyContent: 'center' },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     subRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
     subTxt: { fontSize: 11, fontWeight: '600' },
     alphaTag: { borderRadius: 5, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2 },
-    alphaTagTxt: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
-    alphaTagSm: { borderRadius: 5, borderWidth: 1, paddingHorizontal: 5, paddingVertical: 1 },
-    alphaTagSmTxt: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+    alphaTagTxt: { fontSize: 9, fontWeight: '900' },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    stateTxt: { fontSize: 14, fontWeight: '500' },
-    emptyState: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 20 },
+    stateTxt: { fontSize: 14 },
+    emptyState: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
     aiIcon: { width: 60, height: 60, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-    greeting: { fontSize: 22, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4 },
-    greetingSub: { fontSize: 13, fontWeight: '500', marginTop: 6, marginBottom: 24, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
-    sarvamBanner: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 16 },
-    quickGrid: { flexDirection: 'column', gap: 8, width: '100%' },
-    quickChip: { borderRadius: 16, borderWidth: 1, padding: 14 },
-    quickChipIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    quickChipTxt: { fontSize: 13, fontWeight: '600' },
-    quickChipSub: { fontSize: 11, fontWeight: '500', marginTop: 2 },
-    chatContent: { padding: 16, paddingBottom: 24 },
+    greeting: { fontSize: 22, fontWeight: '800' },
+    greetingSub: { fontSize: 13, textAlign: 'center', marginVertical: 10, color: '#888' },
+    quickGrid: { width: '100%', gap: 8 },
+    quickChip: { padding: 14, borderRadius: 16, borderWidth: 1 },
+    chatContent: { padding: 16 },
     inputArea: { paddingHorizontal: 14, paddingTop: 10, borderTopWidth: 1 },
-    modelChip: {
-        flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-        borderRadius: 20, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 8,
-    },
-    modelChipTxt: { fontSize: 12, fontWeight: '600', maxWidth: 150 },
-    inputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',       /* KEY FIX: was flex-end → placeholder now centred */
-        borderRadius: 26, borderWidth: 1,
-        paddingHorizontal: 6, paddingVertical: 6,
-        minHeight: 50,
-    },
-    chatInput: {
-        flex: 1, paddingHorizontal: 10,
-        maxHeight: 120, fontSize: 15, fontWeight: '500', lineHeight: 20,
-        /* NO paddingVertical — alignItems:center on parent handles it */
-    },
-    roundBtn: {
-        width: 38, height: 38, borderRadius: 19,
-        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    },
-    streamRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingHorizontal: 2 },
-    streamDot: { width: 6, height: 6, borderRadius: 3, marginRight: 8 },
-    streamTxt: { fontSize: 12, fontWeight: '500' },
-    disclaimer: { textAlign: 'center', fontSize: 10, fontWeight: '600', marginTop: 8, letterSpacing: 0.3 },
-    thinkingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+    inputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 26, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 6, minHeight: 50 },
+    chatInput: { flex: 1, paddingHorizontal: 10, fontSize: 15 },
+    roundBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+    disclaimer: { textAlign: 'center', fontSize: 10, marginTop: 8 },
+    thinkingRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 8 },
     thinkingDots: { flexDirection: 'row', gap: 4 },
     thinkingDot: { width: 5, height: 5, borderRadius: 2.5 },
-    voiceOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.78)',
-        alignItems: 'center', justifyContent: 'center', zIndex: 200,
-    },
-    voiceCard: {
-        width: SCREEN_WIDTH * 0.82, borderRadius: 28, borderWidth: 1,
-        padding: 28, alignItems: 'center',
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.3, shadowRadius: 24 },
-            android: { elevation: 16 },
-        }),
-    },
-    micCircle: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
-    voiceTitle: { fontSize: 20, fontWeight: '800', marginBottom: 8 },
-    voiceSub: { fontSize: 14, fontWeight: '500', textAlign: 'center', marginBottom: 24, lineHeight: 20 },
-    voiceStopBtn: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 12, marginBottom: 14 },
-    voiceHint: { fontSize: 11, fontWeight: '500' },
+    voiceOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+    voiceCard: { width: '80%', padding: 30, borderRadius: 30, borderWidth: 1, alignItems: 'center' },
+    micCircle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    voiceTitle: { fontSize: 20, fontWeight: '800' },
+    voiceSub: { fontSize: 14, textAlign: 'center', marginVertical: 15 },
+    voiceStopBtn: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 15, borderWidth: 1 },
     sidebarOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50 },
-    sidebarPanel: {
-        position: 'absolute', top: 0, bottom: 0, left: 0,
-        width: SIDEBAR_WIDTH, borderRightWidth: 1, zIndex: 100,
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 6, height: 0 }, shadowOpacity: 0.18, shadowRadius: 16 },
-            android: { elevation: 14 },
-        }),
-    },
-    sidebarHeader: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1,
-    },
-    newChatBtn: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 12, borderRadius: 14, borderWidth: 1, marginBottom: 10, gap: 7,
-    },
-    newChatTxt: { fontSize: 14, fontWeight: '700' },
-    searchRow: { height: 42, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-    searchInput: { flex: 1, height: '100%', fontSize: 14, fontWeight: '500', paddingHorizontal: 8 },
-    convCard: { borderRadius: 14, borderWidth: 1, flexDirection: 'row', overflow: 'hidden' },
-    stripe: { width: 3, alignSelf: 'stretch' },
-    convInner: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 11, gap: 10 },
-    convIcon: { width: 32, height: 32, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    convTitle: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-    convDate: { fontSize: 10, fontWeight: '500' },
-    popover: {
-        position: 'absolute', top: 40, right: 6,
-        borderRadius: 10, borderWidth: 1, zIndex: 99, elevation: 6,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 6,
-        minWidth: 130, overflow: 'hidden',
-    },
-    popoverBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11 },
-    renameInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, fontSize: 13, fontWeight: '600' },
+    sidebarPanel: { position: 'absolute', left: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH, borderRightWidth: 1, zIndex: 60 },
+    sidebarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, borderBottomWidth: 1 },
+    newChatBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 10 },
+    newChatTxt: { fontWeight: '700' },
+    searchRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, height: 40 },
+    searchInput: { flex: 1, marginLeft: 10 },
+    convCard: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+    stripe: { width: 4 },
+    convInner: { flex: 1, padding: 12 },
+    convTitle: { fontWeight: '700' },
 });
