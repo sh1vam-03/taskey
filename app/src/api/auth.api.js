@@ -1,6 +1,6 @@
 import client from './client';
 
-export const login = (email, password, remember) =>
+export const login = (email, password, remember = true) =>
     client.post('/auth/login', { email, password, remember });
 
 export const register = (name, email, password) =>
