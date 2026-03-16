@@ -137,7 +137,7 @@ const s = StyleSheet.create({
         textAlign: 'center',
     },
 
-    ctaBlock: { paddingBottom: 72 }, // Kept padding to clear custom bottom nav if present
+    ctaBlock: { paddingBottom: 96 }, // Increased padding to clear CustomTabBar (62px + insets)
     legalRow: {
         flexDirection: 'row',
         justifyContent: 'center',
