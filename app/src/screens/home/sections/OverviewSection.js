@@ -40,6 +40,38 @@ function Skeleton({ style }) {
     return <Animated.View style={[{ backgroundColor: bg, opacity }, style]} />;
 }
 
+function SmallCardSkeleton() {
+    const { isDark } = useTheme();
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
+
+    return (
+        <View style={[styles.smallCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <Skeleton style={styles.smallIconBadge} />
+            <View style={{ flex: 1, gap: 6 }}>
+                <Skeleton style={{ width: '40%', height: 8, borderRadius: 4 }} />
+                <Skeleton style={{ width: '60%', height: 16, borderRadius: 4 }} />
+            </View>
+        </View>
+    );
+}
+
+function HeroCardSkeleton() {
+    const { isDark } = useTheme();
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
+
+    return (
+        <View style={[styles.heroCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <Skeleton style={styles.heroIconBadge} />
+            <View style={{ flex: 1, justifyContent: 'flex-end', gap: 8 }}>
+                <Skeleton style={{ width: '35%', height: 8, borderRadius: 4 }} />
+                <Skeleton style={{ width: '50%', height: 32, borderRadius: 6 }} />
+            </View>
+        </View>
+    );
+}
+
 /* ── mini animated ring (shows ratio, used in stat cards) ─────────────────── */
 const AnimCircle = Animated.createAnimatedComponent(Circle);
 function MiniRing({ value = 0, max = 100, color, size = 46, stroke = 4 }) {
@@ -413,10 +445,10 @@ export default function OverviewSection({ refreshing, triggerSync }) {
             {loadOv && !refreshing ? (
                 <View style={styles.cardRow}>
                     <View style={styles.leftCol}>
-                        <Skeleton style={[styles.smallCard, { flex: 1 }]} />
-                        <Skeleton style={[styles.smallCard, { flex: 1 }]} />
+                        <SmallCardSkeleton />
+                        <SmallCardSkeleton />
                     </View>
-                    <Skeleton style={[styles.heroCard, { flex: 1 }]} />
+                    <HeroCardSkeleton />
                 </View>
             ) : (
                 <View style={styles.cardRow}>
