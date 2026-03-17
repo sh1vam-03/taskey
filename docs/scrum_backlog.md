@@ -9,9 +9,9 @@
 ## 👥 Team & Roles
 | Name | Role | Responsibility |
 |------|------|----------------|
-| **Balaji (User)** | Product Owner / Backend Lead | Backend Logic, Database (Prisma/PG), API Security, DevOps |
-| **Atharv** | Frontend Developer 1 (FE-1) | Core UI Structure, Global State, Complex Components |
-| **Dinesh** | Frontend Developer 2 (FE-2) | UI styling, Forms, Widgets, Responsive Design |
+| **Balaji (User)** | Full-Stack Developer | Backend Logic, Database (Prisma/PG), API Security, DevOps |
+| **Atharv** | Project Lead, Frontend | Core UI Structure, Global State, Complex Components |
+| **Hanumant** | AI Integration | Sarvam AI, Voice, Prompt Engineering |
 
 ---
 
