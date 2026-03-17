@@ -76,12 +76,12 @@ Blacktime is a collaborative, real-world project developed by a small team of st
     <td align="center" width="33%">
       <img src="https://github.com/atharvkundalkar.png" width="110" alt="Atharv Kundalkar" /><br /><br />
       <strong>Atharv Kundalkar</strong><br />
-      <sub>Frontend Developer</sub><br /><br />
+      <sub>Project Lead, Frontend</sub><br /><br />
       <div align="left">
-        • UI / UX Implementation<br />
-        • Reusable Component Design<br />
-        • Responsive Layouts<br />
-        • Frontend API Integration
+        • System Architecture<br />
+        • Multi-Model AI Pipeline<br />
+        • Frontend Framework Design<br />
+        • Global State Management
       </div><br />
       <a href="https://github.com/atharvkundalkar">GitHub</a> |
       <a href="https://linkedin.com/in/atharv-kundalkar-52467028b">LinkedIn</a> |
@@ -92,7 +92,7 @@ Blacktime is a collaborative, real-world project developed by a small team of st
     <td align="center" width="33%">
       <img src="https://github.com/sh1vam-03.png" width="110" alt="Balaji Bokare" /><br /><br />
       <strong>Balaji Bokare</strong><br />
-      <sub>Backend Developer</sub><br /><br />
+      <sub>Full-Stack Developer</sub><br /><br />
       <div align="left">
         • REST API Development<br />
         • Authentication & Security<br />
@@ -106,19 +106,19 @@ Blacktime is a collaborative, real-world project developed by a small team of st
     </td>
     <!-- Dinesh -->
     <td align="center" width="33%">
-      <img src="https://github.com/Dinesh-more99.png" width="110" alt="Dinesh More" /><br /><br />
-      <strong>Dinesh More</strong><br />
-      <sub>Frontend Developer</sub><br /><br />
+      <img src="#" width="110" alt="Hanumant Surve" /><br /><br />
+      <strong>Hanumant Surve</strong><br />
+      <sub>AI Integration</sub><br /><br />
       <div align="left">
-        • UI Development & Styling<br />
-        • Frontend–Backend Coordination<br />
-        • UI Testing & Bug Fixes<br />
-        • Layout & Usability Improvements
+        • Sarvam AI Integration<br />
+        • Voice Interface Development<br />
+        • Prompt Engineering<br />
+        • Indic Language Routing
       </div><br />
-      <a href="https://github.com/Dinesh-more99">GitHub</a> |
-      <a href="https://linkedin.com/in/dinesh~more">LinkedIn</a> |
-      <a href="https://instagram.com/dineshmore5523">Instagram</a><br />
-      <sub>📧 dineshmore9970@gmail.com</sub>
+      <a href="#">GitHub</a> |
+      <a href="#">LinkedIn</a> |
+      <a href="#">Instagram</a><br />
+      <sub>📧 not available</sub>
     </td>
   </tr>
 </table>
@@ -533,7 +533,7 @@ Special thanks to:
 <p>
  <a href="https://github.com/atharvkundalkar">Atharv Kundalkar</a> •
  <a href="https://github.com/sh1vam-03">Balaji Bokare</a> •
- <a href="https://github.com/Dinesh-more99">Dinesh More</a>
+ <a href="https://github.com/HanumantSurve">Hanumant Surve</a>
 </p>
 
 <br>

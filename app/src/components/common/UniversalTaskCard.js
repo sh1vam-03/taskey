@@ -162,19 +162,29 @@ export default function UniversalTaskCard({
     }, [translateX]);
 
     const panResponder = useRef(PanResponder.create({
-        onMoveShouldSetPanResponder: (_, g) =>
-            Math.abs(g.dx) > 8 && Math.abs(g.dy) < 14,
+        onMoveShouldSetPanResponder: (_, g) => {
+            if (!onEdit && !onDelete) return false;
+            const isHorizontal = Math.abs(g.dx) > 8 && Math.abs(g.dy) < 14;
+            if (!isHorizontal) return false;
+            // Prevent starting swipe in a direction with no action
+            if (g.dx > 0 && !onDelete) return false;
+            if (g.dx < 0 && !onEdit) return false;
+            return true;
+        },
         onPanResponderGrant: () => {
             Animated.spring(rowScale, { toValue: 0.985, useNativeDriver: true, speed: 40 }).start();
         },
         onPanResponderMove: (_, g) => {
-            translateX.setValue(Math.max(-ACTION_WIDTH - 10, Math.min(ACTION_WIDTH + 10, g.dx)));
+            let val = g.dx;
+            if (!onDelete) val = Math.min(0, val);
+            if (!onEdit) val = Math.max(0, val);
+            translateX.setValue(Math.max(-ACTION_WIDTH - 10, Math.min(ACTION_WIDTH + 10, val)));
         },
         onPanResponderRelease: (_, g) => {
             Animated.spring(rowScale, { toValue: 1, useNativeDriver: true, speed: 30 }).start();
-            if (g.dx > SWIPE_THRESHOLD) {
+            if (g.dx > SWIPE_THRESHOLD && onDelete) {
                 Animated.spring(translateX, { toValue: ACTION_WIDTH, useNativeDriver: true, speed: 18, bounciness: 3 }).start();
-            } else if (g.dx < -SWIPE_THRESHOLD) {
+            } else if (g.dx < -SWIPE_THRESHOLD && onEdit) {
                 Animated.spring(translateX, { toValue: -ACTION_WIDTH, useNativeDriver: true, speed: 18, bounciness: 3 }).start();
             } else {
                 close();
@@ -190,29 +200,33 @@ export default function UniversalTaskCard({
     return (
         <View style={styles.wrap}>
             {/* Action Buttons Background */}
-            <Animated.View style={[styles.leftActions, {
-                opacity: translateX.interpolate({ inputRange: [0, 20], outputRange: [0, 1], extrapolate: 'clamp' })
-            }]}>
-                <TouchableOpacity
-                    onPress={() => { close(); setTimeout(() => onDelete?.(item), 150); }}
-                    style={[styles.actionBtn, { backgroundColor: 'rgba(255,68,68,0.14)', borderColor: 'rgba(255,68,68,0.32)', width: ACTION_WIDTH }]}
-                >
-                    <Icon name="trash-can-outline" size={18} color="#ff4444" />
-                    <Text style={[styles.actionTxt, { color: '#ff4444' }]}>DELETE</Text>
-                </TouchableOpacity>
-            </Animated.View>
+            {onDelete && (
+                <Animated.View style={[styles.leftActions, {
+                    opacity: translateX.interpolate({ inputRange: [0, 20], outputRange: [0, 1], extrapolate: 'clamp' })
+                }]}>
+                    <TouchableOpacity
+                        onPress={() => { close(); setTimeout(() => onDelete?.(item), 150); }}
+                        style={[styles.actionBtn, { backgroundColor: 'rgba(255,68,68,0.14)', borderColor: 'rgba(255,68,68,0.32)', width: ACTION_WIDTH }]}
+                    >
+                        <Icon name="trash-can-outline" size={18} color="#ff4444" />
+                        <Text style={[styles.actionTxt, { color: '#ff4444' }]}>DELETE</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            )}
 
-            <Animated.View style={[styles.rightActions, {
-                opacity: translateX.interpolate({ inputRange: [-20, 0], outputRange: [1, 0], extrapolate: 'clamp' })
-            }]}>
-                <TouchableOpacity
-                    onPress={() => { close(); setTimeout(() => onEdit?.(item), 150); }}
-                    style={[styles.actionBtn, { backgroundColor: cyan + '1E', borderColor: cyan + '44', width: ACTION_WIDTH }]}
-                >
-                    <Icon name="pencil-outline" size={18} color={cyan} />
-                    <Text style={[styles.actionTxt, { color: cyan }]}>EDIT</Text>
-                </TouchableOpacity>
-            </Animated.View>
+            {onEdit && (
+                <Animated.View style={[styles.rightActions, {
+                    opacity: translateX.interpolate({ inputRange: [-20, 0], outputRange: [1, 0], extrapolate: 'clamp' })
+                }]}>
+                    <TouchableOpacity
+                        onPress={() => { close(); setTimeout(() => onEdit?.(item), 150); }}
+                        style={[styles.actionBtn, { backgroundColor: cyan + '1E', borderColor: cyan + '44', width: ACTION_WIDTH }]}
+                    >
+                        <Icon name="pencil-outline" size={18} color={cyan} />
+                        <Text style={[styles.actionTxt, { color: cyan }]}>EDIT</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            )}
 
             {/* Foreground Card */}
             <Animated.View

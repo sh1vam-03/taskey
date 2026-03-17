@@ -40,6 +40,38 @@ function Skeleton({ style }) {
     return <Animated.View style={[{ backgroundColor: bg, opacity }, style]} />;
 }
 
+function SmallCardSkeleton() {
+    const { isDark } = useTheme();
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
+
+    return (
+        <View style={[styles.smallCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <Skeleton style={styles.smallIconBadge} />
+            <View style={{ flex: 1, gap: 6 }}>
+                <Skeleton style={{ width: '40%', height: 8, borderRadius: 4 }} />
+                <Skeleton style={{ width: '60%', height: 16, borderRadius: 4 }} />
+            </View>
+        </View>
+    );
+}
+
+function HeroCardSkeleton() {
+    const { isDark } = useTheme();
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)';
+
+    return (
+        <View style={[styles.heroCard, { backgroundColor: glassBg, borderColor: glassBord }]}>
+            <Skeleton style={styles.heroIconBadge} />
+            <View style={{ flex: 1, justifyContent: 'flex-end', gap: 8 }}>
+                <Skeleton style={{ width: '35%', height: 8, borderRadius: 4 }} />
+                <Skeleton style={{ width: '50%', height: 32, borderRadius: 6 }} />
+            </View>
+        </View>
+    );
+}
+
 /* ── mini animated ring (shows ratio, used in stat cards) ─────────────────── */
 const AnimCircle = Animated.createAnimatedComponent(Circle);
 function MiniRing({ value = 0, max = 100, color, size = 46, stroke = 4 }) {
@@ -107,6 +139,35 @@ function HeroMetricCard({ label, value, suffix, color, icon, ring, ringMax }) {
                 </View>
             </View>
             <View style={[styles.heroBlob, { backgroundColor: color }]} pointerEvents="none" />
+        </View>
+    );
+}
+
+/* ── small metric card (stacked in left column) ─────────────────────────── */
+function SmallMetricCard({ label, value, suffix, color, icon }) {
+    const { theme, isDark } = useTheme();
+    return (
+        <View style={[styles.smallCard, {
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+            borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)',
+        }, !isDark && {
+            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
+        }]}>
+            <View style={[styles.smallIconBadge, {
+                backgroundColor: color + (isDark ? '1C' : '14'),
+                borderColor: color + '30',
+            }]}>
+                <Icon name={icon} size={15} color={color} />
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={[styles.smallLabel, { color: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.35)' }]}>
+                    {label.toUpperCase()}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                    <Text style={[styles.smallNum, { color: theme.text ?? '#fff' }]}>{value}</Text>
+                    {suffix ? <Text style={[styles.smallSuffix, { color }]}>{suffix}</Text> : null}
+                </View>
+            </View>
         </View>
     );
 }
@@ -303,14 +364,16 @@ export default function OverviewSection({ refreshing, triggerSync }) {
             ),
             stats: {
                 ...prev.stats,
-                completed: Math.max(0, (prev.stats?.completed || 0) + (willComplete ? 1 : -1))
+                completed: Math.max(0, (prev.stats?.completed || 0) + (willComplete ? 1 : -1)),
+                pending: Math.max(0, (prev.stats?.pending || 0) + (willComplete ? -1 : 1))
             }
         }));
 
         // ② Optimistic Metric Cards Update
         setOvData(prev => !prev ? prev : ({
             ...prev,
-            completedTasksCount: Math.max(0, (prev.completedTasksCount || 0) + (willComplete ? 1 : -1))
+            completedTasksCount: Math.max(0, (prev.completedTasksCount || 0) + (willComplete ? 1 : -1)),
+            todayTasksCount: Math.max(0, (prev.todayTasksCount || 0) + (willComplete ? -1 : 1))
         }));
 
         try {
@@ -381,24 +444,33 @@ export default function OverviewSection({ refreshing, triggerSync }) {
             {/* ── METRIC CARDS ── */}
             {loadOv && !refreshing ? (
                 <View style={styles.cardRow}>
-                    <Skeleton style={[styles.heroCard, { flex: 1 }]} />
-                    <Skeleton style={[styles.heroCard, { flex: 1 }]} />
+                    <View style={styles.leftCol}>
+                        <SmallCardSkeleton />
+                        <SmallCardSkeleton />
+                    </View>
+                    <HeroCardSkeleton />
                 </View>
             ) : (
                 <View style={styles.cardRow}>
+                    <View style={styles.leftCol}>
+                        <SmallMetricCard
+                            label="Completed"
+                            value={ovData?.completedTasksCount ?? 0}
+                            color="#00cc88"
+                            icon="check-all"
+                        />
+                        <SmallMetricCard
+                            label="Uncompleted"
+                            value={ovData?.todayTasksCount ?? 0}
+                            color="#f97316"
+                            icon="clock-alert-outline"
+                        />
+                    </View>
                     <HeroMetricCard
                         label="Today"
                         value={ovData?.todayTasksTotal ?? 0}
                         color={cyan}
                         icon="lightning-bolt"
-                    />
-                    <HeroMetricCard
-                        label="Completed"
-                        value={ovData?.completedTasksCount ?? 0}
-                        color="#00cc88"
-                        icon="check-all"
-                        ring
-                        ringMax={Math.max(ovData?.todayTasksTotal ?? 1, 1)}
                     />
                 </View>
             )}
@@ -467,12 +539,12 @@ export default function OverviewSection({ refreshing, triggerSync }) {
 
 /* ── styles ─────────────────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-    /* symmetric dual-hero card row */
-    cardRow: { flexDirection: 'row', gap: 12, marginHorizontal: -2, marginBottom: 14 },
+    /* asymmetric card row (matches PerformanceSection) */
+    cardRow: { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'stretch' },
 
     /* hero cards */
     heroCard: {
-        flex: 1, borderRadius: 22, borderWidth: 1,
+        flex: 9, borderRadius: 22, borderWidth: 1,
         padding: 20, overflow: 'hidden', minHeight: 140,
     },
     heroIconBadge: {
@@ -484,8 +556,22 @@ const styles = StyleSheet.create({
         width: 110, height: 110, borderRadius: 55, opacity: 0.09,
     },
     heroLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
-    heroNum: { fontSize: 48, fontWeight: '900', lineHeight: 50, letterSpacing: -1.5 },
+    heroNum: { fontSize: 42, fontWeight: '900', lineHeight: 46, letterSpacing: -1.5 },
     heroSuffix: { fontSize: 18, fontWeight: '800' },
+
+    /* small cards */
+    leftCol: { flex: 10, gap: 10 },
+    smallCard: {
+        flex: 1, borderRadius: 18, borderWidth: 1,
+        padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    smallIconBadge: {
+        width: 36, height: 36, borderRadius: 12, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    smallLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1.4, marginBottom: 4 },
+    smallNum: { fontSize: 24, fontWeight: '900', lineHeight: 26 },
+    smallSuffix: { fontSize: 13, fontWeight: '800' },
 
     /* error */
     errBox: { borderRadius: 22, borderWidth: 1, padding: 28, alignItems: 'center', marginBottom: 12 },

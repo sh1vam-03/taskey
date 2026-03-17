@@ -143,11 +143,10 @@ export default function CustomTabBar({ state, navigation }) {
     // This keeps the bar at the physical bottom regardless of screen height variations.
     const translateY = Math.max(0, initialHeight - windowHeight);
 
-    // Check if the current route is AI, or if keyboard is open—hide the tab bar completely
-    const currentRouteName = state.routes[state.index]?.name;
+    // Keyboard / Window shrink check—hide the tab bar if keyboard is active
     const isKeyboardActive = isKeyboardVisible || translateY > 50;
 
-    if (currentRouteName === 'AI' || isKeyboardActive) {
+    if (isKeyboardActive) {
         return <View style={{ height: 0, width: 0, overflow: 'hidden' }} />;
     }
 

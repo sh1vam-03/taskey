@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }) {
             return setError('Password is required.');
         setLoading(true);
         try {
-            const { data: res } = await login(email, password, false);
+            const { data: res } = await login(email, password);
             setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');

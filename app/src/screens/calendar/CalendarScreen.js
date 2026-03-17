@@ -5,9 +5,10 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAlert } from '../../context/AlertContext';
 import { colors } from '../../theme/colors';
-import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay, subDays, subMonths, addMonths } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, startOfMonth, endOfMonth, isSameDay, subDays, subMonths, addMonths, getYear, getMonth } from 'date-fns';
 import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
-import { completeTask, undoCompleteTask } from '../../api/task.api';
+import { getDayCalendar, getWeekCalendar, getMonthCalendar } from '../../api/calendar.api';
+import { deleteTask, completeTask, undoCompleteTask } from '../../api/task.api';
 import UniversalTaskCard from '../../components/common/UniversalTaskCard';
 import CreateScheduleScreen from '../schedule/section/CreateScheduleScreen';
 
@@ -29,17 +30,6 @@ export default function CalendarScreen({ navigation }) {
     }, [selectedDate, view]);
 
     const normalizeData = (data) => {
-        // If data is already an array (from getSchedules), just map it
-        if (Array.isArray(data)) {
-            return data.map(item => ({
-                ...item,
-                id: item.id || item._id,
-                date: item.scheduleDate,
-                type: (item.type === "SCHEDULED" || item.type === "SCHEDULE") ? "SCHEDULE" : (item.type === "TASK" || item.type === "UNSCHEDULED") ? "TASK" : item.type,
-            }));
-        }
-
-        // Fallback for old calendar structure if any
         if (!data || !data.days) return [];
         const flattened = [];
         Object.entries(data.days).forEach(([dateStr, items]) => {
@@ -48,7 +38,8 @@ export default function CalendarScreen({ navigation }) {
                     ...item,
                     id: item.id || item._id,
                     date: dateStr,
-                    type: item.type === "SCHEDULED" ? "SCHEDULE" : item.type === "TASK" ? "TASK" : item.type,
+                    // Standardize types for UniversalTaskCard
+                    type: (item.type === "SCHEDULED" || item.type === "SCHEDULE") ? "SCHEDULE" : "TASK",
                 });
             });
         });
@@ -60,19 +51,17 @@ export default function CalendarScreen({ navigation }) {
         try {
             let res;
             if (view === 'day') {
-                const dateStr = format(selectedDate, 'yyyy-MM-dd');
-                res = await getSchedules({ from: dateStr, to: dateStr });
+                res = await getDayCalendar(format(selectedDate, 'yyyy-MM-dd'));
             } else if (view === 'week') {
-                const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
-                const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
-                res = await getSchedules({ from: format(start, 'yyyy-MM-dd'), to: format(end, 'yyyy-MM-dd') });
+                res = await getWeekCalendar(format(selectedDate, 'yyyy-MM-dd'));
             } else {
-                const start = startOfMonth(selectedDate);
-                const end = endOfMonth(selectedDate);
-                res = await getSchedules({ from: format(start, 'yyyy-MM-dd'), to: format(end, 'yyyy-MM-dd') });
+                // getMonthCalendar expects year and month (1-12)
+                const year = getYear(selectedDate);
+                const month = getMonth(selectedDate) + 1;
+                res = await getMonthCalendar(year, month);
             }
 
-            const raw = res.data?.data || res.data || [];
+            const raw = res.data?.data || res.data || {};
             setEvents(normalizeData(raw));
         } catch (err) {
             console.error(err);
@@ -90,8 +79,8 @@ export default function CalendarScreen({ navigation }) {
     const handleToggleCompletion = async (item) => {
         try {
             const isCompleted = item.status === 'COMPLETED';
-            const dateStr = format(selectedDate, 'yyyy-MM-dd');
-            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+            const dateStr = item.date; // Use the date from the item itself
+            if (item.type === 'SCHEDULE') {
                 isCompleted ? await undoCompleteSchedule(item.id, dateStr) : await completeSchedule(item.id, dateStr);
             } else {
                 isCompleted ? await undoCompleteTask(item.id, dateStr) : await completeTask(item.id, dateStr);
@@ -112,7 +101,7 @@ export default function CalendarScreen({ navigation }) {
     const handleDelete = async (item) => {
         alert(
             'Delete Event',
-            `Are you sure you want to delete "${item.title || item.task?.title || 'this event'}" ? `,
+            `Are you sure you want to delete "${item.title || item.task?.title || 'this event'}"?`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -120,7 +109,11 @@ export default function CalendarScreen({ navigation }) {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await deleteSchedule(item.id);
+                            if (item.type === 'TASK') {
+                                await deleteTask(item.id);
+                            } else {
+                                await deleteSchedule(item.id);
+                            }
                             fetchData(true);
                         } catch (e) {
                             console.error(e);
@@ -195,12 +188,10 @@ export default function CalendarScreen({ navigation }) {
             {events.length > 0 ? (
                 events.map((item, idx) => (
                     <UniversalTaskCard
-                        key={item.id || idx}
+                        key={`${item.id}-${item.date}-${idx}`}
                         item={item}
                         isToday={isSameDay(new Date(), selectedDate)}
                         onComplete={() => handleToggleCompletion(item)}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
                         onPress={() => {
                             if (item.type === 'TASK' || item.type === 'UNSCHEDULED') {
                                 navigation.navigate('TaskDetail', { task: item });
@@ -248,18 +239,23 @@ export default function CalendarScreen({ navigation }) {
                             <View style={styles.weekDayEvents}>
                                 {dayEvents.length > 0 ? (
                                     dayEvents.slice(0, 3).map((event, eIdx) => (
-                                        <View
+                                        <TouchableOpacity
                                             key={eIdx}
+                                            onPress={() => handleToggleCompletion(event)}
                                             style={[
                                                 styles.weekEventPill,
-                                                { backgroundColor: (event.type === 'SCHEDULE' || event.type === 'SCHEDULED') ? cyan + '15' : '#ff444415' }
+                                                { backgroundColor: event.type === 'SCHEDULE' ? cyan + '15' : '#ff444415' }
                                             ]}
                                         >
-                                            <View style={[styles.weekEventDot, { backgroundColor: (event.type === 'SCHEDULE' || event.type === 'SCHEDULED') ? cyan : '#ff4444' }]} />
-                                            <Text style={[styles.weekEventText, { color: theme.text }]} numberOfLines={1}>
+                                            <View style={[styles.weekEventDot, { backgroundColor: event.type === 'SCHEDULE' ? cyan : '#ff4444' }]} />
+                                            <Text style={[
+                                                styles.weekEventText,
+                                                { color: theme.text },
+                                                event.status === 'COMPLETED' && { textDecorationLine: 'line-through', opacity: 0.5 }
+                                            ]} numberOfLines={1}>
                                                 {event.title}
                                             </Text>
-                                        </View>
+                                        </TouchableOpacity>
                                     ))
                                 ) : (
                                     <Text style={[styles.emptyTextSmall, { color: theme.textDim }]}>No events</Text>
@@ -322,7 +318,7 @@ export default function CalendarScreen({ navigation }) {
                                                     key={ei}
                                                     style={[
                                                         styles.dot,
-                                                        { backgroundColor: (e.type === 'SCHEDULE' || e.type === 'SCHEDULED') ? cyan : '#ff4444' }
+                                                        { backgroundColor: e.type === 'SCHEDULE' ? cyan : '#ff4444' }
                                                     ]}
                                                 />
                                             ))}

@@ -6,8 +6,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UniversalTaskCard from '../../components/common/UniversalTaskCard';
-import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
-import { completeTask, undoCompleteTask } from '../../api/task.api';
+import { completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../api/schedule.api';
+import { getToday } from '../../api/dashboard.api';
+import { deleteTask, completeTask, undoCompleteTask } from '../../api/task.api';
 import { useTheme } from '../../context/ThemeContext';
 import { useAlert } from '../../context/AlertContext';
 import { format } from 'date-fns';
@@ -63,9 +64,8 @@ export default function TodayScreen() {
 
     const fetchToday = async () => {
         try {
-            const { data: response } = await getSchedules({ from: today, to: today });
-            // getSchedules returns a flat array in response.data or response
-            const list = response?.data || response;
+            const { data: response } = await getToday(today);
+            const list = response?.data?.timeline || [];
             setSchedules(Array.isArray(list) ? list : []);
         } catch (err) {
             console.error(err);
@@ -88,7 +88,7 @@ export default function TodayScreen() {
             const isCompleted = item.status === 'COMPLETED';
             const dateStr = format(new Date(), 'yyyy-MM-dd');
 
-            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+            if (item.type === 'SCHEDULED') {
                 isCompleted
                     ? await undoCompleteSchedule(item.id, dateStr)
                     : await completeSchedule(item.id, dateStr);
@@ -104,7 +104,7 @@ export default function TodayScreen() {
     };
 
     const handleEdit = (item) => {
-        if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+        if (item.type === 'SCHEDULED') {
             setItemToEdit(item);
             setIsScheduleModalOpen(true);
         } else {
@@ -114,9 +114,10 @@ export default function TodayScreen() {
     };
 
     const handleDelete = async (item) => {
+        const isSchedule = item.type === 'SCHEDULED';
         alert(
-            'Delete Schedule',
-            `Are you sure you want to delete "${item.title || item.task?.title || 'this item'}"?`,
+            isSchedule ? 'Delete Schedule' : 'Delete Task',
+            `Are you sure you want to delete "${item.title || 'this item'}"?`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
@@ -124,7 +125,11 @@ export default function TodayScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await deleteSchedule(item.id);
+                            if (isSchedule) {
+                                await deleteSchedule(item.id);
+                            } else {
+                                await deleteTask(item.id);
+                            }
                             fetchToday();
                         } catch (e) {
                             console.error(e);
@@ -147,16 +152,23 @@ export default function TodayScreen() {
         return st <= nt && st + 100 > nt;
     }), [schedules, nowStr]);
 
-    const upcomingTasks = useMemo(() => schedules.filter(s => {
+    const missedTasks = useMemo(() => schedules.filter(s => {
         if (s.status === 'COMPLETED') return false;
         if (s.id === currentTask?.id) return false;
-        if (!s.startTime) return true; // ANYTIME items are upcoming if not done
+        if (!s.startTime) return false; // Anytime tasks go to upcoming
         const [sh, sm] = s.startTime.split(':').map(Number);
         const [nh, nm] = nowStr.split(':').map(Number);
         const st = sh * 100 + sm;
         const nt = nh * 100 + nm;
-        return st > nt || !s.startTime;
+        return st < nt; // In the past
     }), [schedules, nowStr, currentTask]);
+
+    const upcomingTasks = useMemo(() => schedules.filter(s => {
+        if (s.status === 'COMPLETED') return false;
+        if (s.id === currentTask?.id) return false;
+        if (missedTasks.some(mt => mt.id === s.id)) return false;
+        return true;
+    }), [schedules, currentTask, missedTasks]);
 
     const completedTasks = useMemo(() => schedules.filter(s => s.status === 'COMPLETED'), [schedules]);
 
@@ -217,6 +229,25 @@ export default function TodayScreen() {
                     </View>
                 ) : (
                     <View>
+                        {missedTasks.length > 0 && (
+                            <View style={styles.group}>
+                                <SectionLabel
+                                    icon="alert-circle-outline"
+                                    iconColor="#ff4444"
+                                    label="MISSED / PAST"
+                                    count={missedTasks.length}
+                                    isDark={isDark}
+                                />
+                                {missedTasks.map(item => (
+                                    <UniversalTaskCard
+                                        key={item.id}
+                                        item={item}
+                                        onComplete={handleToggleComplete}
+                                    />
+                                ))}
+                            </View>
+                        )}
+
                         {currentTask && (
                             <View style={styles.group}>
                                 <SectionLabel
@@ -230,8 +261,6 @@ export default function TodayScreen() {
                                     item={currentTask}
                                     isToday={true}
                                     onComplete={handleToggleComplete}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
                                 />
                             </View>
                         )}
@@ -250,8 +279,6 @@ export default function TodayScreen() {
                                         key={item.id}
                                         item={item}
                                         onComplete={handleToggleComplete}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
@@ -271,8 +298,6 @@ export default function TodayScreen() {
                                         key={item.id}
                                         item={item}
                                         onComplete={handleToggleComplete}
-                                        onEdit={handleEdit}
-                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </View>
