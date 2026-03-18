@@ -386,6 +386,72 @@ const content = [
         '});',
     ]),
 
+    // ─── 4.7 Mobile Application Architecture ─────────────
+    h2('4.7 Mobile Application Architecture'),
+
+    jpp('In addition to the Next.js web application, TASKTIME is also available as a native Android application built with React Native 0.76. The mobile app connects to the same backend API as the web application and provides full feature parity for authentication, task management, scheduling, behavior tracking, and billing. The AI assistant is accessible via a web redirect on mobile, with native AI planned for a future release.'),
+    sp(),
+
+    h3('4.7.1 Mobile App Technology Stack'),
+    tbl(
+        ['Technology', 'Version', 'Purpose'],
+        [
+            ['React Native', '0.76+', 'Cross-platform native Android app framework'],
+            ['React Navigation', '6.x', 'Stack and bottom-tab navigation management'],
+            ['Zustand', '4.x', 'Lightweight global state management'],
+            ['react-native-mmkv', '3.x', 'Fast synchronous encrypted local storage for tokens'],
+            ['Axios', '1.x', 'HTTP client with request/response interceptors'],
+            ['react-native-config', '1.x', 'Environment variable injection (.env support)'],
+            ['react-native-svg', '15.x', 'SVG rendering for logo and icons'],
+            ['react-native-vector-icons', '10.x', 'MaterialCommunityIcons + Feather icon sets'],
+            ['react-native-safe-area-context', '4.x', 'Safe area insets for notched devices'],
+            ['react-native-razorpay', '2.x', 'In-app Razorpay payment gateway'],
+            ['react-native-markdown-display', '7.x', 'Markdown rendering in AI chat bubbles'],
+        ],
+        [2600, 1200, 5560],
+    ),
+    sp(),
+
+    h3('4.7.2 Mobile App Module Structure'),
+    tbl(
+        ['Module', 'Screens / Files', 'Description'],
+        [
+            ['Authentication', 'IntroScreen, LoginScreen, RegisterScreen, OtpScreen, ForgotPasswordScreen, ResetPasswordScreen', 'Complete auth flow with typography-first minimal dark design. Shared design tokens in _authShared.js.'],
+            ['Navigation', 'RootNavigator, AuthNavigator, MainNavigator, TabNavigator, CustomTabBar', 'Auth vs App gate, animated bottom tab bar with glass effect, stack navigators per feature area.'],
+            ['Home Dashboard', 'HomeScreen with Overview, Performance, Behavior, Streaks sections', 'Aggregated daily stats, productivity score, task and schedule summary.'],
+            ['Task Management', 'TasksScreen, CreateTaskScreen, TaskDetailScreen, TaskSheet', 'Full CRUD with priority badges, status updates, and category filters.'],
+            ['Today View', 'TodayScreen', 'Focused view of all tasks and schedules due today, sorted by time.'],
+            ['Schedule / Calendar', 'ScheduleScreen, CreateScheduleScreen', 'Calendar view with day/week navigation, recurring schedule creation.'],
+            ['AI Assistant', 'AiScreen', 'Redirects user to web platform. Mobile native AI planned for v1.1.'],
+            ['Profile & Settings', 'ProfileScreen, SettingsScreen, BillingScreen', 'User profile, theme toggle, plan management, and payment handling.'],
+            ['State Management', 'auth.store.js, task.store.js, ui.store.js', 'Zustand stores with MMKV persistence for tokens and preferences.'],
+            ['API Layer', 'client.js + 9 API files', 'Axios instance with JWT auto-refresh interceptor. All API calls centralised.'],
+        ],
+        [2000, 2800, 4560],
+    ),
+    sp(),
+
+    h3('4.7.3 Authentication Token Architecture on Mobile'),
+    jpp('Unlike the web application which uses HttpOnly cookies for refresh tokens, the mobile app stores both access and refresh tokens in MMKV — a native key-value store backed by Facebook\'s MMKV library. MMKV is synchronous and up to 10× faster than AsyncStorage, making it suitable for token reads on every API request. The Axios client interceptor handles 401 responses automatically, refreshes the token, and retries the original request transparently.'),
+    sp(),
+
+    h3('4.7.4 Android Build and Release'),
+    tbl(
+        ['Build Property', 'Value'],
+        [
+            ['Application ID', 'com.tasktime'],
+            ['Version Name', '1.0.0-alpha'],
+            ['Min SDK Version', 'Android 7.0 (API 24)'],
+            ['Target SDK Version', 'Android 14 (API 34)'],
+            ['Architectures', 'armeabi-v7a, arm64-v8a, x86, x86_64'],
+            ['JS Engine', 'Hermes (optimised for React Native)'],
+            ['New Architecture', 'Enabled (React Native 0.76+)'],
+            ['Signing', 'Release APK signed with RSA-2048 keystore'],
+            ['Distribution', 'GitHub Releases (APK direct download)'],
+        ],
+        [3500, 5860],
+    ),
+
     pb(),
 ];
 

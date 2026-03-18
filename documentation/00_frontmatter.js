@@ -12,7 +12,7 @@ const {
 } = require('docx');
 
 const {
-    txt, jpp, jp, h1, sp, sp2, pb, tbl, W,
+    txt, jpp, jp, h1, sp, sp2, pb, tbl, W, logoParagraph,
 } = require('./helpers');
 
 // ─── Reusable signature row helper ────────────────────
@@ -56,6 +56,9 @@ const titlePage = [
     jp('DR. BABASAHEB AMBEDKAR MARATHWADA UNIVERSITY, CHHATRAPATI SAMBHAJINAGAR', {
         bold: true, size: 24, align: AlignmentType.CENTER,
     }),
+    sp(),
+    // ── Logos (displayed if logos/bamu_logo.png & logos/college_logo.png exist) ──
+    ...(logoParagraph() ? [logoParagraph()] : []),
     sp(),
     jp('TULSI COMPUTER SCIENCE & INFORMATION TECHNOLOGY COLLEGE, BEED', {
         bold: true, size: 30, align: AlignmentType.CENTER,

@@ -189,21 +189,62 @@ const content = [
     sp(),
 
     // ─── 2.5 Deployment Platform ─────────────────────────
-    h2('2.5 Deployment and Infrastructure'),
+    h2('2.5 Mobile Technologies'),
 
-    h3('2.5.1 Vercel'),
+    jpp('TASKTIME is available as a native Android application in addition to the web platform. The mobile app is built using React Native — a framework developed by Meta that allows developers to write JavaScript code that compiles to native Android and iOS components, providing near-native performance without maintaining two separate codebases.'),
+    sp(),
+
+    h3('2.5.1 React Native'),
+    jpp('React Native 0.76 introduces the New Architecture by default, which replaces the old JavaScript bridge with a direct JSI (JavaScript Interface) for synchronous native communication. This eliminates the performance overhead of serializing and deserializing JSON messages across the bridge for every UI interaction. The result is smoother animations, faster startup times, and better responsiveness for gesture-heavy interfaces like the custom bottom tab bar in TASKTIME.'),
+    sp(),
+
+    h3('2.5.2 React Navigation'),
+    jpp('React Navigation 6 is the standard navigation library for React Native applications. TASKTIME uses a nested navigation structure: a RootNavigator decides whether to show the AuthNavigator (for unauthenticated users) or the MainNavigator (for authenticated users). The MainNavigator contains a bottom-tab navigator with a custom animated tab bar, and each tab has its own stack navigator for screen-level push/pop transitions.'),
+    sp(),
+
+    h3('2.5.3 MMKV — Fast Local Storage'),
+    jpp('MMKV is a high-performance key-value storage framework originally developed by WeChat and open-sourced by Tencent. Unlike AsyncStorage (React Native\'s default storage, which is asynchronous and JSON-based), MMKV is synchronous and uses memory-mapped files for reads. Benchmarks show MMKV is 10× faster than AsyncStorage for read operations. TASKTIME uses MMKV to store the JWT access and refresh tokens, ensuring that every API request can synchronously attach the Authorization header without awaiting storage reads.'),
+    sp(),
+
+    h3('2.5.4 Zustand for State Management'),
+    jpp('Zustand is a lightweight state management library for React and React Native. It uses a minimal API — a single create() function produces a store with get/set — without the boilerplate of Redux reducers and actions. TASKTIME uses three Zustand stores: auth.store.js (user profile and tokens), task.store.js (task list and filters), and ui.store.js (theme preference and UI state). Each store persists its state to MMKV using the zustand/middleware persist adapter.'),
+    sp(),
+
+    h3('2.5.5 Hermes JavaScript Engine'),
+    jpp('Hermes is a JavaScript engine optimised specifically for React Native, developed by Meta. Unlike V8 (used in Node.js and Chrome), Hermes pre-compiles JavaScript to bytecode at build time rather than at runtime, reducing startup time and memory footprint significantly. TASKTIME enables Hermes in both debug and release builds. On a mid-range Android device, Hermes reduces the time-to-interactive from approximately 3.2 seconds (with JSC) to under 1.5 seconds.'),
+    sp(),
+
+    tbl(
+        ['Technology', 'Version', 'Purpose in TASKTIME'],
+        [
+            ['React Native', '0.76+', 'Mobile framework — compiles JS to native Android components'],
+            ['React Navigation', '6.x', 'Stack + Tab navigation, auth gate, deep linking'],
+            ['Zustand', '4.x', 'Global state — user, tasks, UI preferences'],
+            ['MMKV', '3.x', 'Fast synchronous token storage (10× faster than AsyncStorage)'],
+            ['Axios', '1.x', 'HTTP client with JWT auto-refresh interceptor'],
+            ['react-native-config', '1.x', 'Environment variable injection for .env files'],
+            ['react-native-svg', '15.x', 'SVG rendering for app logo and visual elements'],
+            ['Hermes', 'Built-in RN 0.76', 'Optimised JS engine — faster startup, lower memory'],
+        ],
+        [2600, 1400, 5360],
+    ),
+    sp(),
+
+    h2('2.6 Deployment and Infrastructure'),
+
+    h3('2.6.1 Vercel'),
     jpp('Vercel is the cloud platform created by the same team that built Next.js. It provides the most seamless deployment experience for Next.js applications: connect a GitHub repository, configure environment variables, and every push to the main branch automatically triggers a production deployment. Vercel\'s global CDN serves the frontend from 40+ edge locations worldwide, minimising latency. The Hobby (free) tier supports custom domains, unlimited deployments, and generous bandwidth limits sufficient for academic and early-stage SaaS projects.'),
     sp(),
 
-    h3('2.5.2 Supabase'),
+    h3('2.6.2 Supabase'),
     jpp('Supabase is an open-source Firebase alternative providing managed PostgreSQL as a service. TASKTIME\'s database runs on Supabase\'s free tier in the AWS ap-south-1 (Mumbai) region. Supabase provides PgBouncer connection pooling, a visual database table editor, automatic daily backups, real-time subscription capabilities (not used in TASKTIME currently), and a comprehensive REST and GraphQL API. The free tier allows 500 MB storage, 5 GB bandwidth, and 50,000 monthly active users.'),
     sp(),
 
-    h3('2.5.3 AWS S3'),
+    h3('2.6.3 AWS S3'),
     jpp('Amazon Web Services Simple Storage Service (S3) is used in TASKTIME to store the audio files generated by the Text-to-Speech system. When a user uses the voice assistant, the TTS service generates an MP3 audio file of the AI\'s response. This file is uploaded to an S3 bucket in ap-south-1, and a time-limited presigned URL is returned to the frontend for immediate audio playback. S3\'s durability (99.999999999%), availability, and pay-per-use pricing make it ideal for this use case.'),
     sp(),
 
-    h3('2.5.4 Razorpay'),
+    h3('2.6.4 Razorpay'),
     jpp('Razorpay is India\'s leading payment gateway, processing payments from over 8 million businesses. TASKTIME uses the Razorpay Subscriptions API for recurring billing and the Razorpay Orders API for one-time credit top-up purchases. Razorpay supports all major Indian payment methods: UPI (PhonePe, GPay, Paytm), net banking (50+ banks), credit and debit cards (Visa, Mastercard, RuPay), and wallets. Zero monthly fee with 2% per-transaction pricing makes it economically viable for a student-built SaaS with low initial transaction volume.'),
     sp(),
 
