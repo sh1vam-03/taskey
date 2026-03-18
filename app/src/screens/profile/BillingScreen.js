@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -10,6 +10,7 @@ import Button from '../../components/common/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { useAlert } from '../../context/AlertContext';
 import { useAuthStore } from '../../store/auth.store';
+import Config from 'react-native-config';
 
 // ── DATA MATCHING WEB ───────────────────────────────────────────────────
 const PLANS = [
@@ -81,6 +82,7 @@ const TOP_UPS = [
 export default function BillingScreen({ navigation }) {
     const { alert } = useAlert();
     const [loadingTopUp, setLoadingTopUp] = useState(false);
+    const [paymentFailed, setPaymentFailed] = useState(false);
     const [loadingPlan, setLoadingPlan] = useState(null);
     const [usage, setUsage] = useState(null);
     const [history, setHistory] = useState([]);
@@ -136,6 +138,7 @@ export default function BillingScreen({ navigation }) {
         } catch (err) {
             console.log(err);
             alert('Error', 'Failed to initiate subscription');
+            setPaymentFailed(true);
         } finally { setLoadingPlan(null); }
     };
 
@@ -158,6 +161,7 @@ export default function BillingScreen({ navigation }) {
         } catch (err) {
             console.log(err);
             alert('Error', 'Failed to initiate top-up');
+            setPaymentFailed(true);
         } finally { setLoadingTopUp(null); }
     };
 
@@ -200,9 +204,9 @@ export default function BillingScreen({ navigation }) {
     const openRazorpay = (data, onSuccess) => {
         const options = {
             description: 'TASKTIME Billing',
-            image: 'https://your-logo-url.com/logo.png',
+            image: 'https://tasktime-sh1vam-03.vercel.app/logo.png',
             currency: 'INR',
-            key: data.razorpayKey || 'rzp_test_1Dp5s9sn',
+            key: Config.RAZORPAY_KEY_ID || data.razorpayKey || 'rzp_test_1Dp5s9sn',
             amount: data.amount,
             name: 'TASKTIME',
             order_id: data.orderId,
@@ -211,8 +215,16 @@ export default function BillingScreen({ navigation }) {
         };
 
         RazorpayCheckout.open(options)
-            .then(res => { if (onSuccess) onSuccess(res); else alert('Success', 'Payment successful'); })
-            .catch(err => alert('Error', `Payment failed: ${err.description || 'Unknown error'}`));
+            .then(res => {
+                setPaymentFailed(false);
+                if (onSuccess) onSuccess(res);
+                else alert('Success', 'Payment successful');
+            })
+            .catch(err => {
+                console.log('Razorpay Error:', err);
+                setPaymentFailed(true);
+                alert('Error', `Payment failed: ${err.description || 'Unknown error'}`);
+            });
     };
 
     const isNearLimit = currentPlanId === 'FREE' && usage && (
@@ -289,6 +301,21 @@ export default function BillingScreen({ navigation }) {
                                 <Text style={{ fontSize: 10, color: theme.textDim, fontWeight: '700' }}>RENEWAL: {new Date(subscription.nextBillingAt).toLocaleDateString()}</Text>
                             </View>
                         </>
+                    )}
+
+                    {/* Web Billing Fallback */}
+                    {paymentFailed && (
+                        <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                            <Text style={{ fontSize: 12, color: theme.textDim, marginBottom: 12, textAlign: 'center' }}>
+                                Mobile checkout failed? Try our secure web portal.
+                            </Text>
+                            <Button
+                                title="Use Web for Billing"
+                                variant="outline"
+                                onPress={() => Linking.openURL('https://tasktime-sh1vam-03.vercel.app/dashboard/billing')}
+                                icon={<Icon name="external-link" size={14} color={theme.text} />}
+                            />
+                        </View>
                     )}
                 </View>
 
