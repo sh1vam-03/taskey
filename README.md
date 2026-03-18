@@ -1,394 +1,368 @@
-# blacktime
-
 <div align="center">
-  <h3>Personal Productivity, Task Scheduling & Behavior Tracking Platform</h3>
-  <p><strong>Plan better. Build habits. Track progress.</strong></p>
-  <p>A full-stack productivity system designed for individuals who want structure, clarity, and consistency in daily life.</p>
+
+<img src="https://raw.githubusercontent.com/sh1vam-03/tasktime/main/assets/icon.png" width="120" alt="TASKTIME" />
+
+# TASKTIME
+
+### AI-Powered Task, Schedule & Productivity Management Platform
+
+**Plan smarter. Build habits. Let AI handle the heavy lifting.**
+
+<br/>
+
+[![Version](https://img.shields.io/badge/version-1.0.0--alpha-00d4ff?style=flat-square)](https://github.com/sh1vam-03/tasktime/releases)
+[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20Android-00d4ff?style=flat-square)](#-platforms)
+[![License](https://img.shields.io/badge/license-MIT-00d4ff?style=flat-square)](LICENSE)
+[![Status](https://img.shields.io/badge/status-Alpha-orange?style=flat-square)](#)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+[![Backend](https://img.shields.io/badge/backend-Railway-blueviolet?style=flat-square)](https://railway.app)
+[![Frontend](https://img.shields.io/badge/frontend-Vercel-black?style=flat-square)](https://vercel.com)
+
+<br/>
+
+[🌐 Web App](https://tasktime-sh1vam-03.vercel.app) &nbsp;·&nbsp;
+[📱 Download APK](https://github.com/sh1vam-03/tasktime/releases/download/v1.0.0-alpha/TASKTIME-v1.0.0-alpha.apk) &nbsp;·&nbsp;
+[📖 Documentation](#-documentation) &nbsp;·&nbsp;
+[🐛 Report Bug](https://github.com/sh1vam-03/tasktime/issues) &nbsp;·&nbsp;
+[💡 Request Feature](https://github.com/sh1vam-03/tasktime/discussions)
+
 </div>
 
 ---
 
 ## 📋 Table of Contents
 
-- [Overview](#-overview)
-- [Documentation](#-documentation)
-- [Team](#-team)
-- [Core Features](#-core-features)
+- [About the Project](#-about-the-project)
+- [Platforms & Live Links](#-platforms--live-links)
+- [Download Android App](#-download-android-app)
+- [Features](#-features)
+- [Architecture Overview](#-architecture-overview)
+- [Tech Stack](#️-tech-stack)
 - [Project Structure](#-project-structure)
-- [Tech Stack](#%EF%B8%8F-tech-stack)
-- [Contributing](#-contributing)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
+  - [Backend Setup](#1-backend-setup)
+  - [Web Frontend Setup](#2-web-frontend-setup)
+  - [Mobile App Setup](#3-mobile-app-setup)
+  - [Build Release APK](#4-build-release-apk)
 - [Environment Variables](#-environment-variables)
+- [API Reference](#-api-reference)
+- [Documentation](#-documentation)
+- [Team](#-team)
+- [Contributing](#-contributing)
+- [Roadmap](#-roadmap)
 - [License](#-license)
-- [Support](#-support)
 
 ---
 
-## 🎯 Overview
+## 🎯 About the Project
 
-**blacktime** is a personal productivity and life-management platform that helps users:
+**TASKTIME** is an open-source, full-stack productivity platform that combines task management, smart scheduling, habit tracking, and AI assistance — all in one place.
 
-### Key Capabilities
+It is designed for people who want more than a simple to-do list. TASKTIME is built around three core ideas:
 
-- plan daily and long-term tasks
-- schedule routines and recurring activities
-- track habits and behavior patterns
-- reflect on productivity and well-being
+- **AI-first** — Every feature is designed to work alongside AI, from creating tasks with natural language to getting smart scheduling suggestions.
+- **Behavior-aware** — The app tracks not just tasks, but moods, habits, sleep, and productivity patterns to give you a complete picture of your day.
+- **Cross-platform** — A full-featured web app and a native Android app, both connected to the same backend.
 
-Unlike generic to-do apps, Blacktime focuses on **time-based planning**, **routine repetition**, and **behavior tracking**,making it ideal for **students**, **self-learners**, and **professionals** who want to improve consistency and discipline.
+This project is also built as a real-world, production-grade portfolio project following industry best practices in API design, authentication, database architecture, and mobile development.
 
-This project is also built as a real-world backend-heavy portfolio project, following industry practices in authentication, database design, and API architecture.
+### Who is it for?
 
----
-
-## 🎯 Target Audience
-
-- 🎓 Students managing study schedules & habits
-- 💻 Self-learners tracking daily routines
-- 🧑‍💼 Individuals planning work, gym, sleep, and personal goals
-- 👨‍💻 Recruiters evaluating backend & full-stack skills
----
-
-## 📚 Documentation
-
-For detailed technical specifications, please refer to our internal documentation:
-
-- **[📖 Agile Scrum Backlog](docs/scrum_backlog.md)** - Feature roadmap, sprint plans, and task assignments.
-- **[🏗️ System Architecture](docs/architecture.md)** - High-level design, context diagrams, and tech stack details.
-- **[🗄️ Database Schema](docs/database_schema.md)** - ER Diagrams, table definitions, and relationships.
-- **[🧪 Testing Strategy](docs/testing_strategy.md)** - QA protocols, testing tools, and coverage goals.
-- **[📡 API Documentation Hub](docs/api_documation.md)** - Central index for all API endpoints and specs.
+| Audience | Use case |
+|----------|----------|
+| 🎓 Students | Manage study schedules, assignments, and habits |
+| 💻 Self-learners | Track daily routines and learning streaks |
+| 🧑‍💼 Professionals | Plan work tasks, meetings, and deep work sessions |
+| 👨‍💻 Developers | A reference project for full-stack + React Native architecture |
 
 ---
 
-## 👥 Team
+## 🌐 Platforms & Live Links
 
-Blacktime is a collaborative, real-world project developed by a small team of student developers. The focus is on **clean backend architecture, practical frontend development, API design, testing, and documentation**, aligned with internship and entry-level industry expectations.
-
----
-
-<table align="center">
-  <tr>
-    <!-- Atharv -->
-    <td align="center" width="33%">
-      <img src="https://github.com/atharvkundalkar.png" width="110" alt="Atharv Kundalkar" /><br /><br />
-      <strong>Atharv Kundalkar</strong><br />
-      <sub>Project Lead, Frontend</sub><br /><br />
-      <div align="left">
-        • System Architecture<br />
-        • Multi-Model AI Pipeline<br />
-        • Frontend Framework Design<br />
-        • Global State Management
-      </div><br />
-      <a href="https://github.com/atharvkundalkar">GitHub</a> |
-      <a href="https://linkedin.com/in/atharv-kundalkar-52467028b">LinkedIn</a> |
-      <a href="https://instagram.com/atharvkundalkar_47">Instagram</a><br />
-      <sub>📧 atharvkundalkar1@gmail.com</sub>
-    </td>
-    <!-- Balaji -->
-    <td align="center" width="33%">
-      <img src="https://github.com/sh1vam-03.png" width="110" alt="Balaji Bokare" /><br /><br />
-      <strong>Balaji Bokare</strong><br />
-      <sub>Full-Stack Developer</sub><br /><br />
-      <div align="left">
-        • REST API Development<br />
-        • Authentication & Security<br />
-        • Database Design & Queries<br />
-        • Testing, Debugging & Documentation
-      </div><br />
-      <a href="https://github.com/sh1vam-03">GitHub</a> |
-      <a href="https://linkedin.com/in/sh1vam~03">LinkedIn</a> |
-      <a href="https://instagram.com/sh1vam_03">Instagram</a><br />
-      <sub>📧 l1acker03@gmail.com</sub>
-    </td>
-    <!-- Dinesh -->
-    <td align="center" width="33%">
-      <img src="#" width="110" alt="Hanumant Surve" /><br /><br />
-      <strong>Hanumant Surve</strong><br />
-      <sub>AI Integration</sub><br /><br />
-      <div align="left">
-        • Sarvam AI Integration<br />
-        • Voice Interface Development<br />
-        • Prompt Engineering<br />
-        • Indic Language Routing
-      </div><br />
-      <a href="#">GitHub</a> |
-      <a href="#">LinkedIn</a> |
-      <a href="#">Instagram</a><br />
-      <sub>📧 not available</sub>
-    </td>
-  </tr>
-</table>
+| Platform | Technology | Status | URL |
+|----------|-----------|--------|-----|
+| 🌐 Web App | Next.js 14 + Vercel | ✅ Live | [tasktime-sh1vam-03.vercel.app](https://tasktime-sh1vam-03.vercel.app) |
+| 🤖 AI Assistant | Web (Multi-model) | ✅ Live | [tasktime-sh1vam-03.vercel.app/ai](https://tasktime-sh1vam-03.vercel.app/ai) |
+| ⚙️ Backend API | Node.js + Railway | ✅ Live | [tasktime-production.up.railway.app/api](https://tasktime-production.up.railway.app/api) |
+| 📱 Android App | React Native | ✅ Alpha | [Download below](#-download-android-app) |
+| 🍎 iOS App | React Native | 🔜 Planned | — |
 
 ---
 
-## 🚀 Open for Opportunities
+## 📱 Download Android App
 
-We are open to:
-- Internship & entry-level roles  
-- Open-source collaboration  
-- Feedback, reviews, and mentorship  
+> **⚠️ Alpha Release** — This is an early release. Some features may be incomplete or unstable. We appreciate your feedback via [GitHub Issues](https://github.com/sh1vam-03/tasktime/issues).
 
-Feel free to reach out through GitHub or LinkedIn.
+### [⬇️ Download TASKTIME-v1.0.0-alpha.apk](https://github.com/sh1vam-03/tasktime/releases/download/v1.0.0-alpha/TASKTIME-v1.0.0-alpha.apk)
 
+**Version:** 1.0.0-alpha &nbsp;|&nbsp; **Size:** ~25MB &nbsp;|&nbsp; **Requires:** Android 7.0+ (API 24)
+
+### Installation Instructions
+
+```
+1. Tap the download link above on your Android phone
+2. Once downloaded, open the APK file
+3. If prompted, go to:
+   Settings → Apps → Special app access → Install unknown apps
+   and enable it for your browser or file manager
+4. Tap Install
+5. Open TASKTIME and create your account
+```
 
 ---
 
-## ✨ Core Features
+## ✨ Features
 
 ### 🔐 Authentication & Security
 
-- Email-based user registration
-- OTP verification for email confirmation
-- JWT-based authentication (stateless)
-- Secure logout & account deletion
-- Password reset via OTP
+- Email registration with OTP verification
+- JWT-based stateless authentication
+- Auto-refresh tokens — stay logged in seamlessly
+- Secure password reset via 6-digit OTP
+- Account deletion and logout
 
 ### ✅ Task Management
 
-- Create, update, and delete tasks
-- Task priority (Low / Medium / High)
-- Task status tracking (Pending / Completed)
-- Optional due dates
+- Create, edit, delete, and organize tasks
+- Three priority levels — **Low / Medium / High** with color coding
+- Status tracking — **Pending / In Progress / Completed**
+- Optional due dates with deadline awareness
+- Category and label support
+- Task search and filtering
 
-### 📆 Scheduling & Calendar System
+### 📆 Smart Scheduling & Calendar
 
-- Assign tasks to specific dates & time slot
+- Assign tasks to specific dates and time slots
+- **Recurring schedules** — Daily, Weekly (select days), Monthly
 - Multiple schedules for the same task (e.g., gym morning & evening)
-- Recurring schedules:
-    - Daily routines
-    - Weekly (selected days like Mon/Wed/Fri)
-    - Monthly patterns
-- Designed for day / week / month calendar views
+- Full calendar views — **Day / Week / Month**
+- Schedule conflict detection
+- Today's agenda view
 
-### 🔁 Routine & Habit Tracking
+### 🧠 AI Assistant
 
-- Repeat tasks across multiple days
-- Support for long-term routines (e.g., 30-day habits)
-- Flexible recurrence rules
+- **Multi-model AI** — Google Gemini, GPT-4o Mini, Sarvam 30B
+- Natural language task creation and planning
+- Context-aware responses based on your tasks and schedule
+- Productivity analysis and smart suggestions
+- Conversation history with multiple chat threads
+- Credit-based usage system (Free / Pro plans)
+- Available on web — mobile version coming soon
 
-### 🧠 Behavior & Productivity Tracking
+### 📊 Behavior & Productivity Tracking
 
 - Daily behavior logs
-- Mood tracking
-- Productivity score
-- Sleep & exercise indicators
-- Personal notes for reflection
+- Mood tracking (5-point scale)
+- Productivity score calculation
+- Sleep and exercise indicators
+- Personal daily reflection notes
+- Streak tracking for habits
+- Performance analytics dashboard
 
-### 🌐 Public Pages
+### 💳 Billing & Plans
 
-- Home page
-- About Taskey
-- Privacy Policy
-- Terms & Conditions
-- Contact Us (stored in database)
+| Feature | Free | Pro |
+|---------|------|-----|
+| Tasks | 50/month | Unlimited |
+| AI credits | 50/month | 500/month |
+| Schedules | Basic | Advanced |
+| Analytics | Basic | Full |
+
+- Razorpay payment integration (India)
+- Automatic credit tracking and renewal
+
+### 🎨 Design System
+
+- Minimal dark theme — `#09090b` background, `#00d4ff` cyan accent
+- Typography-first UI inspired by Linear and Vercel
+- React Native mobile app with smooth animations
+- Consistent design tokens shared across web and mobile
 
 ---
 
-### 🔄 Upcoming Features
-- Productivity dashboard with charts
-- AI-powered behavior analysis
-- AI-powered productivity suggestions
-- AI-powered habit tracking
-
----
-
-## 📁 Project Structure
+## 🏗 Architecture Overview
 
 ```
-
-blacktime/
-├── frontend/ # Next.js frontend application
-│ ├── components/ # Reusable React components
-│ ├── pages/ # Next.js pages and routing
-│ ├── styles/ # CSS and styling files
-│ └── utils/ # Utility functions and helpers
-│
-├── backend/ # Node.js + Express backend API
-│ ├── controllers/ # Request handlers
-│ ├── services/ # Business logic
-│ ├── routes/ # API route definitions
-│ ├── middleware/ # Custom middleware
-│ └── config/ # Configuration files
-│
-├── docs/ # Documentation and specifications
-│ ├── api/ # API documentation
-│ └── ... # System architecture docs
-│
-├── .gitignore # Git ignore rules
-├── LICENSE # MIT License
-└── README.md # Project documentation
-
+┌─────────────────────────────────────────────────────────────┐
+│                         CLIENTS                             │
+│                                                             │
+│   ┌──────────────────┐      ┌──────────────────────────┐   │
+│   │   Next.js Web    │      │  React Native Android    │   │
+│   │   (Vercel)       │      │  (APK / Play Store)      │   │
+│   └────────┬─────────┘      └───────────┬──────────────┘   │
+└────────────┼───────────────────────────┼─────────────────── ┘
+             │         HTTPS             │
+             ▼                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BACKEND API                              │
+│            Node.js + Express (Railway)                      │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │
+│  │   Auth   │ │  Tasks   │ │ Schedule │ │  AI Router   │  │
+│  │  Routes  │ │  Routes  │ │  Routes  │ │   Routes     │  │
+│  └──────────┘ └──────────┘ └──────────┘ └──────┬───────┘  │
+│                                                 │           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐         │           │
+│  │Behavior  │ │ Billing  │ │Dashboard │         │           │
+│  │  Routes  │ │  Routes  │ │  Routes  │         │           │
+│  └──────────┘ └──────────┘ └──────────┘         │           │
+└─────────────────────────────┬───────────────────┼───────────┘
+                              │                   │
+              ┌───────────────┘         ┌─────────┘
+              ▼                         ▼
+┌─────────────────────┐    ┌────────────────────────────────┐
+│    PostgreSQL DB    │    │         AI Providers           │
+│   (Prisma ORM)      │    │  Gemini │ GPT-4o │ Sarvam AI  │
+└─────────────────────┘    └────────────────────────────────┘
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-<table>
-  <thead>
-    <tr>
-      <th>Frontend</th>
-      <th>Backend</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>
-      <table>
-  <thead>
-    <tr>
-      <th>Technology</th>
-      <th>Purpose</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Next.js</td>
-      <td>React framework for production</td>
-    </tr>
-    <tr>
-      <td>Tailwind CSS</td>
-      <td>Utility-first CSS framework</td>
-    </tr>
-    <tr>
-      <td>HTML5/CSS3</td>
-      <td>Core web technologies</td>
-    </tr>
-    <tr>
-      <td>Axios</td>
-      <td>HTTP client for API requests</td>
-    </tr>
-  </tbody>
-</table>
-      </td>
-      <td>
-      <table>
-  <thead>
-    <tr>
-      <th>Technology</th>
-      <th>Purpose</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Node.js</td>
-      <td>JavaScript runtime environment</td>
-    </tr>
-    <tr>
-      <td>Express.js</td>
-      <td>Web application framework</td>
-    </tr>
-    <tr>
-      <td>JWT</td>
-      <td>Authentication and authorization</td>
-    </tr>
-    <tr>
-      <td>bcrypt</td>
-      <td>Password hashing</td>
-    </tr>
-  </tbody>
-</table>
-      </td>
-    </tr>
-  </tbody>
-</table>
+### Mobile App (React Native)
 
-### Database
+| Library | Version | Purpose |
+|---------|---------|---------|
+| React Native | 0.76+ | Mobile framework |
+| React Navigation | 6.x | Screen navigation |
+| Zustand | 4.x | Global state management |
+| react-native-mmkv | 3.x | Fast local storage |
+| Axios | 1.x | HTTP API client |
+| react-native-config | 1.x | Environment variables |
+| react-native-svg | 15.x | SVG icons & logo |
+| react-native-vector-icons | 10.x | Icon library (MaterialCommunityIcons) |
+| react-native-safe-area-context | 4.x | Safe area handling |
+| react-native-razorpay | 2.x | Payment gateway |
+| react-native-markdown-display | 7.x | Markdown rendering in AI chat |
 
-- **PostgreSQL** database
-- **Prisma** ORM
+### Web Frontend (Next.js)
 
-### Development Tools
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Next.js | 14.x | React framework (App Router) |
+| Tailwind CSS | 3.x | Utility-first styling |
+| Zustand | 4.x | State management |
+| Axios | 1.x | API requests |
 
-- **Git & GitHub** - Version control and collaboration
-- **Postman** - API development and testing
-- **ESLint** - Code linting and formatting
-- **dotenv** - Environment variable management
+### Backend (Node.js)
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Express.js | 4.x | REST API framework |
+| Prisma | 5.x | ORM and database migrations |
+| PostgreSQL | 15+ | Primary database |
+| jsonwebtoken | 9.x | JWT authentication |
+| bcryptjs | 2.x | Password hashing |
+| Resend | 2.x | Transactional email (OTP, welcome) |
+| Razorpay | 2.x | Payments (India) |
+
+### AI & Cloud
+
+| Service | Purpose |
+|---------|---------|
+| Google Gemini 1.5 Flash / 2.0 | Primary AI model |
+| GPT-4o Mini | Fallback AI model |
+| Sarvam 30B | Indic language support |
+| Railway | Backend hosting |
+| Vercel | Frontend hosting |
+| Supabase / NeonDB | PostgreSQL hosting |
 
 ---
 
-## 🤝 Contributing
+## 📁 Project Structure
 
-- Clear role ownership with cross-support
-- GitHub-based collaboration (issues, commits, pull requests)
-- Focus on clean code, learning, and maintainability
-
-### Branch Naming Convention
-
-- `feature/feature-name` - New features
-- `bugfix/issue-description` - Bug fixes
-- `hotfix/critical-fix` - Urgent production fixes
-- `docs/update-description` - Documentation updates
-
-### Commit Message Format
-
-- Brief description
-- More detailed explanation if needed
-- Use bullet points for multiple changes
-
-
-**Types:** Add, Update, Fix, Remove, Refactor, Docs, Style, Test
-
----
-
-### How to Contribute
-
-1. **Fork the repository**
-   - Click the "Fork" button at the top right of this page
-
-2. **Clone your fork**
 ```
-git clone https://github.com/sh1vam-03/blacktime.git
-cd blacktime
+tasktime/
+│
+├── app/                              # 📱 React Native Android App
+│   ├── src/
+│   │   ├── api/                      # API layer
+│   │   │   ├── client.js             # Axios instance + interceptors
+│   │   │   ├── auth.api.js           # Login, register, OTP, refresh
+│   │   │   ├── task.api.js           # Task CRUD
+│   │   │   ├── schedule.api.js       # Schedule management
+│   │   │   ├── ai.api.js             # AI conversations & streaming
+│   │   │   ├── behavior.api.js       # Behavior logs
+│   │   │   ├── billing.api.js        # Plans & payments
+│   │   │   ├── dashboard.api.js      # Dashboard stats
+│   │   │   └── calendar.api.js       # Calendar data
+│   │   │
+│   │   ├── screens/
+│   │   │   ├── auth/                 # Auth flow
+│   │   │   │   ├── IntroScreen.js    # Onboarding
+│   │   │   │   ├── LoginScreen.js    # Sign in
+│   │   │   │   ├── RegisterScreen.js # Sign up
+│   │   │   │   ├── OtpScreen.js      # Email verification
+│   │   │   │   ├── ForgotPasswordScreen.js
+│   │   │   │   ├── ResetPasswordScreen.js
+│   │   │   │   └── _authShared.js    # Shared design tokens + components
+│   │   │   │
+│   │   │   ├── home/                 # Dashboard & overview
+│   │   │   ├── tasks/                # Task management
+│   │   │   ├── today/                # Today's agenda
+│   │   │   ├── schedule/             # Calendar & scheduling
+│   │   │   ├── ai/                   # AI assistant (web redirect)
+│   │   │   ├── calendar/             # Full calendar view
+│   │   │   └── profile/              # Profile, settings, billing
+│   │   │
+│   │   ├── navigation/
+│   │   │   ├── RootNavigator.js      # Auth vs App routing
+│   │   │   ├── AuthNavigator.js      # Auth screens stack
+│   │   │   ├── MainNavigator.js      # Main app stack
+│   │   │   ├── TabNavigator.js       # Bottom tab navigator
+│   │   │   └── CustomTabBar.js       # Custom tab bar UI
+│   │   │
+│   │   ├── store/
+│   │   │   ├── auth.store.js         # Auth state (user, tokens)
+│   │   │   ├── task.store.js         # Task state
+│   │   │   └── ui.store.js           # UI preferences, theme
+│   │   │
+│   │   ├── hooks/
+│   │   │   ├── useAuth.js            # Auth helpers
+│   │   │   ├── useTasks.js           # Task operations
+│   │   │   ├── useSchedule.js        # Schedule operations
+│   │   │   └── useStream.js          # SSE streaming for AI
+│   │   │
+│   │   ├── context/
+│   │   │   ├── ThemeContext.js       # Dark/light theme
+│   │   │   └── AlertContext.js       # Global alert/dialog
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── constants.js          # API_BASE_URL and app constants
+│   │   │   ├── storage.js            # MMKV token storage
+│   │   │   └── date.js               # Date formatting helpers
+│   │   │
+│   │   └── theme/
+│   │       ├── colors.js             # Color palette
+│   │       ├── typography.js         # Font sizes and weights
+│   │       └── spacing.js            # Spacing scale
+│   │
+│   ├── android/                      # Android native project
+│   └── .env                          # Mobile environment variables
+│
+├── frontend/                         # 🌐 Next.js Web App
+│   ├── app/                          # App router pages
+│   ├── components/                   # UI components
+│   └── utils/                        # Helpers
+│
+├── backend/                          # ⚙️ Node.js API
+│   ├── controllers/                  # Route handlers
+│   ├── services/                     # Business logic
+│   ├── routes/                       # API route definitions
+│   ├── middleware/                   # Auth, error, validation
+│   ├── prisma/
+│   │   └── schema.prisma             # Database schema
+│   └── config/                       # App configuration
+│
+└── docs/                             # 📚 Documentation
+    ├── architecture.md
+    ├── database_schema.md
+    ├── api_documentation.md
+    ├── scrum_backlog.md
+    └── testing_strategy.md
 ```
-
-
-3. **Create a feature branch**
-```
-git checkout -b feature/amazing-feature
-```
-
-
-4. **Make your changes**
-- Write clean, readable code
-- Follow the existing code style
-- Add comments where necessary
-
-5. **Commit your changes**
-```
-git commit -m "Add: amazing feature description"
-```
-
-
-6. **Push to your branch**
-```
-git push origin feature/amazing-feature
-```
-
-
-7. **Open a Pull Request**
-- Provide a clear description of your changes
-- Link any related issues
-
-### Code Style Guidelines
-
-- Use meaningful variable and function names
-- Keep functions small and focused
-- Write self-documenting code
-- Add comments for complex logic
-- Follow ESLint rules
-
-### Reporting Issues
-
-Found a bug or have a suggestion? [Open an issue](https://github.com/sh1vam/blacktime/issues) with:
-- Clear title and description
-- Steps to reproduce (for bugs)
-- Expected vs actual behavior
-- Screenshots if applicable
 
 ---
 
@@ -396,151 +370,445 @@ Found a bug or have a suggestion? [Open an issue](https://github.com/sh1vam/blac
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+Make sure you have these installed:
 
-- **Node.js** (v18.0.0 or higher)
-- **npm** (v9.0.0 or higher) or **yarn**
-- **Git** (v2.30.0 or higher)
-- **Code Editor** (VS Code recommended)
-
----
-
-### Backend Setup
-
-1. Navigate to the backend directory:
-```
-cd backend
-```
-
-
-2. Install dependencies:
-```
-npm install
-```
-
-
-3. Create a `.env` file (see [Environment Variables](#-environment-variables))
-
-4. Start the development server:
-```
-npm run dev
-```
-
-
-5. Verify the server is running:
-- Server URL: `http://localhost:5000`
-- Health check: `GET http://localhost:5000/api/health`
+| Tool | Version | Check |
+|------|---------|-------|
+| Node.js | v18.0+ | `node --version` |
+| npm | v9.0+ | `npm --version` |
+| Git | v2.30+ | `git --version` |
+| Java JDK | 17 | `java --version` |
+| Android Studio | Latest | For mobile dev |
 
 ---
 
-### Frontend Setup
+### 1. Backend Setup
 
-1. Navigate to the frontend directory:
-```
-cd frontend
-```
+```bash
+# Clone the repository
+git clone https://github.com/sh1vam-03/tasktime.git
+cd tasktime/backend
 
-
-2. Install dependencies:
-```
+# Install dependencies
 npm install
-```
 
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your values (see Environment Variables section)
 
-3. Start the development server:
-```
+# Run database migrations
+npx prisma migrate dev
+
+# Start development server
 npm run dev
 ```
 
+Backend runs at: `http://localhost:5000`
 
-4. Open your browser and visit:
-```
-http://localhost:3000
+Verify it's working:
+```bash
+curl http://localhost:5000/api/v1/health
+# Should return: { "status": "ok" }
 ```
 
+---
+
+### 2. Web Frontend Setup
+
+```bash
+cd tasktime/frontend
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your values
+
+# Start development server
+npm run dev
+```
+
+Web app runs at: `http://localhost:3000`
+
+---
+
+### 3. Mobile App Setup
+
+```bash
+cd tasktime/app
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env — set API_BASE_URL to your backend URL
+
+# Start Metro bundler
+npx react-native start
+
+# In a new terminal — run on Android
+npx react-native run-android
+```
+
+> **Note:** Make sure an Android emulator is running or a physical device is connected with USB debugging enabled.
+
+---
+
+### 4. Build Release APK
+
+```bash
+# Generate signing keystore (one time only)
+cd app/android/app
+keytool -genkeypair -v \
+  -keystore tasktime-release.keystore \
+  -alias tasktime \
+  -keyalg RSA -keysize 2048 \
+  -validity 10000
+
+# Add to android/gradle.properties
+MYAPP_UPLOAD_STORE_FILE=tasktime-release.keystore
+MYAPP_UPLOAD_KEY_ALIAS=tasktime
+MYAPP_UPLOAD_STORE_PASSWORD=your_password
+MYAPP_UPLOAD_KEY_PASSWORD=your_password
+
+# Build release APK
+cd app/android
+./gradlew clean
+./gradlew assembleRelease
+```
+
+Output: `app/build/outputs/apk/release/app-release.apk`
 
 ---
 
 ## 🔐 Environment Variables
 
-Create a `.env` file in the **backend** directory with the following variables:
-```
-# Server Configuration
-PORT=5000
+### Backend `.env`
 
-# JWT Configuration
-JWT_SECRET=super_secret_key
+```env
+# Server
+PORT=5000
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/tasktime?sslmode=require
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key_here
 JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
+
+# OTP
 OTP_EXPIRES_MINUTES=10
 
-# Supabase Configuration
-DATABASE_URL=postgresql://USER:PASSWORD@db.xxxxx.supabase.co:5432/postgres?sslmode=require
+# Email (Resend)
+RESEND_API_KEY=re_your_resend_api_key
+EMAIL_FROM=noreply@yourdomain.com
+
+# Payments (Razorpay)
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+
+# AI Models
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+SARVAM_API_KEY=your_sarvam_api_key
 ```
 
+### Web Frontend `.env.local`
 
-> **Note:** Never commit your `.env` file to version control. It's already included in `.gitignore`.
+```env
+NEXT_PUBLIC_API_URL=https://tasktime-production.up.railway.app/api
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_your_key
+```
+
+### Mobile App `.env`
+
+```env
+API_BASE_URL=https://tasktime-production.up.railway.app/api
+```
+
+> ⚠️ **Never commit `.env` files, keystores, or API keys to version control.** All sensitive files are already in `.gitignore`.
+
+---
+
+## 📡 API Reference
+
+Base URL: `https://tasktime-production.up.railway.app/api/v1`
+
+All protected routes require the header:
+```
+Authorization: Bearer <access_token>
+```
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/register` | Register new user |
+| POST | `/auth/verify-otp` | Verify email OTP |
+| POST | `/auth/login` | Login and get tokens |
+| POST | `/auth/refresh` | Refresh access token |
+| POST | `/auth/forgot-password` | Send reset OTP |
+| POST | `/auth/reset-password` | Reset password with OTP |
+| GET | `/auth/me` | Get current user |
+| POST | `/auth/logout` | Logout |
+
+### Tasks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/tasks` | Get all tasks |
+| POST | `/tasks` | Create a task |
+| GET | `/tasks/:id` | Get task by ID |
+| PUT | `/tasks/:id` | Update task |
+| DELETE | `/tasks/:id` | Delete task |
+| PATCH | `/tasks/:id/status` | Update task status |
+
+### Schedule
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/schedules` | Get all schedules |
+| POST | `/schedules` | Create a schedule |
+| PUT | `/schedules/:id` | Update schedule |
+| DELETE | `/schedules/:id` | Delete schedule |
+| GET | `/schedules/today` | Get today's schedule |
+
+### AI
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/ai/conversations` | Get all conversations |
+| POST | `/ai/conversations` | Create conversation |
+| GET | `/ai/conversations/:id/messages` | Get messages |
+| POST | `/ai/conversations/:id/stream` | Stream AI response (SSE) |
+| DELETE | `/ai/conversations/:id` | Delete conversation |
+| GET | `/ai/settings` | Get AI settings |
+| PUT | `/ai/settings` | Update AI settings |
+
+For the full API documentation see [`docs/api_documentation.md`](docs/api_documentation.md).
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [📖 Scrum Backlog](docs/scrum_backlog.md) | Feature roadmap, sprint plans, task assignments |
+| [🏗️ System Architecture](docs/architecture.md) | High-level design, context diagrams, component breakdown |
+| [🗄️ Database Schema](docs/database_schema.md) | ER diagrams, table definitions, relationships |
+| [📡 API Documentation](docs/api_documentation.md) | All endpoints, request/response examples |
+| [🧪 Testing Strategy](docs/testing_strategy.md) | QA protocols, testing tools, coverage goals |
+
+---
+
+## 👥 Team
+
+TASKTIME is developed by a student team from **Tulsi College, Beed (BAMU)** as both a commercial product and a BCA final-year project.
+
+<br/>
+
+<table align="center">
+  <tr>
+    <td align="center" width="33%">
+      <img src="https://github.com/atharvkundalkar.png" width="100" style="border-radius:50%" alt="Atharv Kundalkar"/><br/><br/>
+      <strong>Atharv Kundalkar</strong><br/>
+      <sub>Project Lead</sub><br/><br/>
+      <div align="left">
+        &nbsp;• System Architecture<br/>
+        &nbsp;• Multi-Model AI Pipeline<br/>
+        &nbsp;• Frontend Framework Design<br/>
+        &nbsp;• Global State Management
+      </div><br/>
+      <a href="https://github.com/atharvkundalkar">GitHub</a> &nbsp;·&nbsp;
+      <a href="https://linkedin.com/in/atharv-kundalkar-52467028b">LinkedIn</a>
+    </td>
+    <td align="center" width="33%">
+      <img src="https://github.com/sh1vam-03.png" width="100" style="border-radius:50%" alt="Balaji Bokare"/><br/><br/>
+      <strong>Balaji Bokare</strong><br/>
+      <sub>Full-Stack Developer</sub><br/><br/>
+      <div align="left">
+        &nbsp;• REST API & Backend<br/>
+        &nbsp;• React Native Mobile App<br/>
+        &nbsp;• Authentication & Security<br/>
+        &nbsp;• Database Design & DevOps
+      </div><br/>
+      <a href="https://github.com/sh1vam-03">GitHub</a> &nbsp;·&nbsp;
+      <a href="https://linkedin.com/in/sh1vam~03">LinkedIn</a>
+    </td>
+    <td align="center" width="33%">
+      <img src="https://github.com/HanumantSurve.png" width="100" style="border-radius:50%" alt="Hanumant Surve"/><br/><br/>
+      <strong>Hanumant Surve</strong><br/>
+      <sub>Frontend Developer</sub><br/><br/>
+      <div align="left">
+        &nbsp;• UI Component Development<br/>
+        &nbsp;• Sarvam AI Integration<br/>
+        &nbsp;• Voice Interface<br/>
+        &nbsp;• Indic Language Routing
+      </div><br/>
+      <a href="https://github.com/HanumantSurve">GitHub</a>
+    </td>
+  </tr>
+</table>
+
+<br/>
+
+**Academic Guide:** Prof. Ankush Surve &nbsp;·&nbsp; Tulsi College, Beed &nbsp;·&nbsp; B.A.M. University
+
+---
+
+## 🤝 Contributing
+
+Contributions are what make open source amazing. Any contribution you make is **greatly appreciated**.
+
+### How to Contribute
+
+```bash
+# 1. Fork the repository
+# Click the Fork button on GitHub
+
+# 2. Clone your fork
+git clone https://github.com/your-username/tasktime.git
+cd tasktime
+
+# 3. Create a feature branch
+git checkout -b feature/your-feature-name
+
+# 4. Make your changes
+# Write clean code, follow existing patterns, add comments
+
+# 5. Commit your changes
+git commit -m "Add: description of your change"
+
+# 6. Push to your branch
+git push origin feature/your-feature-name
+
+# 7. Open a Pull Request on GitHub
+```
+
+### Branch Naming
+
+```
+feature/feature-name       → New features
+bugfix/issue-description   → Bug fixes
+hotfix/critical-fix        → Urgent production fixes
+docs/what-you-updated      → Documentation
+refactor/what-you-changed  → Code cleanup
+```
+
+### Commit Message Format
+
+```
+Add: new thing added
+Fix: bug that was fixed
+Update: what was changed and why
+Remove: what was removed
+Docs: documentation update
+Refactor: code improvement without behavior change
+```
+
+### Code Style
+
+- Use meaningful variable and function names
+- Keep functions small and focused (single responsibility)
+- Add comments for complex logic
+- Follow existing file structure and naming conventions
+- No `console.log` in production code — use proper logging
+
+### Reporting Issues
+
+When opening an issue please include:
+- Clear title and description
+- Steps to reproduce (for bugs)
+- Expected vs actual behavior
+- Screenshots or logs if applicable
+- Device/OS info for mobile issues
+
+---
+
+## 🗺️ Roadmap
+
+### Version 1.0 — Alpha ✅
+- [x] Email authentication with OTP
+- [x] Task management (CRUD + priorities + status)
+- [x] Smart scheduling with recurrence rules
+- [x] Behavior tracking and mood logs
+- [x] AI assistant on web
+- [x] React Native Android app
+- [x] Razorpay billing integration
+- [x] Custom dark minimal design system
+
+### Version 1.1 — Beta 🔄
+- [ ] Push notifications (Firebase FCM)
+- [ ] AI assistant on mobile app
+- [ ] Offline mode with sync
+- [ ] Task collaboration / sharing
+- [ ] Performance optimizations
+
+### Version 2.0 — Stable 🔜
+- [ ] iOS app (App Store)
+- [ ] Home screen widgets
+- [ ] Calendar integrations (Google Calendar, Outlook)
+- [ ] Advanced AI analytics
+- [ ] Team workspaces
+- [ ] Open API for third-party integrations
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+Distributed under the **MIT License**.
 
-### What this means:
-- ✅ Commercial use allowed
-- ✅ Modification allowed
-- ✅ Distribution allowed
-- ✅ Private use allowed
-- ℹ️ Attribution required
-- ℹ️ License and copyright notice must be included
+```
+MIT License
 
----
+Copyright (c) 2025 TASKTIME Team
 
-## 💬 Support
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-### Getting Help
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
 
-- 📖 **Documentation:** Check the `/docs` folder for detailed guides
-- 🐛 **Bug Reports:** [Open an issue](https://github.com/sh1vam-03/blacktime/issues)
-- 💡 **Feature Requests:** [Start a discussion](https://github.com/sh1vam-03/blacktime/discussions)
-- 👥 **Team Contact:** Reach out to any team member via their social links above
-
-### Show Your Support
-
-If you find this project helpful:
-- ⭐ **Star this repository** to show your support
-- 🍴 **Fork it** to build your own version
-- 📢 **Share it** with others who might benefit
-- 🤝 **Contribute** to make it even better
+See [`LICENSE`](LICENSE) for the full text.
 
 ---
 
-## 🏆 Acknowledgments
+## 💬 Support & Contact
 
-Special thanks to:
-- Our mentors and instructors who guided us throughout this project
-- The open-source community for inspiration and resources
-- Everyone who has contributed to making this project better
+- 🐛 **Bug Reports** → [Open an Issue](https://github.com/sh1vam-03/tasktime/issues)
+- 💡 **Feature Requests** → [Start a Discussion](https://github.com/sh1vam-03/tasktime/discussions)
+- 📧 **Email** → l1acker03@gmail.com
+- 🌐 **Website** → [tasktime-sh1vam-03.vercel.app](https://tasktime-sh1vam-03.vercel.app)
 
 ---
 
 <div align="center">
-<p><strong>Built with ❤️ by the blacktime Team</strong></p>
-<p>Making productivity simple and accessible for everyone</p>
 
-<br>
+**Built with ❤️ by the TASKTIME Team**
 
-<p>
- <a href="https://github.com/atharvkundalkar">Atharv Kundalkar</a> •
- <a href="https://github.com/sh1vam-03">Balaji Bokare</a> •
- <a href="https://github.com/HanumantSurve">Hanumant Surve</a>
-</p>
+*Making productivity simple, intelligent, and accessible for everyone.*
 
-<br>
+<br/>
 
-<p>
- <a href="#taskey">Back to Top ↑</a>
-</p>
+⭐ **Star this repo if you find it useful** — it really helps!
+
+<br/>
+
+[Atharv Kundalkar](https://github.com/atharvkundalkar) &nbsp;·&nbsp;
+[Balaji Bokare](https://github.com/sh1vam-03) &nbsp;·&nbsp;
+[Hanumant Surve](https://github.com/HanumantSurve)
+
+<br/>
+
+[⬆️ Back to Top](#tasktime)
+
 </div>
-
----
