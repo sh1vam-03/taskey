@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 💬 Ask a Question
+    url: https://github.com/sh1vam-03/tasktime/discussions/new?category=q-a
+    about: Ask anything about TASKTIME — setup, usage, or how things work.
+
+  - name: 🚀 Share an Idea
+    url: https://github.com/sh1vam-03/tasktime/discussions/new?category=ideas
+    about: Suggest a feature or improvement you'd love to see.
+
+  - name: 📧 Security Vulnerability
+    url: mailto:l1acker03@gmail.com
+    about: Please report security vulnerabilities privately via email, not as a public issue.
