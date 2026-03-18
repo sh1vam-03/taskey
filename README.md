@@ -15,7 +15,6 @@
 [![Status](https://img.shields.io/badge/status-Alpha-orange?style=flat-square)](#)
 [![Backend](https://img.shields.io/badge/backend-Railway-blueviolet?style=flat-square)](https://railway.app)
 [![Frontend](https://img.shields.io/badge/frontend-Vercel-black?style=flat-square)](https://vercel.com)
-[![Made in India](https://img.shields.io/badge/Made%20in-India-orange?style=flat-square)](#)
 
 <br/>
 
@@ -835,7 +834,7 @@ You are free to use, copy, modify, merge, publish, distribute, sublicense, and/o
 
 <div align="center">
 
-**Built with ❤️ in India by the TASKTIME Team**
+**Built with ❤️ by the TASKTIME Team**
 
 *Making productivity simple, intelligent, and accessible for everyone.*
 
