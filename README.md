@@ -398,7 +398,6 @@ tasktime/
 │   ├── architecture.md
 │   ├── database_schema.md
 │   ├── api_documentation.md
-│   ├── scrum_backlog.md
 │   └── testing_strategy.md
 │
 ├── documentation/                        # 📄 Academic project reports (DOCX)
@@ -651,7 +650,6 @@ Full API documentation with request/response examples: [`docs/api_documentation.
 
 | Document | Description |
 |----------|-------------|
-| [📖 Scrum Backlog](docs/scrum_backlog.md) | Feature roadmap, sprint plans, user stories, task assignments |
 | [🏗️ System Architecture](docs/architecture.md) | High-level design, context diagrams, component breakdown |
 | [🗄️ Database Schema](docs/database_schema.md) | ER diagrams, all table definitions and relationships |
 | [📡 API Documentation](docs/api_documentation.md) | All endpoints with full request/response examples |
