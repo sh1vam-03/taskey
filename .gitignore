@@ -1,35 +1,84 @@
-# Dependencies
+# ─── Dependencies ─────────────────────────────────────────────
 node_modules
 **/node_modules
 
-# Environment variables
+# ─── Environment Variables ────────────────────────────────────
 .env
 .env.local
+.env.development
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
 **/.env
+**/.env.local
+**/.env.production
 
-# Next.js
+# ─── Android Signing (NEVER commit these) ────────────────────
+*.keystore
+*.jks
+android/app/tasktime-release.keystore
+android/gradle.properties
+
+# ─── Next.js ──────────────────────────────────────────────────
 .next
 out
-build
 
-# Logs
+# ─── React Native / Expo ──────────────────────────────────────
+build/
+android/app/build/
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace
+
+# ─── Logs ─────────────────────────────────────────────────────
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
-# IDEs
+# ─── IDEs ─────────────────────────────────────────────────────
 .vscode
 .idea
 *.swp
 *.swo
+*.swn
 
-# OS
+# ─── OS ───────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# AI Backup
+# ─── Prisma ───────────────────────────────────────────────────
+prisma/migrations/*/migration_lock.toml
+
+# ─── Misc ─────────────────────────────────────────────────────
 ai.backup/
 frontend.backup/
+*.backup
+coverage/
+dist/
+.cache
