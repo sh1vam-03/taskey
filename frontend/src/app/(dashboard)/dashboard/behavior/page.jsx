@@ -117,7 +117,7 @@ export default function BehaviorPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-3">
                         <BrainCircuit className="h-8 w-8 text-cyan-500" />
-                        Daily Behavior Insights
+                        Daily Progress Insights
                     </h1>
                     <p className="text-gray-400 font-mono text-sm max-w-xl">
                         Track your habits and productivity over time.
@@ -130,7 +130,7 @@ export default function BehaviorPage() {
                     className="shrink-0"
                 >
                     <Activity className="h-4 w-4" />
-                    {todayLog ? "Update Activity" : "Add Activity"}
+                    {todayLog ? "Update Progress" : "Log Progress"}
                 </Button>
             </div>
 
@@ -151,7 +151,7 @@ export default function BehaviorPage() {
                         <div className="flex-1 flex items-center justify-center py-6">
                             {loading ? (
                                 <div className="w-48 h-48 rounded-full border-4 border-white/5 animate-spin border-t-cyan-500 flex items-center justify-center">
-                                    <span className="text-cyan-500 font-mono text-xs animate-pulse">CALCULATING...</span>
+                                    <span className="text-cyan-500 font-mono text-xs animate-pulse">ANALYZING...</span>
                                 </div>
                             ) : (
                                 <div className="relative group">

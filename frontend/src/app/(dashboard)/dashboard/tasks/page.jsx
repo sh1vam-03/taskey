@@ -136,10 +136,10 @@ export default function TasksPage() {
             await taskService.deleteTask(deleteModal.taskId);
             setDeleteModal({ isOpen: false, taskId: null });
             fetchTasks({ silent: true }); // Silent refresh
-            success("Objective deleted successfully");
+            success("Task deleted successfully");
         } catch (err) {
             console.error("Delete failed", err);
-            error("Failed to delete objective");
+            error("Failed to delete task");
         }
     };
 
@@ -158,10 +158,10 @@ export default function TasksPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-3">
                         <ListTodo className="h-8 w-8 text-cyan-500" />
-                        Task Command
+                        Tasks
                     </h1>
                     <p className="text-gray-400 font-mono text-sm max-w-xl">
-                        Master list of all operational objectives.
+                        Manage and track all your tasks.
                     </p>
                 </div>
 
@@ -190,7 +190,7 @@ export default function TasksPage() {
                         variant="scanline"
                         className="shrink-0"
                     >
-                        <Plus className="h-4 w-4" /> add Task
+                        <Plus className="h-4 w-4" /> Add Task
                     </Button>
                 </div>
             </div>
@@ -266,12 +266,12 @@ export default function TasksPage() {
                             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
                                 <ListTodo className="h-8 w-8 text-gray-700" />
                             </div>
-                            <h3 className="text-lg font-medium text-white mb-1">No Objectives Found</h3>
+                            <h3 className="text-lg font-medium text-white mb-1">No Tasks Found</h3>
                             <p className="text-gray-500 text-sm max-w-sm mb-6">
-                                {searchQuery ? "No matches found for your search." : "The queue is currently empty."}
+                                {searchQuery ? "No matches found for your search." : "Your task list is empty."}
                             </p>
                             <Button onClick={handleCreate} variant="secondary" size="sm">
-                                Initialize Task
+                                Add Task
                             </Button>
                         </div>
                     ) : (
@@ -281,7 +281,7 @@ export default function TasksPage() {
                                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
                                     <h3 className="flex items-center gap-2 text-xs font-mono text-cyan-500 mb-3 uppercase tracking-wider opacity-80 pl-1">
                                         <CalendarClock className="h-3 w-3" />
-                                        Scheduled Operations
+                                        Scheduled Tasks
                                     </h3>
                                     <div className="space-y-1">
                                         {scheduledTasks.map(task => (
@@ -383,7 +383,7 @@ export default function TasksPage() {
                 taskToEdit={taskToEdit}
                 onTaskSaved={() => {
                     fetchTasks({ reset: true, silent: true }); // Silent refresh on save
-                    success(taskToEdit ? "Objective updated" : "Objective initialized");
+                    success(taskToEdit ? "Task updated" : "Task added");
                 }}
                 categories={categories}
                 onCategoryCreated={() => fetchTasks({ reset: true, silent: true })}
@@ -393,7 +393,7 @@ export default function TasksPage() {
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, taskId: null })}
                 onConfirm={handleDelete}
-                title="Delete Objective"
+                title="Delete Task"
                 message="Are you sure you want to delete this task? This action cannot be undone."
                 confirmText="Delete Task"
                 variant="danger"

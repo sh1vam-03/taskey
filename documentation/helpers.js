@@ -11,7 +11,7 @@ const {
     AlignmentType, HeadingLevel, BorderStyle, WidthType,
     ShadingType, VerticalAlign, PageBreak, LevelFormat,
     Header, Footer,
-} = require('/home/claude/.npm-global/lib/node_modules/docx');
+} = require('docx');
 
 // ─── Constants ────────────────────────────────────────
 const FONT = 'Times New Roman';

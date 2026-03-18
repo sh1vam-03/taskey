@@ -1,6 +1,6 @@
 import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
-import { getCurrentMonthYear, startOfUTCDate, toUTCDateOnly } from "../utils/date.utils.js";
+import { getCurrentMonthYear, startOfUTCDate, toUTCDateOnly, formatTime } from "../utils/date.utils.js";
 
 export const createTask = async (userId, taskData) => {
     const { title, description, priority, dueDate, taskDate, categoryId } = taskData;
@@ -194,8 +194,8 @@ export const getTasks = async (userId, query) => {
                 date: primarySchedule.scheduleDate,
                 days: primarySchedule.repeatOnDays,
                 until: primarySchedule.repeatUntil,
-                time: primarySchedule.startTime,
-                endTime: primarySchedule.endTime
+                time: formatTime(primarySchedule.startTime),
+                endTime: formatTime(primarySchedule.endTime)
             } : null,
             status
         };

@@ -2,12 +2,9 @@ import prisma from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 // import { isAfter, isBefore, isEqual } from "date-fns"; // Unused
 // import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'; // Unused
-import { toUTCDateOnly, startOfUTCDate, appliesOnDate } from "../utils/date.utils.js";
+import { toUTCDateOnly, startOfUTCDate, appliesOnDate, formatTime } from "../utils/date.utils.js";
 
 /* -------------------- HELPERS -------------------- */
-
-const formatTime = (time) =>
-    time ? time.toISOString().slice(11, 16) : null;
 
 /* ======================================================
    DAY CALENDAR
@@ -123,7 +120,8 @@ export const getDayCalendar = async (dateString, userId) => {
                     taskDate: { lte: date }
                 }
             ]
-        }
+        },
+        include: { category: true }
     });
 
     const dailyCompletions = await prisma.taskDailyCompletion.findMany({
@@ -167,7 +165,9 @@ export const getDayCalendar = async (dateString, userId) => {
             type: "UNSCHEDULED",
             taskId: t.id,
             title: t.title,
+            description: t.description,
             priority: t.priority,
+            category: t.category,
             dueDate: t.dueDate,
             startTime: null,
             endTime: null,
@@ -329,7 +329,8 @@ export const getWeekCalendar = async (dateString, userId) => {
                 { taskDate: { gte: weekStart, lt: queryEnd } },
                 { dueDate: { gte: weekStart }, taskDate: { lt: queryEnd } }
             ]
-        }
+        },
+        include: { category: true }
     });
 
     const dailyCompletions = await prisma.taskDailyCompletion.findMany({
@@ -397,7 +398,9 @@ export const getWeekCalendar = async (dateString, userId) => {
                 type: "UNSCHEDULED",
                 taskId: task.id,
                 title: task.title,
+                description: task.description,
                 priority: task.priority,
+                category: task.category,
                 dueDate: task.dueDate,
                 startTime: null,
                 endTime: null,
@@ -493,7 +496,8 @@ export const getRangeCalendar = async (userId, fromStr, toStr) => {
                 { taskDate: { gte: rangeStart, lt: queryEnd } },
                 { dueDate: { gte: rangeStart }, taskDate: { lt: queryEnd } }
             ]
-        }
+        },
+        include: { category: true }
     });
 
     const dailyCompletions = await prisma.taskDailyCompletion.findMany({
@@ -526,6 +530,7 @@ export const getRangeCalendar = async (userId, fromStr, toStr) => {
     const floatingItems = unscheduledTasks.map(t => ({
         title: t.title,
         priority: t.priority,
+        category: t.category,
         deadline: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : "Flexible"
     }));
 
@@ -654,7 +659,8 @@ export const getMonthCalendar = async (year, month, userId) => {
                 { taskDate: { gte: monthStart, lt: queryEnd } },
                 { dueDate: { gte: monthStart }, taskDate: { lt: queryEnd } }
             ]
-        }
+        },
+        include: { category: true }
     });
 
     const dailyCompletions = await prisma.taskDailyCompletion.findMany({
@@ -719,7 +725,9 @@ export const getMonthCalendar = async (year, month, userId) => {
                 type: "UNSCHEDULED",
                 taskId: task.id,
                 title: task.title,
+                description: task.description,
                 priority: task.priority,
+                category: task.category,
                 dueDate: task.dueDate,
                 startTime: null,
                 endTime: null,

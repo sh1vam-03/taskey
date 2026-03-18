@@ -5,7 +5,7 @@
  * ─────────────────────────────────────────
  */
 
-const { AlignmentType } = require('/home/claude/.npm-global/lib/node_modules/docx');
+const { AlignmentType } = require('docx');
 const { h1, h2, h3, h4, jpp, jp, bul, num, sp, sp2, pb, tbl, txt } = require('./helpers');
 
 const content = [
@@ -144,3 +144,5 @@ const content = [
 
     pb(),
 ];
+
+module.exports = { content };

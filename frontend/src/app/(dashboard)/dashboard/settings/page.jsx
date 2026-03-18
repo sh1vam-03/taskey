@@ -163,10 +163,10 @@ export default function SettingsPage() {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
                     <Settings className="h-8 w-8 text-cyan-500" />
-                    System Configuration
+                    Settings
                 </h1>
                 <p className="text-gray-400 font-mono text-sm max-w-xl">
-                    Manage your neural interface, subscription, and account security.
+                    Manage your account, subscription, and security.
                 </p>
             </div>
 
@@ -179,7 +179,7 @@ export default function SettingsPage() {
                     <Card className="p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <User className="h-5 w-5 text-cyan-500" />
-                            <h3 className="font-bold text-lg text-white">Profile Identity</h3>
+                            <h3 className="font-bold text-lg text-white">Profile Details</h3>
                             {user?.isEmailVerified && (
                                 <span className="ml-auto flex items-center gap-1 text-[10px] font-mono text-green-400 bg-green-950/30 px-2 py-1 rounded border border-green-500/20">
                                     <ShieldCheck className="h-3 w-3" /> VERIFIED
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                             {/* Email - Read Only */}
                             <div className="space-y-1">
                                 <label className="text-xs text-gray-500 uppercase tracking-wider font-mono flex items-center gap-1">
-                                    Neural ID (Email) <Lock className="w-3 h-3 text-gray-600" />
+                                    Account Email <Lock className="w-3 h-3 text-gray-600" />
                                 </label>
                                 <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-400 font-mono cursor-not-allowed opacity-70">
                                     {user?.email}
@@ -274,7 +274,7 @@ export default function SettingsPage() {
                     <Card className="p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <Cpu className="h-5 w-5 text-purple-500" />
-                            <h3 className="font-bold text-lg text-white">AI Interface</h3>
+                            <h3 className="font-bold text-lg text-white">AI Assistant</h3>
                         </div>
 
                         <div className="space-y-6">
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                     <Card className="p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <Bell className="h-5 w-5 text-yellow-500" />
-                            <h3 className="font-bold text-lg text-white">System Alerts</h3>
+                            <h3 className="font-bold text-lg text-white">Notifications</h3>
                         </div>
 
                         <div className="space-y-4">

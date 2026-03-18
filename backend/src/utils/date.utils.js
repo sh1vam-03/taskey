@@ -65,6 +65,9 @@ export const getWeekRange = (date) => {
     return { weekStart: monday, weekEnd: sunday };
 };
 
+export const formatTime = (time) =>
+    time ? (time instanceof Date ? time.toISOString().slice(11, 16) : String(time).slice(11, 16)) : null;
+
 export const appliesOnDate = (schedule, date) => {
     const sDate = startOfUTCDate(schedule.scheduleDate);
     const cDate = startOfUTCDate(date);

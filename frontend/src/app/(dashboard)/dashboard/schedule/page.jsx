@@ -104,10 +104,10 @@ export default function SchedulePage() {
             await scheduleService.deleteSchedule(deleteModal.schedule.id);
             setDeleteModal({ isOpen: false, schedule: null });
             fetchSchedules(false);
-            success("Schedule deleted successfully");
+            success("Event deleted successfully");
         } catch (err) {
             console.error("Delete failed", err);
-            error("Failed to delete schedule");
+            error("Failed to delete event");
         }
     };
 
@@ -129,7 +129,7 @@ export default function SchedulePage() {
         } catch (err) {
             console.error("Completion toggle error", err);
             setSchedules(previousSchedules);
-            error("Failed to update status");
+            error("Failed to update event status");
         }
     };
 
@@ -157,7 +157,7 @@ export default function SchedulePage() {
     // Build delete warning message
     const getDeleteWarningMessage = () => {
         const schedule = deleteModal.schedule;
-        if (!schedule) return "Are you sure you want to delete this schedule?";
+        if (!schedule) return "Are you sure you want to delete this event?";
 
         const isRecurring = schedule.recurrence && schedule.recurrence !== 'NONE';
         const recurrenceLabel = RECURRENCE_LABELS[schedule.recurrence] || schedule.recurrence;
@@ -169,13 +169,13 @@ export default function SchedulePage() {
         const getScheduleDetailsText = () => {
             if (schedule.recurrence === 'WEEKLY' && schedule.repeatOnDays?.length > 0) {
                 const dayNames = schedule.repeatOnDays.map(d => DAY_NAMES[d]).join(', ');
-                return (<>This is a <span className="text-white font-medium">Weekly</span> schedule that repeats every <span className="text-cyan-400 font-medium">{dayNames}</span>{schedule.repeatUntil ? <> until <span className="text-white font-medium">{format(parseISO(schedule.repeatUntil), 'MMM d, yyyy')}</span></> : ''}.</>);
+                return (<>This is a <span className="text-white font-medium">Weekly</span> event that repeats every <span className="text-cyan-400 font-medium">{dayNames}</span>{schedule.repeatUntil ? <> until <span className="text-white font-medium">{format(parseISO(schedule.repeatUntil), 'MMM d, yyyy')}</span></> : ''}.</>);
             }
             if (schedule.recurrence === 'DAILY') {
-                return (<>This is a <span className="text-white font-medium">Daily</span> schedule that repeats <span className="text-cyan-400 font-medium">every day</span>{schedule.repeatUntil ? <> until <span className="text-white font-medium">{format(parseISO(schedule.repeatUntil), 'MMM d, yyyy')}</span></> : ''}.</>);
+                return (<>This is a <span className="text-white font-medium">Daily</span> event that repeats <span className="text-cyan-400 font-medium">every day</span>{schedule.repeatUntil ? <> until <span className="text-white font-medium">{format(parseISO(schedule.repeatUntil), 'MMM d, yyyy')}</span></> : ''}.</>);
             }
             if (schedule.recurrence === 'MONTHLY') {
-                return (<>This is a <span className="text-white font-medium">Monthly</span> schedule that repeats <span className="text-cyan-400 font-medium">every month</span>{schedule.repeatUntil ? <> until <span className="text-white font-medium">{format(parseISO(schedule.repeatUntil), 'MMM d, yyyy')}</span></> : ''}.</>);
+                return (<>This is a <span className="text-white font-medium">Monthly</span> event that repeats <span className="text-cyan-400 font-medium">every month</span>{schedule.repeatUntil ? <> until <span className="text-white font-medium">{format(parseISO(schedule.repeatUntil), 'MMM d, yyyy')}</span></> : ''}.</>);
             }
             return null;
         };
@@ -183,9 +183,7 @@ export default function SchedulePage() {
         if (isRecurring) {
             return (
                 <div className="space-y-3">
-                    <p>
-                        You are about to delete <span className="text-white font-semibold">"{schedule.title}"</span>.
-                    </p>
+                    You are about to delete the event <span className="text-white font-semibold">"{schedule.title}"</span>.
                     <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-gray-300">
                         {getScheduleDetailsText()}
                     </div>
@@ -193,15 +191,15 @@ export default function SchedulePage() {
                         <div className="flex items-start gap-2">
                             <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                             <div className="space-y-1">
-                                <p className="text-red-400 font-medium text-xs uppercase tracking-wider">Entire Schedule Will Be Deleted</p>
+                                <p className="text-red-400 font-medium text-xs uppercase tracking-wider">Entire Recurring Event Will Be Deleted</p>
                                 <p className="text-gray-300">
-                                    This will permanently delete the <span className="text-white font-medium">entire schedule</span>, removing it from <span className="text-red-400 font-medium">every day</span> it appears on — not just {format(selectedDate, 'MMM d')}.
+                                    This will permanently delete the <span className="text-white font-medium">entire recurring event</span>, removing it from <span className="text-red-400 font-medium">every day</span> it appears on — not just {format(selectedDate, 'MMM d')}.
                                 </p>
                             </div>
                         </div>
                     </div>
                     <p className="text-gray-500 text-xs">
-                        If you only want to skip it for {format(selectedDate, 'MMM d')}, consider editing the schedule instead of deleting it.
+                        If you only want to skip it for {format(selectedDate, 'MMM d')}, consider editing the event instead of deleting it.
                     </p>
                     <div className="flex items-center gap-2 text-xs text-gray-600 pt-1 border-t border-white/5">
                         <Trash2 className="h-3 w-3" />
@@ -215,10 +213,10 @@ export default function SchedulePage() {
         return (
             <div className="space-y-3">
                 <p>
-                    Are you sure you want to delete <span className="text-white font-semibold">"{schedule.title}"</span>?
+                    Are you sure you want to delete the event <span className="text-white font-semibold">"{schedule.title}"</span>?
                 </p>
                 <p className="text-gray-500">
-                    This is a one-time schedule on <span className="text-white font-medium">{format(parseISO(schedule.scheduleDate), 'EEEE, MMM d, yyyy')}</span> ({schedule.startTime} – {schedule.endTime}).
+                    This is a one-time event on <span className="text-white font-medium">{format(parseISO(schedule.scheduleDate), 'EEEE, MMM d, yyyy')}</span> ({schedule.startTime} – {schedule.endTime}).
                 </p>
                 <div className="flex items-center gap-2 text-xs text-gray-600 pt-1 border-t border-white/5">
                     <Trash2 className="h-3 w-3" />
@@ -240,7 +238,7 @@ export default function SchedulePage() {
                         Schedule
                     </h1>
                     <p className="text-gray-400 font-mono text-sm max-w-xl">
-                        Daily execution control — manage your time-bound commitments.
+                        Manage your timed tasks and events for the day.
                     </p>
                 </div>
 
@@ -250,7 +248,7 @@ export default function SchedulePage() {
                     variant="scanline"
                     className="shrink-0"
                 >
-                    <Plus className="h-4 w-4" /> Add Schedule
+                    <Plus className="h-4 w-4" /> Schedule Event
                 </Button>
             </div>
 
@@ -307,7 +305,7 @@ export default function SchedulePage() {
                                 Nothing scheduled for {getDateLabel().toLowerCase()}. Create a new schedule or navigate to another day.
                             </p>
                             <Button onClick={handleCreate} variant="secondary" size="sm">
-                                Add Schedule
+                                Schedule Event
                             </Button>
                         </div>
                     </Card>
@@ -417,7 +415,7 @@ export default function SchedulePage() {
                     selectedDate={formatDateParam(selectedDate)}
                     onScheduleSaved={() => {
                         fetchSchedules(false);
-                        success(scheduleToEdit ? "Schedule updated" : "Schedule created");
+                        success(scheduleToEdit ? "Event updated" : "Event scheduled");
                     }}
                 />
             )}
@@ -428,7 +426,7 @@ export default function SchedulePage() {
                 onConfirm={handleDelete}
                 title="Delete Schedule"
                 message={getDeleteWarningMessage()}
-                confirmText="Delete Permanently"
+                confirmText="Delete Event"
                 variant="danger"
             />
         </div>

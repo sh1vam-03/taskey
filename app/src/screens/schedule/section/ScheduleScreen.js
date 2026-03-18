@@ -1,0 +1,507 @@
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import {
+    View, Text, StyleSheet, ScrollView, TouchableOpacity,
+    RefreshControl, Platform, Dimensions, Animated,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getSchedules, completeSchedule, undoCompleteSchedule, deleteSchedule } from '../../../api/schedule.api';
+import { completeTask, undoCompleteTask } from '../../../api/task.api';
+import UniversalTaskCard from '../../../components/common/UniversalTaskCard';
+import { EmptyState } from '../../../components/common/EmptyState';
+import { useTheme } from '../../../context/ThemeContext';
+import { useAlert } from '../../../context/AlertContext';
+import { typography } from '../../../theme/typography';
+import { format, addDays, startOfWeek, isToday } from 'date-fns';
+import CreateScheduleScreen from './CreateScheduleScreen';
+
+const { width: W } = Dimensions.get('window');
+
+// API returns event-count label
+const getEventLabel = (count) => `${count} item${count !== 1 ? 's' : ''} scheduled`;
+
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+function Skeleton({ style }) {
+    const { isDark } = useTheme();
+    const anim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+        Animated.loop(Animated.sequence([
+            Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
+            Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
+        ])).start();
+    }, []);
+    const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.50] });
+    return <Animated.View style={[{
+        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        opacity,
+    }, style]} />;
+}
+
+function SkeletonList() {
+    return (
+        <View style={{ gap: 10, marginTop: 4 }}>
+            {[100, 100, 100].map((h, i) => (
+                <Skeleton key={i} style={{ height: h, borderRadius: 20 }} />
+            ))}
+        </View>
+    );
+}
+
+export default function ScheduleScreen() {
+    const insets = useSafeAreaInsets();
+    const { theme, isDark } = useTheme();
+    const { alert } = useAlert();
+    const cyan = theme.cyan ?? '#00d4ff';
+    const textColor = theme.text ?? '#fff';
+
+    const [schedules, setSchedules] = useState([]);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [weekDates, setWeekDates] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [scheduleToEdit, setScheduleToEdit] = useState(null);
+
+    /* glass tokens */
+    const glassBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+    const glassBord = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+
+    useEffect(() => {
+        // Generate week strip
+        const start = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+        const dates = Array.from({ length: 7 }).map((_, i) => addDays(start, i));
+        setWeekDates(dates);
+        fetchSchedule(selectedDate);
+    }, [selectedDate]);
+
+    const fetchSchedule = async (date) => {
+        // Only show skeleton if we have no schedules for that day and it's not pull-to-refresh
+        if (schedules.length === 0 && !refreshing) setLoading(true);
+        try {
+            const formattedDate = format(date, 'yyyy-MM-dd');
+            const { data: response } = await getSchedules({ from: formattedDate, to: formattedDate });
+            // getSchedules returns a flat array in response.data or response
+            const list = response?.data || response;
+            const dayItems = Array.isArray(list) ? list : [];
+            // Only show items that are actual schedules (type SCHEDULED)
+            const onlySchedules = dayItems.filter(item =>
+                item.type === 'SCHEDULED' ||
+                !!item.schedule?.type ||
+                !!item.recurrence
+            );
+            setSchedules(onlySchedules);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        fetchSchedule(selectedDate);
+    }, [selectedDate]);
+
+    const handleToggleComplete = async (item) => {
+        try {
+            const isCompleted = item.status === 'COMPLETED';
+            const dateStr = format(selectedDate, 'yyyy-MM-dd');
+            if (item.type === 'SCHEDULE' || item.type === 'SCHEDULED') {
+                isCompleted
+                    ? await undoCompleteSchedule(item.id, dateStr)
+                    : await completeSchedule(item.id, dateStr);
+            } else {
+                isCompleted
+                    ? await undoCompleteTask(item.id, dateStr)
+                    : await completeTask(item.id, dateStr);
+            }
+            fetchSchedule(selectedDate);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleEdit = (item) => {
+        setScheduleToEdit(item);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (item) => {
+        alert(
+            'Delete Schedule',
+            `Are you sure you want to delete "${item.title || item.task?.title || 'this item'}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteSchedule(item.id);
+                            fetchSchedule(selectedDate);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const { pending, missed, completed } = useMemo(() => {
+        const sorted = [...schedules].sort((a, b) => {
+            const tA = a.startTime || '00:00';
+            const tB = b.startTime || '00:00';
+            return tA.localeCompare(tB);
+        });
+        return {
+            pending: sorted.filter(s => s.status === 'PENDING'),
+            missed: sorted.filter(s => s.status === 'MISSED'),
+            completed: sorted.filter(s => s.status === 'COMPLETED'),
+        };
+    }, [schedules]);
+
+    const totalLabel = useMemo(() => {
+        return getEventLabel(schedules.length);
+    }, [schedules]);
+
+    const renderHeader = () => (
+        <View style={{ paddingTop: insets.top + 16 }}>
+            {/* ── PAGE TITLE (Matching TasksScreen) ── */}
+            <View style={styles.pageHead}>
+                <View style={[styles.pageIconWrap, {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.09)',
+                    ...Platform.select({
+                        ios: {
+                            shadowColor: cyan, shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.15, shadowRadius: 10,
+                        }
+                    }),
+                }]}>
+                    <Icon name="calendar-clock" size={18} color={cyan} />
+                </View>
+                <View>
+                    <Text style={[styles.pageTitle, { color: textColor }]}>SCHEDULE</Text>
+                    <Text style={[styles.pageSub, {
+                        color: isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)',
+                    }]}>
+                        {refreshing ? 'Refreshing…' : totalLabel}
+                    </Text>
+                </View>
+            </View>
+
+            {/* ── DATE STRIP & HEADER ── */}
+            <View style={styles.calendarControl}>
+                <Text style={[styles.monthTitle, { color: textColor }]}>
+                    {format(selectedDate, 'MMMM yyyy')}
+                </Text>
+
+                <View style={styles.weekStrip}>
+                    {weekDates.map((d, i) => {
+                        const isSelected = format(d, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                        return (
+                            <TouchableOpacity
+                                key={i}
+                                activeOpacity={0.8}
+                                style={[
+                                    styles.dayItem,
+                                    { backgroundColor: isSelected ? cyan : glassBg },
+                                    { borderColor: isSelected ? cyan : glassBord }
+                                ]}
+                                onPress={() => setSelectedDate(d)}
+                            >
+                                <Text style={[styles.dayName, { color: isSelected ? '#000000' : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)') }]}>
+                                    {format(d, 'EEE')}
+                                </Text>
+                                <Text style={[styles.dayNum, { color: isSelected ? '#000000' : textColor }]}>
+                                    {format(d, 'd')}
+                                </Text>
+                            </TouchableOpacity>
+                        )
+                    })}
+                </View>
+            </View>
+        </View>
+    );
+
+    const renderSectionHeader = (title, count, icon, color) => (
+        <View style={styles.sectionHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon name={icon} size={14} color={color} />
+                <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+                <View style={[styles.countBadge, { backgroundColor: color + '1A' }]}>
+                    <Text style={[styles.countText, { color }]}>{count}</Text>
+                </View>
+            </View>
+        </View>
+    );
+
+    return (
+        <View style={[styles.root, { backgroundColor: theme.bg ?? '#0a0a0a' }]}>
+            <View style={{ flex: 1 }}>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        { paddingBottom: insets.bottom + 100 },
+                    ]}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={cyan}
+                            progressViewOffset={insets.top}
+                        />
+                    }
+                >
+                    {renderHeader()}
+
+                    {loading ? (
+                        <SkeletonList />
+                    ) : schedules.length === 0 ? (
+                        <EmptyState
+                            title="No items today"
+                            description="Stay on top of your schedule."
+                            icon="clipboard-text-outline"
+                            action={{
+                                label: "Create Event",
+                                onPress: () => { setScheduleToEdit(null); setIsModalOpen(true); }
+                            }}
+                        />
+                    ) : (
+                        <View>
+                            {pending.length > 0 && (
+                                <View style={styles.group}>
+                                    {renderSectionHeader('UPCOMING', pending.length, 'circle-outline', cyan)}
+                                    {pending.map(s => (
+                                        <UniversalTaskCard
+                                            key={`${s.id}-${s.scheduleDate}`}
+                                            item={s}
+                                            isToday={isToday(selectedDate)}
+                                            onComplete={() => handleToggleComplete(s)}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+
+                            {missed.length > 0 && (
+                                <View style={styles.group}>
+                                    {renderSectionHeader('MISSED', missed.length, 'alert-circle-outline', '#ff4444')}
+                                    {missed.map(s => (
+                                        <UniversalTaskCard
+                                            key={`${s.id}-${s.scheduleDate}`}
+                                            item={s}
+                                            onComplete={() => handleToggleComplete(s)}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+
+                            {completed.length > 0 && (
+                                <View style={styles.group}>
+                                    {renderSectionHeader('COMPLETED', completed.length, 'check-circle-outline', '#00cc88')}
+                                    {completed.map(s => (
+                                        <UniversalTaskCard
+                                            key={`${s.id}-${s.scheduleDate}`}
+                                            item={s}
+                                            onComplete={() => handleToggleComplete(s)}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+                    )}
+                </ScrollView>
+            </View>
+
+            {/* Summary Bar */}
+            {!loading && schedules.length > 0 && (
+                <View style={[styles.summaryBar, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)', borderTopColor: glassBord }]}>
+                    <View style={styles.summaryItem}>
+                        <Text style={[styles.summaryValue, { color: textColor }]}>{schedules.length}</Text>
+                        <Text style={styles.summaryLabel}>TOTAL</Text>
+                    </View>
+                    <View style={[styles.summaryDivider, { backgroundColor: glassBord }]} />
+                    <View style={styles.summaryItem}>
+                        <Text style={[styles.summaryValue, { color: cyan }]}>{pending.length}</Text>
+                        <Text style={styles.summaryLabel}>PENDING</Text>
+                    </View>
+                    <View style={[styles.summaryDivider, { backgroundColor: glassBord }]} />
+                    <View style={styles.summaryItem}>
+                        <Text style={[styles.summaryValue, { color: '#00cc88' }]}>{completed.length}</Text>
+                        <Text style={styles.summaryLabel}>DONE</Text>
+                    </View>
+                    <View style={[styles.summaryDivider, { backgroundColor: glassBord }]} />
+                    <View style={styles.summaryItem}>
+                        <Text style={[styles.summaryValue, { color: '#ff4444' }]}>{missed.length}</Text>
+                        <Text style={styles.summaryLabel}>MISSED</Text>
+                    </View>
+                </View>
+            )}
+
+            {/* ── FAB (Matching TasksScreen) ── */}
+            <TouchableOpacity
+                onPress={() => { setScheduleToEdit(null); setIsModalOpen(true); }}
+                activeOpacity={0.85}
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: cyan,
+                        bottom: insets.bottom + 90,
+                        ...Platform.select({
+                            ios: { shadowColor: cyan, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 18 },
+                            android: { elevation: 10 },
+                        }),
+                    },
+                ]}
+            >
+                <View style={styles.fabShimmer} />
+                <Icon name="plus" size={26} color="#000" />
+            </TouchableOpacity>
+
+            <CreateScheduleScreen
+                visible={isModalOpen}
+                scheduleToEdit={scheduleToEdit}
+                initialDate={format(selectedDate, 'yyyy-MM-dd')}
+                onClose={() => { setIsModalOpen(false); setScheduleToEdit(null); }}
+                onCreated={() => { fetchSchedule(selectedDate); setScheduleToEdit(null); }}
+            />
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    root: { flex: 1 },
+    listContent: { paddingHorizontal: 20 },
+
+    /* Page Head */
+    pageHead: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        marginBottom: 24,
+    },
+    pageIconWrap: {
+        width: 46, height: 46,
+        borderRadius: 15, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    pageTitle: { fontSize: 18, fontWeight: '900', letterSpacing: 4 },
+    pageSub: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+
+    /* Calendar Control */
+    calendarControl: {
+        marginBottom: 20,
+    },
+    monthTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        marginBottom: 16,
+        letterSpacing: -0.2,
+    },
+    weekStrip: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 6,
+    },
+    dayItem: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderRadius: 14,
+        borderWidth: 1,
+    },
+    dayName: {
+        fontSize: 10,
+        fontWeight: '800',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+    },
+    dayNum: {
+        fontSize: 14,
+        fontWeight: '900',
+    },
+
+    /* Section Headers */
+    group: { marginBottom: 20 },
+    sectionHeader: {
+        marginBottom: 12,
+        paddingBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
+    },
+    sectionTitle: {
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1.5,
+    },
+    countBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        borderRadius: 6,
+    },
+    countText: {
+        fontSize: 9,
+        fontWeight: '900',
+    },
+
+    /* Summary Bar */
+    summaryBar: {
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        height: 70,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        paddingHorizontal: 20,
+        borderTopWidth: 1,
+        zIndex: 10,
+    },
+    summaryItem: {
+        alignItems: 'center',
+    },
+    summaryValue: {
+        fontSize: 18,
+        fontWeight: '900',
+    },
+    summaryLabel: {
+        fontSize: 8,
+        fontWeight: '700',
+        color: 'rgba(255,255,255,0.3)',
+        marginTop: 2,
+    },
+    summaryDivider: {
+        width: 1,
+        height: 30,
+    },
+
+    /* FAB (Consistent with TasksScreen) */
+    fab: {
+        position: 'absolute',
+        right: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        zIndex: 20,
+    },
+    fabShimmer: {
+        position: 'absolute',
+        top: 0,
+        left: '10%',
+        width: '40%',
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.42)',
+        borderRadius: 1,
+    },
+});

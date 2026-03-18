@@ -50,11 +50,32 @@ export const verifyOtp = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Email and OTP are required");
     }
 
-    const result = await authService.verifyOtp(email, otp);
+    const result = await authService.verifyOtp(
+        email,
+        otp,
+        req.headers["user-agent"],
+        req.ip
+    );
+
+    // Set Cookies (Same as login)
+    res.cookie("accessToken", result.accessToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: ACCESS_COOKIE_MAX_AGE,
+    });
+
+    res.cookie("refreshToken", result.refreshToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: REFRESH_COOKIE_PERSISTENT_MAX_AGE, // Auto-login after verification is always persistent for simplicity
+    });
 
     res.status(200).json({
         success: true,
-        message: result.message,
+        message: "Email verified and logged in successfully",
+        data: {
+            user: result.user,
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken
+        },
     });
 });
 
@@ -94,7 +115,9 @@ export const login = asyncHandler(async (req, res) => {
         success: true,
         message: "Authentication successful",
         data: {
-            user: result.user
+            user: result.user,
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken
         },
     });
 });
@@ -187,7 +210,7 @@ export const getMyProfile = asyncHandler(async (req, res) => {
 // =========================
 export const refreshToken = asyncHandler(async (req, res) => {
     // 1. Read from Cookie ONLY
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
     if (!refreshToken) {
         throw new ApiError(401, "Refresh token required");

@@ -9,7 +9,7 @@
 const {
     Paragraph, TextRun, Table, TableRow, TableCell,
     AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
-} = require('/home/claude/.npm-global/lib/node_modules/docx');
+} = require('docx');
 
 const {
     txt, jpp, jp, h1, sp, sp2, pb, tbl, W,
@@ -100,9 +100,9 @@ const titlePage = [
     tbl(
         ['Submitted By', 'Project Guide'],
         [
-            ['Atharv Kundalkar  (Project Lead, Backend)', 'Prof. Ankush Surve Sir'],
+            ['Atharv Kundalkar  (Project Lead, Frontend)', 'Prof. Ankush Surve Sir'],
             ['Balaji Bokare  (Full-Stack Developer)', 'Dept. of Computer Applications'],
-            ['Hanumant Surve  (Frontend Developer)', 'Academic Year: 2025 – 2026'],
+            ['Hanumant Surve  (AI Integration)', 'Academic Year: 2025 – 2026'],
         ],
         [4680, 4680],
     ),

@@ -69,7 +69,61 @@ export const signup = async (name, email, password) => {
 /* =========================
    VERIFY OTP
 ========================= */
-export const verifyOtp = async (email, otpCode) => {
+// Helper to generate tokens and session after successful auth/verification
+const _generateTokensAndSession = async (user, userAgent, ipAddress, remember = false) => {
+    const jti = generateJti();
+
+    const accessToken = signAccessToken({
+        userId: user.id,
+        tokenVersion: user.tokenVersion,
+        jti,
+    });
+
+    const refreshToken = signRefreshToken({
+        userId: user.id,
+        tokenVersion: user.tokenVersion,
+        jti,
+    });
+
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
+
+    await prisma.session.create({
+        data: {
+            accessTokenJti: jti,
+            refreshTokenHash,
+            userAgent: userAgent || "Unknown",
+            ipAddress: ipAddress || "0.0.0.0",
+            expiresAt: remember
+                ? addDays(new Date(), 21)
+                : addMinutes(new Date(), 30),
+            isPersistent: remember,
+            userId: user.id,
+        },
+    });
+
+    return {
+        accessToken,
+        refreshToken,
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            plan: user.plan,
+            createdAt: user.createdAt,
+            subscriptionCredits: user.subscriptionCredits || 0,
+            topupCredits: user.topupCredits || 0,
+            timezone: user.timezone,
+        },
+    };
+};
+
+/* =========================
+   VERIFY OTP
+========================= */
+export const verifyOtp = async (email, otpCode, userAgent, ipAddress) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
@@ -92,7 +146,7 @@ export const verifyOtp = async (email, otpCode) => {
         throw new ApiError(400, "Invalid or expired OTP");
     }
 
-    await prisma.$transaction([
+    const [updatedUser] = await prisma.$transaction([
         prisma.user.update({
             where: { id: user.id },
             data: { isEmailVerified: true },
@@ -103,7 +157,8 @@ export const verifyOtp = async (email, otpCode) => {
         }),
     ]);
 
-    return { message: "Email verified successfully" };
+    // Automatically log in after email verification
+    return await _generateTokensAndSession(updatedUser, userAgent, ipAddress, true);
 };
 
 /* =========================
@@ -135,53 +190,7 @@ export const login = async (email, password, userAgent, ipAddress, remember = fa
         throw new ApiError(401, "Invalid email or password");
     }
 
-    const jti = generateJti();
-
-    const accessToken = signAccessToken({
-        userId: user.id,
-        tokenVersion: user.tokenVersion,
-        jti,
-    });
-
-    const refreshToken = signRefreshToken({
-        userId: user.id,
-        tokenVersion: user.tokenVersion,
-        jti,
-    });
-
-    const refreshTokenHash = crypto
-        .createHash("sha256")
-        .update(refreshToken)
-        .digest("hex");
-
-    await prisma.session.create({
-        data: {
-            accessTokenJti: jti,
-            refreshTokenHash,
-            userAgent,
-            ipAddress,
-            expiresAt: remember
-                ? addDays(new Date(), 21)
-                : addMinutes(new Date(), 30),
-            isPersistent: remember,
-            userId: user.id,
-        },
-    });
-
-    return {
-        accessToken,
-        refreshToken,
-        user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            plan: user.plan,
-            createdAt: user.createdAt,
-            subscriptionCredits: user.subscriptionCredits || 0,
-            topupCredits: user.topupCredits || 0,
-            timezone: user.timezone,
-        },
-    };
+    return await _generateTokensAndSession(user, userAgent, ipAddress, remember);
 };
 
 /* =========================

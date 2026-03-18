@@ -50,7 +50,7 @@ export default function TaskModal({ isOpen, onClose, taskToEdit, onTaskSaved, ca
             onClose();
         } catch (err) {
             console.error("Task Save Error:", err);
-            setError(err.response?.data?.message || "Failed to save task objective.");
+            setError(err.response?.data?.message || "Failed to save task.");
         } finally {
             setLoading(false);
         }
@@ -92,7 +92,7 @@ export default function TaskModal({ isOpen, onClose, taskToEdit, onTaskSaved, ca
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={taskToEdit ? "UPDATE OBJECTIVE" : "INITIALIZE OBJECTIVE"}
+            title={taskToEdit ? "Update Task" : "Add Task"}
             className="border-white/10 bg-black/90 backdrop-blur-xl"
         >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -104,18 +104,18 @@ export default function TaskModal({ isOpen, onClose, taskToEdit, onTaskSaved, ca
                 )}
 
                 <div className="space-y-2">
-                    <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Objective Directive</label>
+                    <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Task Title</label>
                     <input
                         {...register('title', { required: "Title is required" })}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm"
-                        placeholder="Enter task operation name..."
+                        placeholder="Enter task name..."
                         autoFocus
                     />
                     {errors.title && <p className="text-red-400 text-xs">{errors.title.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Operational Details</label>
+                    <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Description</label>
                     <textarea
                         {...register('description')}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm min-h-[100px] resize-none"
@@ -125,14 +125,14 @@ export default function TaskModal({ isOpen, onClose, taskToEdit, onTaskSaved, ca
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Priority Class</label>
+                        <label className="block text-xs font-mono text-gray-400 uppercase tracking-widest">Priority</label>
                         <select
                             {...register('priority')}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all text-sm appearance-none"
                         >
-                            <option value="LOW" className="bg-black text-white">LOW PRIORITY</option>
-                            <option value="MEDIUM" className="bg-black text-white">MEDIUM PRIORITY</option>
-                            <option value="HIGH" className="bg-black text-white">HIGH PRIORITY</option>
+                            <option value="LOW" className="bg-black text-white">LOW</option>
+                            <option value="MEDIUM" className="bg-black text-white">MEDIUM</option>
+                            <option value="HIGH" className="bg-black text-white">HIGH</option>
                         </select>
                     </div>
 
@@ -217,14 +217,14 @@ export default function TaskModal({ isOpen, onClose, taskToEdit, onTaskSaved, ca
                         onClick={onClose}
                         disabled={loading}
                     >
-                        ABORT
+                        Cancel
                     </Button>
                     <Button
                         type="submit"
                         disabled={loading}
                         className="min-w-[120px]"
                     >
-                        {loading ? 'PROCESSING...' : (taskToEdit ? 'UPDATE OBJECTIVE' : 'INITIATE')}
+                        {loading ? 'Processing...' : (taskToEdit ? 'Update Task' : 'Add Task')}
                     </Button>
                 </div>
             </form>
