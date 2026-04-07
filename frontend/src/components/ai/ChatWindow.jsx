@@ -65,11 +65,11 @@ export default function ChatWindow() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-            {/* Study Mode Banner for Sarvam-M */}
-            {settings?.chatModel === 'sarvam-m' && (
+            {/* Special Banner for Sarvam Model */}
+            {settings?.chatModel === 'sarvam-30b' && (
                 <div className="bg-cyan-500/10 border-b border-cyan-500/20 px-4 py-2.5 flex items-center justify-center gap-2 shrink-0">
                     <span className="text-cyan-400 text-[11px] font-medium tracking-wide">
-                        📚 Alpha Version — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
+                        🇮🇳 Native Support — Sarvam 30B is active. It manages your tasks safely in your native language.
                     </span>
                 </div>
             )}
@@ -170,9 +170,9 @@ function EmptyState() {
                     Ask me anything about your tasks, schedule, or habits. I'm here to help you stay organized and productive.
                 </p>
 
-                {settings?.chatModel === 'sarvam-m' && (
+                {settings?.chatModel === 'sarvam-30b' && (
                     <div className="mb-8 px-4 py-2 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-[11px] md:text-xs text-cyan-400 font-medium tracking-wide">
-                        📚 Alpha Version — Sarvam-M is a knowledge-first model. Experimental support for tasks & calendar is active.
+                        🇮🇳 Native Support — Sarvam 30B is active. It manages your tasks safely in your native language.
                     </div>
                 )}
 

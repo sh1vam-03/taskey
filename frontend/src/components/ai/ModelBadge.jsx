@@ -2,8 +2,7 @@
 
 const MODEL_DISPLAY = {
     'gemini-1.5-flash': { label: 'Gemini Flash', color: 'blue', icon: '⚡' },
-    'sarvam-m': { label: 'Sarvam-M', color: 'purple', icon: '🇮🇳' },
-    'sarvam-30b': { label: 'Sarvam 30B', color: 'gray', icon: '⏳' },
+    'sarvam-30b': { label: 'Sarvam 30B', color: 'purple', icon: '🇮🇳' },
     'gpt-4o-mini': { label: 'GPT-4o Mini', color: 'green', icon: '⭐' },
     'bulbul:v3': { label: 'Bulbul v3', color: 'orange', icon: '🔊' },
     'tts-1': { label: 'OpenAI TTS', color: 'green', icon: '🔊' },

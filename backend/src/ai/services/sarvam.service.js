@@ -1,7 +1,7 @@
 /**
  * Sarvam AI Service Adapter
  * Handles all direct communication with Sarvam AI APIs:
- *   - Chat completions via sarvam-m  (POST /v1/chat/completions)
+ *   - Chat completions via sarvam-30b  (POST /v1/chat/completions)
  *   - Speech-to-Text via saaras:v3   (POST /speech-to-text)
  *   - Text-to-Speech via bulbul:v3   (POST /text-to-speech)
  *
@@ -9,7 +9,7 @@
  * Base: https://api.sarvam.ai
  *
  * ── Tool Calling ─────────────────────────────────────────────
- * sarvam-m DOES support tool/function calling via its OpenAI-compatible
+ * sarvam-30b DOES support tool/function calling via its OpenAI-compatible
  * /v1/chat/completions endpoint. The main.graph.js routes Sarvam through
  * LangChain's ChatOpenAI adapter (pointed at Sarvam's base URL), which
  * handles tool binding and the full agentic loop automatically.
@@ -85,13 +85,13 @@ const sarvamFetch = async (url, options = {}, retries = 3) => {
 };
 
 // ─────────────────────────────────────────────
-// 1. CHAT — sarvam-m (simple, no tools)
+// 1. CHAT — sarvam-30b (simple, no tools)
 // Used for title generation and health checks only.
 // The agentic pipeline uses LangChain's ChatOpenAI adapter (main.graph.js).
 // ─────────────────────────────────────────────
 
 /**
- * Single-shot chat completion with sarvam-m (no tool calling).
+ * Single-shot chat completion with sarvam-30b (no tool calling).
  * @param {Array<{role: string, content: string}>} messages
  * @param {Object} opts
  * @returns {Promise<string>} AI reply text
@@ -137,7 +137,7 @@ export const sarvamChat = async (messages, opts = {}) => {
 };
 
 /**
- * Streaming chat completion with sarvam-m (SSE generator, no tool calling).
+ * Streaming chat completion with sarvam-30b (SSE generator, no tool calling).
  * Used for simple streaming responses. The agentic streaming pipeline
  * goes through LangChain's ChatOpenAI adapter in main.graph.js.
  *

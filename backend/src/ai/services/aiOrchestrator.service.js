@@ -49,7 +49,7 @@ const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"];
 
 /**
  * Resolves the LLM model for text chat.
- * Enforces plan limits: FREE users can ONLY use sarvam-m text chat.
+ * Enforces plan limits: FREE users can ONLY use sarvam-30b text chat.
  */
 const resolveChatModel = (user) => {
     if (user?.plan === "FREE") return "sarvam-30b";
