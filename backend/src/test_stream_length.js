@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
 
 async function testLongStream() {
     const model = new ChatOpenAI({
-        model: "sarvam-m",
+        model: "sarvam-30b",
         temperature: 0.2,
         apiKey: process.env.SARVAM_API_KEY,
         maxTokens: 2048,

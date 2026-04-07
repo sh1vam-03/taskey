@@ -123,8 +123,8 @@ model User {
   topupCredits                 Int       @default(0)
   subscriptionCreditsExpiresAt DateTime?
 
-  aiChatModel  String @default("sarvam-m")
-  aiVoiceModel String @default("sarvam-m")
+  aiChatModel  String @default("sarvam-30b")
+  aiVoiceModel String @default("sarvam-30b")
   aiTtsModel   String @default("bulbul:v3")
   aiSttModel   String @default("saaras:v3")
 
