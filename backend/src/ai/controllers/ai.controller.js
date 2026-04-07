@@ -437,9 +437,10 @@ export const sendMessage = asyncHandler(async (req, res) => {
             }
             res.end();
         } catch (error) {
-            console.error("[Controller] Streaming error:", error);
-            // Send structured SSE error event instead of raw error text
             const statusCode = error.statusCode || error.status || 500;
+            console.error(`[Controller] Streaming error. Status: ${statusCode}. Message: ${error.message}`);
+            console.dir(error);
+
             let userMessage;
             if (statusCode === 402) {
                 userMessage = "Your AI credits are finished. Please top-up credits now.";

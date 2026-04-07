@@ -47,7 +47,7 @@ const getSarvamKey = () => {
  * Helps diagnose and mitigate ConnectTimeoutErrors.
  */
 const sarvamFetch = async (url, options = {}, retries = 3) => {
-    const timeout = 12000; // 12 seconds
+    const timeout = 45000; // Increased to 45 seconds for 30B model
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
 
@@ -57,6 +57,14 @@ const sarvamFetch = async (url, options = {}, retries = 3) => {
             signal: controller.signal,
         });
         clearTimeout(id);
+
+        // RETRY LOGIC for 503 (Service Unavailable) and 429 (Rate Limit)
+        if ((response.status === 503 || response.status === 429) && retries > 0) {
+            console.warn(`[Sarvam API] Received ${response.status}. Retrying... (${retries} left) Target: ${url}`);
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s before retry
+            return sarvamFetch(url, options, retries - 1);
+        }
+
         return response;
     } catch (err) {
         clearTimeout(id);
@@ -66,8 +74,8 @@ const sarvamFetch = async (url, options = {}, retries = 3) => {
 
         if ((isTimeout || isNetworkError) && retries > 0) {
             console.warn(`[Sarvam Connectivity] ${err.message}. Retrying... (${retries} left) Target: ${url}`);
-            // Wait 1s before retry
-            await new Promise(r => setTimeout(r, 1000));
+            // Wait 2s before retry
+            await new Promise(r => setTimeout(r, 2000));
             return sarvamFetch(url, options, retries - 1);
         }
 
@@ -116,8 +124,15 @@ export const sarvamChat = async (messages, opts = {}) => {
     }
 
     const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content;
-    if (!content) throw new Error("Sarvam Chat: Empty response from API");
+    const message = data?.choices?.[0]?.message;
+    
+    // Normalize: Handle cases where model puts output in reasoning_content or hits length limit
+    const content = message?.content || message?.reasoning_content;
+    
+    if (!content) {
+        console.error("[Sarvam Chat] Missing content in response:", JSON.stringify(data));
+        throw new Error("Sarvam Chat: Empty response from API (content and reasoning_content are both empty)");
+    }
     return content;
 };
 

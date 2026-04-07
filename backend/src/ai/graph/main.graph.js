@@ -72,7 +72,7 @@ const buildSarvamModel = (streaming = false) =>
         model: "sarvam-30b",
         temperature: 0.2,
         apiKey: process.env.SARVAM_API_KEY,
-        timeout: 30000,
+        timeout: 60000,
         maxRetries: 2,
         maxTokens: 8192,
         streaming,

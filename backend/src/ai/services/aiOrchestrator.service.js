@@ -42,7 +42,6 @@ import ApiError from "../../utils/ApiError.js";
 // ─────────────────────────────────────────────────────────────
 
 const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"];
-const UNAVAILABLE_MODELS = [];
 
 // ─────────────────────────────────────────────────────────────
 // MODEL RESOLVERS
@@ -54,10 +53,7 @@ const UNAVAILABLE_MODELS = [];
  */
 const resolveChatModel = (user) => {
     if (user?.plan === "FREE") return "sarvam-30b";
-    let m = user?.aiChatModel;
-    if (m && UNAVAILABLE_MODELS.includes(m)) {
-        throw new ApiError(503, "This model is currently not available. Please use a different model.");
-    }
+    let m = (user?.aiChatModel || "").trim();
     return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-30b";
 };
 
@@ -67,10 +63,7 @@ const resolveChatModel = (user) => {
  */
 const resolveVoiceModel = (user) => {
     if (user?.plan !== "PRO_PLUS") return "sarvam-30b";
-    let m = user?.aiVoiceModel;
-    if (m && UNAVAILABLE_MODELS.includes(m)) {
-        throw new ApiError(503, "This model is currently not available. Please use a different model.");
-    }
+    let m = (user?.aiVoiceModel || "").trim();
     return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-30b";
 };
 
@@ -106,7 +99,7 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
         } else if (chatModel === "sarvam-30b") {
             title = await sarvamChat(
                 [{ role: "user", content: prompt }],
-                { maxTokens: 20, model: chatModel }
+                { maxTokens: 100, model: chatModel }
             );
         } else {
             // gpt-4o-mini — static import cached by Node after first call
@@ -235,9 +228,10 @@ export const processAiRequest = async ({ userId, conversationId, message, mode =
             chatModel
         });
     } catch (graphErr) {
+        console.error(`[Orchestrator] Request failed for model "${chatModel}". Status: ${graphErr.statusCode || graphErr.status || 500}. Message: ${graphErr.message}`);
         // Re-throw credit and availability errors as-is
         if (graphErr.statusCode === 402 || graphErr.statusCode === 503) throw graphErr;
-        console.error("[Orchestrator] Graph execution error:", graphErr.message);
+        console.error("[Orchestrator] Graph execution error stack:", graphErr.stack);
         throw new ApiError(500, "Internal server error. Please try again or use a different AI model.");
     }
 
@@ -387,10 +381,11 @@ export const processAiRequestStream = async function* ({
             yield tokenStr;
         }
     } catch (error) {
-        console.error("[Orchestrator Stream] Error:", error.stack || error.message);
+        const statusCode = error.statusCode || error.status || 500;
+        console.error(`[Orchestrator Stream] Error for model "${chatModel}". Status: ${statusCode}. Message: ${error.message}`);
         // Re-throw classified errors as-is (402 credits, 503 model unavailable)
-        if (error.statusCode === 402 || error.statusCode === 503) throw error;
-        // Sanitize all other errors into a generic 500
+        if (statusCode === 402 || statusCode === 503) throw error;
+        console.error("[Orchestrator Stream] Error stack:", error.stack);
         throw new ApiError(500, "Internal server error. Please try again or use a different AI model.");
     }
 
