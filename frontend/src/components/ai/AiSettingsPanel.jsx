@@ -245,39 +245,32 @@ function ModelSection({ title, subtitle, models = [], selected, onSelect, note, 
                             ));
                         }
 
-                        const agentModels = models.filter(m => m.supportsTools);
-                        const chatModels = models.filter(m => !m.supportsTools);
+                        // Group models by provider for a cleaner look
+                        const providers = [
+                            { name: 'Sarvam AI (Indic)', match: (m) => m.id.includes('sarvam') },
+                            { name: 'Google Gemini', match: (m) => m.id.includes('gemini') },
+                            { name: 'OpenAI GPT', match: (m) => m.id.includes('gpt') },
+                        ];
 
                         return (
                             <div className="space-y-4">
-                                {agentModels.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h4 className="text-[10px] font-medium text-emerald-400/80 uppercase tracking-widest px-1">Full Agents</h4>
-                                        {agentModels.map(m => (
-                                            <ModelCard
-                                                key={m.id}
-                                                model={m}
-                                                isSelected={selected === m.id}
-                                                onSelect={onSelect}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-
-                                {chatModels.length > 0 && (
-                                    <div className="space-y-2">
-                                        {agentModels.length > 0 && <div className="h-px w-full bg-white/4 my-2"></div>}
-                                        <h4 className="text-[10px] font-medium text-purple-400/80 uppercase tracking-widest px-1">Study Partners</h4>
-                                        {chatModels.map(m => (
-                                            <ModelCard
-                                                key={m.id}
-                                                model={m}
-                                                isSelected={selected === m.id}
-                                                onSelect={onSelect}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
+                                {providers.map(p => {
+                                    const providerModels = models.filter(p.match);
+                                    if (providerModels.length === 0) return null;
+                                    return (
+                                        <div key={p.name} className="space-y-2">
+                                            <h4 className="text-[10px] font-medium text-white/40 uppercase tracking-widest px-1">{p.name}</h4>
+                                            {providerModels.map(m => (
+                                                <ModelCard
+                                                    key={m.id}
+                                                    model={m}
+                                                    isSelected={selected === m.id}
+                                                    onSelect={onSelect}
+                                                />
+                                            ))}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         );
                     })()

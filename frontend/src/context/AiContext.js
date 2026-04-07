@@ -10,8 +10,8 @@ const AiContext = createContext(null);
 const initialState = {
     // Settings — loaded once on mount, updated on PATCH response
     settings: {
-        chatModel: 'gemini-1.5-flash',
-        voiceModel: 'gemini-1.5-flash',
+        chatModel: 'sarvam-30b',
+        voiceModel: 'sarvam-30b',
         ttsModel: 'bulbul:v3',
         sttModel: 'saaras:v3',
         sttLang: 'unknown',
@@ -541,9 +541,12 @@ export function AiProvider({ children }) {
                 if (status === 402) {
                     displayMsg = '⚠️ **Your AI credits are finished.** Please top-up credits now to continue using the AI assistant.';
                 } else if (status === 503) {
-                    displayMsg = '⚠️ **This model is currently not available.** Please use a different AI model from settings.';
+                    const hasOptions = (state.settings.availableChatModels || []).length > 1;
+                    displayMsg = hasOptions 
+                        ? '⚠️ **This model is currently busy.** Please try again in dynamic moments or select a different model from Settings.'
+                        : '⚠️ **This model is currently busy.** The Sarvam AI service is experiencing high load. Please try again in a few moments.';
                 } else {
-                    displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
+                    displayMsg = '⚠️ **Connection Error.** Please check your internet or try again in a few moments.';
                 }
 
                 dispatch({ type: 'STREAM_DONE', payload: displayMsg });
@@ -618,9 +621,12 @@ export function AiProvider({ children }) {
                     if (status === 402) {
                         displayMsg = '⚠️ **Your AI credits are finished.** Please top-up credits now to continue using the AI assistant.';
                     } else if (status === 503) {
-                        displayMsg = '⚠️ **This model is currently not available.** Please use a different AI model from settings.';
+                        const hasOptions = (state.settings.availableChatModels || []).length > 1;
+                        displayMsg = hasOptions 
+                            ? '⚠️ **This model is currently busy.** Please try again or select a different model from Settings.'
+                            : '⚠️ **This model is currently busy.** Please try again in a few moments.';
                     } else {
-                        displayMsg = '⚠️ **Internal server error.** Please try again or use a different AI model.';
+                        displayMsg = '⚠️ **Connection Error.** Please try again shortly.';
                     }
 
                     dispatch({ type: 'STREAM_DONE', payload: displayMsg });

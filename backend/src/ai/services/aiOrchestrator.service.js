@@ -96,34 +96,40 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
                 [{ role: "user", content: prompt }],
                 { maxTokens: 20 }
             );
-        } else if (chatModel === "sarvam-30b") {
+        } else if (chatModel === "sarvam-30b" || chatModel === "sarvam-m" || chatModel.includes("sarvam")) {
+            // Map any Sarvam-like legacy ID to the new 30B model
             title = await sarvamChat(
                 [{ role: "user", content: prompt }],
-                { maxTokens: 100, model: chatModel }
+                { maxTokens: 20, model: "sarvam-30b" }
             );
         } else {
-            // gpt-4o-mini — static import cached by Node after first call
-            const { ChatOpenAI } = await import("@langchain/openai");
-            const { HumanMessage: HMsg } = await import("@langchain/core/messages");
-            const titleModel = new ChatOpenAI({
-                model: "gpt-4o-mini",
-                temperature: 0.5,
-                apiKey: process.env.OPENAI_API_KEY,
-                maxRetries: 1
-            });
-            const response = await titleModel.invoke([new HMsg(prompt)]);
-            title = normalizeContent(response.content);
+            // Default/GPT-4o Mini path
+            try {
+                const { ChatOpenAI } = await import("@langchain/openai");
+                const { HumanMessage: HMsg } = await import("@langchain/core/messages");
+                const titleModel = new ChatOpenAI({
+                    model: "gpt-4o-mini",
+                    temperature: 0.1,
+                    apiKey: process.env.OPENAI_API_KEY,
+                    maxRetries: 1
+                });
+                const response = await titleModel.invoke([new HMsg(prompt)]);
+                title = normalizeContent(response.content);
+            } catch (err) {
+                console.warn("[Orchestrator] Title generation fallback triggered:", err.message);
+                title = "Study Session";
+            }
         }
 
         // Clean up: strip markdown bold, quotes, and any "Title:" prefix variations
-        title = title
-            .replace(/\*+/g, "")                    // Remove all asterisks (bold, italic)
-            .replace(/"/g, "")                       // Remove quotes
-            .replace(/^title\s*:\s*/i, "")           // Remove "Title:" or "title :" prefix
-            .replace(/^#+\s*/, "")                   // Remove markdown headings
-            .trim();
-
         if (title) {
+            title = title
+                .replace(/\*+/g, "")                    // Remove all asterisks (bold, italic)
+                .replace(/"/g, "")                       // Remove quotes
+                .replace(/^title\s*:\s*/i, "")           // Remove "Title:" or "title :" prefix
+                .replace(/^#+\s*/, "")                   // Remove markdown headings
+                .trim();
+
             const cleanTitle = title.substring(0, 100);
             await prisma.aiConversation.update({
                 where: { id: conversationId },

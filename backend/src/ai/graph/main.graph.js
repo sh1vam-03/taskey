@@ -81,7 +81,10 @@ const buildSarvamModel = (streaming = false) =>
             defaultHeaders: {
                 "api-subscription-key": process.env.SARVAM_API_KEY
             }
-        }
+        },
+        maxTokens: 8192,
+        timeout: 120000, // Increased to 120s for Sarvam-30B
+        maxRetries: 3
     });
 
 /**
