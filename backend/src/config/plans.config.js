@@ -247,7 +247,7 @@ export const PLANS = {
             YEARLY: 0
         },
         credits: {
-            MONTHLY: 1000,
+            MONTHLY: 100,
             YEARLY: 10
         },
         limits: {
