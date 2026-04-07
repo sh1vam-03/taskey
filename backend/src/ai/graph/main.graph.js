@@ -86,28 +86,6 @@ const buildSarvamModel = (streaming = false) =>
     });
 
 /**
- * Sarvam-M via LangChain's ChatOpenAI adapter.
- * Uses the same endpoint but model identifier is sarvam-m.
- */
-const buildSarvamMModel = (streaming = false) =>
-    new ChatOpenAI({
-        model: "sarvam-m",
-        temperature: 0.2,
-        apiKey: process.env.SARVAM_API_KEY,
-        timeout: 30000,
-        maxRetries: 2,
-        maxTokens: 8192,
-        streaming,
-        configuration: {
-            baseURL: `${process.env.SARVAM_API_BASE || "https://api.sarvam.ai"}/v1`,
-            defaultHeaders: {
-                "api-subscription-key": process.env.SARVAM_API_KEY
-            }
-        },
-        reasoning_effort: "high"
-    });
-
-/**
  * OpenAI GPT-4o Mini — standard LangChain ChatOpenAI adapter.
  */
 const buildOpenAIModel = (streaming = false) =>
@@ -133,7 +111,6 @@ const buildModel = (modelId, streaming = false) => {
         case "gemini-2.0-flash": return buildGeminiModel(streaming);
         case "gemini-1.5-flash": return buildGeminiModel(streaming); // Fallback
         case "sarvam-30b": return buildSarvamModel(streaming);
-        case "sarvam-m": return buildSarvamMModel(streaming);
         case "gpt-4o-mini": return buildOpenAIModel(streaming);
         default:
             console.warn(`[Graph] Unknown modelId "${modelId}" — falling back to Gemini 1.5 Flash`);
@@ -169,25 +146,6 @@ const compileAgentGraph = (model) => {
     return workflow.compile();
 };
 
-// ─────────────────────────────────────────────────────────────
-// CHAT-ONLY GRAPH COMPILER
-// For models that do not support tool calling (like sarvam-m)
-// START → Agent → Summarize → Finalize → END
-// ─────────────────────────────────────────────────────────────
-
-const compileChatOnlyGraph = (model) => {
-    const workflow = new StateGraph({ channels: graphState })
-        .addNode("agent", createIntentNode(model)) // No bound tools
-        .addNode("summarize", createMemoryNode(model))
-        .addNode("finalize", createFinalizeNode())
-        .addEdge(START, "agent")
-        .addEdge("agent", "summarize")
-        .addEdge("summarize", "finalize")
-        .addEdge("finalize", END);
-
-    return workflow.compile();
-};
-
 export const getGraph = async (modelId, streaming = false) => {
     const cacheKey = `${modelId}-${streaming ? "stream" : "sync"}`;
 
@@ -196,13 +154,7 @@ export const getGraph = async (modelId, streaming = false) => {
 
         const model = buildModel(modelId, streaming);
 
-        let compiledGraph;
-        if (modelId === "sarvam-m") {
-            const { compileSarvamGraph } = await import("../sarvam/graph.js");
-            compiledGraph = compileSarvamGraph(model);
-        } else {
-            compiledGraph = compileAgentGraph(model);
-        }
+        const compiledGraph = compileAgentGraph(model);
 
         graphCache.set(cacheKey, compiledGraph);
     }

@@ -112,28 +112,12 @@ export const MODEL_INFO = {
             supportsVoice: true
         },
         {
-            id: "sarvam-m",
-            name: "Sarvam-M",
-            provider: "Sarvam AI",
-            description: "Your private study partner. Zero access to your personal data. Best for answering questions, writing, and researching topics safely.",
-            isDefault: false,
-            badge: "🇮🇳 Indic Chat",
-            pricing: {
-                label: "1 credit/request + 2 credits/1k tokens",
-                base: AI_COSTS.CHAT["sarvam-m"].base,
-                per_1000_tokens: AI_COSTS.CHAT["sarvam-m"].per_1000_tokens,
-                max_per_call: AI_COSTS.CHAT["sarvam-m"].max_per_call
-            },
-            supportsTools: false,
-            supportsVoice: true
-        },
-        {
             id: "sarvam-30b",
             name: "Sarvam 30B",
             provider: "Sarvam AI",
-            description: "Your Indian language specialist. Fluent in Hindi, Marathi, Bengali and more. Can fully manage your tasks in your native language.",
+            description: "Your private study partner. Zero access to your personal data. Fluent in Hindi, Marathi, Bengali and more. Can fully manage your tasks in your native language safely.",
             isDefault: false,
-            badge: "⏳ Coming Soon",
+            badge: "🇮🇳 Indic Chat",
             pricing: {
                 label: "1 credit/request + 2 credits/1k tokens",
                 base: AI_COSTS.CHAT["sarvam-30b"].base,

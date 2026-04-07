@@ -13,9 +13,9 @@ dotenv.config();
 process.env.LANGCHAIN_VERBOSE = "true";
 
 async function test() {
-    console.log("Compiling sarvam-m graph...");
+    console.log("Compiling sarvam-30b graph...");
     const model = new ChatOpenAI({
-        model: "sarvam-m",
+        model: "sarvam-30b",
         temperature: 0.2,
         apiKey: process.env.SARVAM_API_KEY,
         timeout: 30000,

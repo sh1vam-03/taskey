@@ -92,7 +92,7 @@ export const sarvamChat = async (messages, opts = {}) => {
     const key = getSarvamKey();
 
     const body = {
-        model: opts.model || "sarvam-m",
+        model: opts.model || "sarvam-30b",
         messages,
         temperature: opts.temperature ?? 0.2,
         top_p: opts.topP ?? 1,
@@ -140,7 +140,7 @@ export const sarvamChatStream = async function* (messages, opts = {}) {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: opts.model || "sarvam-m",
+            model: opts.model || "sarvam-30b",
             messages,
             temperature: opts.temperature ?? 0.2,
             max_tokens: opts.maxTokens ?? 2048,

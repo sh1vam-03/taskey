@@ -42,7 +42,7 @@ import ApiError from "../../utils/ApiError.js";
 // ─────────────────────────────────────────────────────────────
 
 const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "sarvam-m", "gpt-4o-mini"];
-const UNAVAILABLE_MODELS = ["sarvam-30b"];
+const UNAVAILABLE_MODELS = [];
 
 // ─────────────────────────────────────────────────────────────
 // MODEL RESOLVERS
@@ -53,12 +53,13 @@ const UNAVAILABLE_MODELS = ["sarvam-30b"];
  * Enforces plan limits: FREE users can ONLY use sarvam-m text chat.
  */
 const resolveChatModel = (user) => {
-    if (user?.plan === "FREE") return "sarvam-m";
-    const m = user?.aiChatModel;
+    if (user?.plan === "FREE") return "sarvam-30b";
+    let m = user?.aiChatModel;
+    if (m === "sarvam-m") m = "sarvam-30b";
     if (m && UNAVAILABLE_MODELS.includes(m)) {
         throw new ApiError(503, "This model is currently not available. Please use a different model.");
     }
-    return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-m";
+    return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-30b";
 };
 
 /**
@@ -66,12 +67,13 @@ const resolveChatModel = (user) => {
  * Voice is conceptually PRO_PLUS only, but as a fallback, enforces plan limits.
  */
 const resolveVoiceModel = (user) => {
-    if (user?.plan !== "PRO_PLUS") return "sarvam-m";
-    const m = user?.aiVoiceModel;
+    if (user?.plan !== "PRO_PLUS") return "sarvam-30b";
+    let m = user?.aiVoiceModel;
+    if (m === "sarvam-m") m = "sarvam-30b";
     if (m && UNAVAILABLE_MODELS.includes(m)) {
         throw new ApiError(503, "This model is currently not available. Please use a different model.");
     }
-    return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-m";
+    return VALID_CHAT_MODELS.includes(m) ? m : "sarvam-30b";
 };
 
 // ─────────────────────────────────────────────────────────────
