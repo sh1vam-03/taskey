@@ -51,7 +51,7 @@ const graphCache = new Map();
  */
 const buildGeminiModel = (streaming = false) =>
     new ChatGoogleGenerativeAI({
-        model: "gemini-2.0-flash",
+        model: "gemini-1.5-flash",
         apiKey: process.env.GEMINI_API_KEY,
         temperature: 0,
         streaming,
@@ -81,8 +81,7 @@ const buildSarvamModel = (streaming = false) =>
             defaultHeaders: {
                 "api-subscription-key": process.env.SARVAM_API_KEY
             }
-        },
-        reasoning_effort: "high"
+        }
     });
 
 /**
@@ -108,8 +107,7 @@ const buildOpenAIModel = (streaming = false) =>
  */
 const buildModel = (modelId, streaming = false) => {
     switch (modelId) {
-        case "gemini-2.0-flash": return buildGeminiModel(streaming);
-        case "gemini-1.5-flash": return buildGeminiModel(streaming); // Fallback
+        case "gemini-1.5-flash": return buildGeminiModel(streaming);
         case "sarvam-30b": return buildSarvamModel(streaming);
         case "gpt-4o-mini": return buildOpenAIModel(streaming);
         default:

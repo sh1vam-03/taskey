@@ -43,11 +43,6 @@ export const AI_COSTS = {
         },
 
         // ── Sarvam ────────────────────────────────────────────
-        "sarvam-m": {
-            base: 1,
-            per_1000_tokens: 2,
-            max_per_call: 200
-        },
         "sarvam-30b": {
             base: 1,
             per_1000_tokens: 2,

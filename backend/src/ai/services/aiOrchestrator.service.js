@@ -41,7 +41,7 @@ import ApiError from "../../utils/ApiError.js";
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────
 
-const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "sarvam-m", "gpt-4o-mini"];
+const VALID_CHAT_MODELS = ["gemini-1.5-flash", "sarvam-30b", "gpt-4o-mini"];
 const UNAVAILABLE_MODELS = [];
 
 // ─────────────────────────────────────────────────────────────
@@ -55,7 +55,6 @@ const UNAVAILABLE_MODELS = [];
 const resolveChatModel = (user) => {
     if (user?.plan === "FREE") return "sarvam-30b";
     let m = user?.aiChatModel;
-    if (m === "sarvam-m") m = "sarvam-30b";
     if (m && UNAVAILABLE_MODELS.includes(m)) {
         throw new ApiError(503, "This model is currently not available. Please use a different model.");
     }
@@ -69,7 +68,6 @@ const resolveChatModel = (user) => {
 const resolveVoiceModel = (user) => {
     if (user?.plan !== "PRO_PLUS") return "sarvam-30b";
     let m = user?.aiVoiceModel;
-    if (m === "sarvam-m") m = "sarvam-30b";
     if (m && UNAVAILABLE_MODELS.includes(m)) {
         throw new ApiError(503, "This model is currently not available. Please use a different model.");
     }
@@ -105,7 +103,7 @@ const generateConversationTitle = async (conversationId, userMessage, aiResponse
                 [{ role: "user", content: prompt }],
                 { maxTokens: 20 }
             );
-        } else if (chatModel === "sarvam-30b" || chatModel === "sarvam-m") {
+        } else if (chatModel === "sarvam-30b") {
             title = await sarvamChat(
                 [{ role: "user", content: prompt }],
                 { maxTokens: 20, model: chatModel }

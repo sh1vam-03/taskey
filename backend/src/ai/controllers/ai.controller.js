@@ -157,8 +157,8 @@ export const getAiSettings = asyncHandler(async (req, res) => {
         data: {
             // ── Current user selections ──────────────────────────
             // Enforce plan limits on the returned selections so the frontend logic (e.g., Study Mode banner) accurately reflects reality.
-            chatModel: user.plan === "FREE" ? "sarvam-30b" : ((user.aiChatModel === "sarvam-m" ? "sarvam-30b" : user.aiChatModel) || "gemini-1.5-flash"),
-            voiceModel: user.plan !== "PRO_PLUS" ? "sarvam-30b" : ((user.aiVoiceModel === "sarvam-m" ? "sarvam-30b" : user.aiVoiceModel) || "gemini-1.5-flash"),
+            chatModel: user.plan === "FREE" ? "sarvam-30b" : (user.aiChatModel || "gemini-1.5-flash"),
+            voiceModel: user.plan !== "PRO_PLUS" ? "sarvam-30b" : (user.aiVoiceModel || "gemini-1.5-flash"),
             ttsModel: user.aiTtsModel || "bulbul:v3",
             sttModel: user.aiSttModel || "saaras:v3",
             sttLang: user.aiSarvamLang || "unknown",
@@ -237,7 +237,7 @@ export const updateAiSettings = asyncHandler(async (req, res) => {
     const updates = {};
 
     if (chatModel !== undefined) {
-        if (user.plan === "FREE" && chatModel !== "sarvam-30b" && chatModel !== "sarvam-m") {
+        if (user.plan === "FREE" && chatModel !== "sarvam-30b") {
             throw new ApiError(403, "Free plan only supports the Sarvam 30B text model. Please upgrade to access more models.");
         }
         if (!VALID_CHAT_MODELS.includes(chatModel))
